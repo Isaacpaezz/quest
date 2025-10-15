@@ -72,3 +72,18 @@ export async function generarPlanAction(prevState: any, formData: FormData) {
   revalidatePath('/admin/planes')
   return { message: `¡Plan para ${nombre_libro} creado y guardado exitosamente!` }
 }
+
+export async function programarPlanSiguienteAction(planId: number) {
+  const supabase = await createClient()
+  const { error } = await supabase.rpc('programar_plan_siguiente', {
+    plan_id_a_programar: planId,
+  })
+
+  if (error) {
+    console.error('Error al programar el plan:', error)
+    return { error: 'No se pudo programar el plan. Inténtalo de nuevo.' }
+  }
+
+  revalidatePath('/admin/planes')
+  return { message: 'Plan programado como el siguiente exitosamente.' }
+}

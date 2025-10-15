@@ -1,9 +1,9 @@
 'use client'
 
-import { useActionState, useEffect } from 'react'
+import { useActionState, useEffect, useState } from 'react'
 import { useFormStatus } from 'react-dom'
 import { LIBROS_BIBLIA } from '@/lib/bible-data'
-import { generarPlanAction } from '../actions'
+import { generarPlanAction, programarPlanSiguienteAction } from '../actions'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -11,7 +11,9 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
-import { Toaster, toast } from 'sonner'
+import { toast } from 'sonner'
+import { Toaster } from '@/components/ui/sonner'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 
 // Componente para el botón de envío para mostrar estado de carga
 function SubmitButton() {
@@ -19,18 +21,50 @@ function SubmitButton() {
   return <Button type="submit" disabled={pending}>{pending ? 'Generando...' : 'Generar Plan'}</Button>
 }
 
-const initialState = { errors: {}, message: undefined };
+type EstadoAccion = {
+  errors?: {
+    nombre_libro?: string[]
+    fecha_inicio?: string[]
+    minutos_oracion?: string[]
+    _form?: string[]
+  }
+  message?: string
+}
+
+const estadoInicial: EstadoAccion = { errors: {}, message: undefined };
 
 export function PlanManagementClient({ planes }: { planes: any[] }) {
-  const [state, formAction] = useActionState(generarPlanAction, initialState)
+  const [createState, formAction] = useActionState<EstadoAccion, FormData>(
+    generarPlanAction,
+    estadoInicial
+  )
+  const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const [selectedPlan, setSelectedPlan] = useState<any | null>(null)
 
   useEffect(() => {
-    if (state.message) {
-      toast.success('Éxito', { description: state.message })
-    } else if (state.errors?._form) {
-      toast.error('Error al crear el plan', { description: state.errors._form[0] })
+    if (createState.message) {
+      toast.success('Éxito', { description: createState.message })
+    } else if (createState.errors?._form) {
+      toast.error('Error al crear el plan', { description: createState.errors._form[0] })
     }
-  }, [state, toast])
+  }, [createState, toast])
+
+  const handleScheduleClick = (plan: any) => {
+    setSelectedPlan(plan)
+    setIsDialogOpen(true)
+  }
+
+  const handleScheduleConfirm = async () => {
+    if (!selectedPlan) return
+    const result = await programarPlanSiguienteAction(selectedPlan.id)
+    if ((result as any).error) {
+      toast.error('Error', { description: (result as any).error })
+    } else if ((result as any).message) {
+      toast.success('Éxito', { description: (result as any).message })
+    }
+    setIsDialogOpen(false)
+    setSelectedPlan(null)
+  }
 
   return (
     <div className="grid gap-8 md:grid-cols-3">
@@ -71,7 +105,7 @@ export function PlanManagementClient({ planes }: { planes: any[] }) {
                 <TableHead>Libro</TableHead>
                 <TableHead>Estado</TableHead>
                 <TableHead>Duración</TableHead>
-                <TableHead>Acciones</TableHead>
+                <TableHead className="text-right">Acciones</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -80,13 +114,33 @@ export function PlanManagementClient({ planes }: { planes: any[] }) {
                   <TableCell className="font-medium">{plan.nombre_libro}</TableCell>
                   <TableCell><Badge variant={plan.estado === 'activo' ? 'default' : plan.estado === 'proximo' ? 'secondary' : 'outline'}>{plan.estado}</Badge></TableCell>
                   <TableCell>{new Date(plan.fecha_inicio).toLocaleDateString()} - {new Date(plan.fecha_fin).toLocaleDateString()}</TableCell>
-                  <TableCell>{/* Botones de acción aquí */}</TableCell>
+                  <TableCell className="text-right">
+                    {plan.estado === 'inactivo' && (
+                      <Button variant="outline" size="sm" onClick={() => handleScheduleClick(plan)}>
+                        Programar
+                      </Button>
+                    )}
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
         </CardContent>
       </Card>
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirmar Programación</DialogTitle>
+            <DialogDescription>
+              ¿Estás seguro de que quieres programar el plan de lectura de <strong>{selectedPlan?.nombre_libro}</strong> como el próximo? Si ya existe un plan programado, será reemplazado.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsDialogOpen(false)}>Cancelar</Button>
+            <Button onClick={handleScheduleConfirm}>Confirmar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       <Toaster richColors />
     </div>
   )
