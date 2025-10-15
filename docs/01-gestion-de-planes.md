@@ -13,4 +13,4 @@ Este módulo permite a los administradores crear, visualizar y gestionar los pla
 
 - **Creación:** Se realiza a través de una Server Action de Next.js que llama a una función RPC de Supabase (`crear_plan_con_capitulos`) para garantizar una transacción atómica.
 - **Calendarización:** La lógica omite los domingos y calcula automáticamente la fecha de fin.
-- **Transición:** Un cron job diario verificará si el plan activo ha finalizado para promover automáticamente el plan 'próximo' a 'activo'.
+- **Transición:** Un cron job diario verificará si el plan activo ha finalizado para promover automáticamente el plan 'proximo' a 'activo'.
