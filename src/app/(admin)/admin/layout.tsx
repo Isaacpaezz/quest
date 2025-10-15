@@ -1,7 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import LogoutButton from '@/components/auth/logout-button'
 
 /**
  * Layout de seguridad para el Panel de Administración.
@@ -81,32 +80,8 @@ export default async function AdminLayout({
   }
 
   return (
-    <div className="flex flex-col min-h-screen bg-background">
-      <header className="flex items-center justify-between h-16 px-8 border-b bg-card">
-        <div className="flex items-center gap-6">
-          <Link href="/admin">
-            <h1 className="text-xl font-bold text-destructive">Quest [Admin]</h1>
-          </Link>
-          <nav className="flex items-center gap-4">
-            <Link href="/admin/planes" className="text-sm font-medium hover:underline text-muted-foreground">
-              Planes de Lectura
-            </Link>
-            <Link href="/admin/penalizaciones" className="text-sm font-medium text-muted-foreground hover:text-primary">
-              Penalizaciones
-            </Link>
-            <Link href="/admin/configuracion" className="text-sm font-medium text-muted-foreground hover:text-primary">
-              Configuración
-            </Link>
-          </nav>
-        </div>
-        <div className="flex items-center gap-4">
-          <span className="text-sm text-muted-foreground">{user.email}</span>
-          <LogoutButton />
-        </div>
-      </header>
-      <main className="flex-1 p-8">
-        {children}
-      </main>
+    <div className="max-w-7xl mx-auto">
+      {children}
     </div>
   )
 }
