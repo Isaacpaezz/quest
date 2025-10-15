@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { BookOpen, CheckCircle2, ShieldAlert, Target } from 'lucide-react'
 import { RegisterReadingDialog } from './register-reading-dialog'
 import { Toaster } from '@/components/ui/sonner'
+import { PrayerTimer } from './prayer-timer'
 
 // El componente recibe los datos pre-cargados desde la página del servidor
 export function DashboardClient({ dailyMission, userProgress }: { dailyMission: any, userProgress: any }) {
@@ -52,26 +53,24 @@ export function DashboardClient({ dailyMission, userProgress }: { dailyMission: 
                   <Button onClick={() => setIsReadingDialogOpen(true)}>Registrar Lectura</Button>
                 )}
               </div>
-              {/* ... (La Sección de Oración se mantiene igual por ahora) ... */}
+              {/* Sección de Oración Interactiva */}
               <div className="flex items-center justify-between p-4 border rounded-lg">
                 <div className="flex items-center gap-4">
                   <div className="flex flex-col items-center justify-center w-8">
-                     <span className="text-2xl font-bold text-secondary">{dailyMission.minutos_oracion_requeridos}</span>
-                     <span className="text-xs font-semibold tracking-widest uppercase">MIN</span>
+                    <span className="text-2xl font-bold text-secondary">{dailyMission.minutos_oracion_requeridos}</span>
+                    <span className="text-xs font-semibold tracking-widest uppercase">MIN</span>
                   </div>
                   <div>
                     <h3 className="font-semibold">Tiempo de Oración</h3>
                     <p className="text-muted-foreground">Conecta y reflexiona.</p>
                   </div>
                 </div>
-                {userProgress?.oracion_completada ? (
-                  <div className="flex items-center gap-2 text-green-600">
-                    <CheckCircle2 size={20} />
-                    <span className="font-semibold">Completado</span>
-                  </div>
-                ) : (
-                  <Button>Iniciar Oración</Button>
-                )}
+                <PrayerTimer
+                  minutosRequeridos={dailyMission.minutos_oracion_requeridos}
+                  segundosIniciales={userProgress?.segundos_oracion_acumulados || 0}
+                  capituloId={chapterInfo.id}
+                  oracionCompletada={userProgress?.oracion_completada || false}
+                />
               </div>
             </>
           )}
