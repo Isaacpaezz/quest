@@ -8,6 +8,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Button } from '@/components/ui/button'
 import { Toaster } from '@/components/ui/sonner'
 import { Badge } from '@/components/ui/badge'
+import { EmptyState } from '@/components/shared/empty-state'
+import { ShieldCheck } from 'lucide-react'
 
 export function PenaltiesClient({ penalties: initialPenalties }: { penalties: any[] }) {
   const [penalties, setPenalties] = useState(initialPenalties)
@@ -31,18 +33,18 @@ export function PenaltiesClient({ penalties: initialPenalties }: { penalties: an
       <Card>
         <CardHeader><CardTitle>Penalizaciones Pendientes</CardTitle></CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Miembro</TableHead>
-                <TableHead>Fecha de Incumplimiento</TableHead>
-                <TableHead>Monto</TableHead>
-                <TableHead className="text-right">Acciones</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {penalties.length > 0 ? (
-                penalties.map(penalty => (
+          {penalties.length > 0 ? (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Miembro</TableHead>
+                  <TableHead>Fecha de Incumplimiento</TableHead>
+                  <TableHead>Monto</TableHead>
+                  <TableHead className="text-right">Acciones</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {penalties.map(penalty => (
                   <TableRow key={penalty.id}>
                     <TableCell className="font-medium">{penalty.perfiles.nombre_usuario}</TableCell>
                     <TableCell>{new Date(penalty.fecha_incumplimiento).toLocaleDateString()}</TableCell>
@@ -58,16 +60,16 @@ export function PenaltiesClient({ penalties: initialPenalties }: { penalties: an
                       </Button>
                     </TableCell>
                   </TableRow>
-                ))
-              ) : (
-                <TableRow>
-                  <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
-                    No hay penalizaciones pendientes. ¡Excelente trabajo, comunidad!
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
+                ))}
+              </TableBody>
+            </Table>
+          ) : (
+            <EmptyState
+              Icon={ShieldCheck}
+              title="Todo en Orden"
+              description="No hay penalizaciones pendientes en la comunidad. ¡Excelente trabajo!"
+            />
+          )}
         </CardContent>
       </Card>
       <Toaster richColors />
