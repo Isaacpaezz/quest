@@ -3,26 +3,31 @@
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 
-export async function marcarComoPagadaAction(penalizacionId: number) {
+export async function aplicarPagoAction(usuarioId: string, monto: number) {
   const supabase = await createClient()
   
   // Verificación de rol de administrador por seguridad
   const { data: { user } } = await supabase.auth.getUser()
-  const { data: profile } = await supabase.from('perfiles').select('rol').eq('id', user!.id).single()
+  if (!user) return { error: 'No autenticado.' }
+
+  const { data: profile } = await supabase.from('perfiles').select('rol').eq('id', user.id).single()
   if (profile?.rol !== 'admin') {
     return { error: 'No tienes permiso para realizar esta acción.' }
   }
 
-  const { error } = await supabase.rpc('marcar_penalizacion_pagada', {
-    penalizacion_id_param: penalizacionId,
+  if (monto <= 0) return { error: 'El monto debe ser positivo.' }
+
+  const { error } = await supabase.rpc('aplicar_pago_a_usuario', {
+    usuario_id_param: usuarioId,
+    monto_pago_param: monto,
   })
 
   if (error) {
-    console.error('Error al marcar penalización como pagada:', error)
+    console.error('Error al aplicar pago:', error)
     return { error: 'Hubo un error en la base de datos.' }
   }
 
   revalidatePath('/admin/penalizaciones')
-  revalidatePath('/comunidad') // Revalidar también la página de comunidad
-  return { message: 'Penalización marcada como pagada.' }
+  revalidatePath('/comunidad')
+  return { message: 'Pago aplicado exitosamente.' }
 }
