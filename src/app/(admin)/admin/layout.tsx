@@ -91,8 +91,11 @@ export default async function AdminLayout({
             <Link href="/admin/planes" className="text-sm font-medium hover:underline text-muted-foreground">
               Planes de Lectura
             </Link>
-            <Link href="/admin/penalizaciones" className="text-sm font-medium hover:underline text-muted-foreground">
+            <Link href="/admin/penalizaciones" className="text-sm font-medium text-muted-foreground hover:text-primary">
               Penalizaciones
+            </Link>
+            <Link href="/admin/configuracion" className="text-sm font-medium text-muted-foreground hover:text-primary">
+              Configuración
             </Link>
           </nav>
         </div>
