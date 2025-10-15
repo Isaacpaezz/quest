@@ -27,8 +27,10 @@ export function PlanManagementClient({ planes }: { planes: any[] }) {
   useEffect(() => {
     if (state.message) {
       toast.success('Éxito', { description: state.message })
+    } else if (state.errors?._form) {
+      toast.error('Error al crear el plan', { description: state.errors._form[0] })
     }
-  }, [state])
+  }, [state, toast])
 
   return (
     <div className="grid gap-8 md:grid-cols-3">
