@@ -2,7 +2,9 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { CheckCircle2, XCircle, ShieldAlert } from 'lucide-react'
+import { CheckCircle2, XCircle, ShieldAlert, ChevronDown } from 'lucide-react'
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
+import { Badge } from '@/components/ui/badge' // Asegúrate de que Badge está importado
 
 export function CommunityClient({ communityData }: { communityData: any[] }) {
   const accountabilityData = communityData
@@ -11,13 +13,10 @@ export function CommunityClient({ communityData }: { communityData: any[] }) {
 
   return (
     <div className="grid gap-8 lg:grid-cols-2">
-      {/* Tarjeta de Pulso Diario */}
+      {/* Tarjeta de Pulso Diario (sin cambios) */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <CheckCircle2 className="text-green-500" />
-            El Pulso de Hoy
-          </CardTitle>
+          <CardTitle className="flex items-center gap-2"><CheckCircle2 className="text-green-500" />El Pulso de Hoy</CardTitle>
         </CardHeader>
         <CardContent>
           <Table>
@@ -49,13 +48,10 @@ export function CommunityClient({ communityData }: { communityData: any[] }) {
         </CardContent>
       </Card>
 
-      {/* Tarjeta de Muro de Responsabilidad */}
+      {/* Tarjeta de Muro de Responsabilidad (ACTUALIZADA) */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <ShieldAlert className="text-destructive" />
-            Muro de la Responsabilidad
-          </CardTitle>
+          <CardTitle className="flex items-center gap-2"><ShieldAlert className="text-destructive" />Muro de la Responsabilidad</CardTitle>
         </CardHeader>
         <CardContent>
           <Table>
@@ -69,13 +65,42 @@ export function CommunityClient({ communityData }: { communityData: any[] }) {
             <TableBody>
               {accountabilityData.length > 0 ? (
                 accountabilityData.map(user => (
-                  <TableRow key={user.id}>
-                    <TableCell className="font-medium">{user.nombre_usuario}</TableCell>
-                    <TableCell>{user.deuda.dias_pendientes}</TableCell>
-                    <TableCell className="text-right font-mono font-semibold">
-                      {user.deuda.total.toLocaleString('es-ES', { style: 'currency', currency: 'USD' })}
-                    </TableCell>
-                  </TableRow>
+                  <Collapsible asChild key={user.id} >
+                    <>
+                      <CollapsibleTrigger asChild>
+                        <TableRow className="cursor-pointer hover:bg-muted/50">
+                          <TableCell className="font-medium flex items-center gap-2">
+                            <ChevronDown className="h-4 w-4" />
+                            {user.nombre_usuario}
+                          </TableCell>
+                          <TableCell>{user.deuda.dias_pendientes}</TableCell>
+                          <TableCell className="text-right font-mono font-semibold">
+                            {user.deuda.total.toLocaleString('es-ES', { style: 'currency', currency: 'USD' })}
+                          </TableCell>
+                        </TableRow>
+                      </CollapsibleTrigger>
+                      <CollapsibleContent asChild>
+                        <tr className="bg-muted/20">
+                          <td colSpan={3}>
+                            <div className="p-4">
+                              <h4 className="font-semibold mb-2">Detalle de Incumplimientos:</h4>
+                              <ul className="space-y-2">
+                                {user.deuda.penalizaciones.map((p: any) => (
+                                  <li key={p.id} className="text-sm flex justify-between items-center">
+                                    <span>
+                                      {new Date(p.fecha_incumplimiento).toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' })}
+                                      : <span className="font-mono">{parseFloat(p.monto).toLocaleString('es-ES', { style: 'currency', currency: 'USD' })}</span>
+                                    </span>
+                                    <Badge variant="destructive">{p.motivo}</Badge>
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          </td>
+                        </tr>
+                      </CollapsibleContent>
+                    </>
+                  </Collapsible>
                 ))
               ) : (
                 <TableRow>

@@ -88,8 +88,11 @@ export default async function AdminLayout({
             <h1 className="text-xl font-bold text-destructive">Quest [Admin]</h1>
           </Link>
           <nav className="flex items-center gap-4">
-            <Link href="/admin/planes" className="text-sm font-medium hover:underline">
+            <Link href="/admin/planes" className="text-sm font-medium hover:underline text-muted-foreground">
               Planes de Lectura
+            </Link>
+            <Link href="/admin/penalizaciones" className="text-sm font-medium hover:underline text-muted-foreground">
+              Penalizaciones
             </Link>
           </nav>
         </div>
