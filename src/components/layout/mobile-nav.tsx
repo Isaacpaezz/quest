@@ -5,7 +5,7 @@ import { BookOpen, Users, Newspaper, User } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const navLinks = [
-  { href: '/', label: 'Sustento Diario', icon: BookOpen },
+  { href: '/sustento-diario', label: 'Sustento Diario', icon: BookOpen },
   { href: '/comunidad', label: 'Comunidad', icon: Users },
   // { href: '/feed', label: 'Feed', icon: Newspaper }, // Descomentar cuando exista la página
   { href: '/perfil', label: 'Mi Perfil', icon: User },
