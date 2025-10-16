@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
-import { BookOpen, Users, Newspaper, User, ListChecks, ShieldX, Settings } from 'lucide-react'
+import { BookOpen, Users, User, ListChecks, ShieldX, Settings } from 'lucide-react'
 import LogoutButton from '@/components/auth/logout-button'
 
 // Usamos un componente de servidor para obtener el rol del usuario aquí mismo

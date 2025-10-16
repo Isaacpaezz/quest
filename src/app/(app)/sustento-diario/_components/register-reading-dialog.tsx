@@ -27,6 +27,7 @@ type RegisterReadingDialogProps = {
 export function RegisterReadingDialog({ open, onOpenChange, chapterId, chapterReference }: RegisterReadingDialogProps) {
   const [state, formAction] = useActionState(registrarProgresoLecturaAction, { errors: {}, message: undefined, error: undefined })
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (state.message) {
       toast.success('Éxito', { description: state.message })

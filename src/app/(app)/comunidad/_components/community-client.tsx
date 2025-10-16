@@ -1,12 +1,27 @@
 'use client'
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+
+type CommunityData = {
+  id: string
+  nombre_usuario: string
+  progresoHoy: {
+    lectura_completada: boolean
+    oracion_completada: boolean
+  }
+  deuda: {
+    total: number
+    dias_pendientes: number
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    penalizaciones: any[]
+  }
+}
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { CheckCircle2, XCircle, ShieldAlert, ChevronDown } from 'lucide-react'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { Badge } from '@/components/ui/badge' // Asegúrate de que Badge está importado
 
-export function CommunityClient({ communityData }: { communityData: any[] }) {
+export function CommunityClient({ communityData }: { communityData: CommunityData[] }) {
   const accountabilityData = communityData
     .filter(user => user.deuda.total > 0)
     .sort((a, b) => b.deuda.total - a.deuda.total);

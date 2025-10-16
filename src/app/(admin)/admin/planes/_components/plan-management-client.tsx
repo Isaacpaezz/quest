@@ -35,6 +35,7 @@ type EstadoAccion = {
 
 const estadoInicial: EstadoAccion = { errors: {}, message: undefined };
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function PlanManagementClient({ planes }: { planes: any[] }) {
   const [createState, formAction] = useActionState<EstadoAccion, FormData>(
     generarPlanAction,
@@ -43,6 +44,7 @@ export function PlanManagementClient({ planes }: { planes: any[] }) {
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [selectedPlan, setSelectedPlan] = useState<any | null>(null)
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (createState.message) {
       toast.success('Éxito', { description: createState.message })
