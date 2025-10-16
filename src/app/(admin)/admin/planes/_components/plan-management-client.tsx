@@ -14,6 +14,8 @@ import { Badge } from '@/components/ui/badge'
 import { toast } from 'sonner'
 import { Toaster } from '@/components/ui/sonner'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { EmptyState } from '@/components/shared/empty-state'
+import { PackageOpen } from 'lucide-react'
 
 // Componente para el botón de envío para mostrar estado de carga
 function SubmitButton() {
@@ -99,32 +101,40 @@ export function PlanManagementClient({ planes }: { planes: any[] }) {
       <Card className="md:col-span-2">
         <CardHeader><CardTitle>Planes Existentes</CardTitle></CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Libro</TableHead>
-                <TableHead>Estado</TableHead>
-                <TableHead>Duración</TableHead>
-                <TableHead className="text-right">Acciones</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {planes.map(plan => (
-                <TableRow key={plan.id}>
-                  <TableCell className="font-medium">{plan.nombre_libro}</TableCell>
-                  <TableCell><Badge variant={plan.estado === 'activo' ? 'default' : plan.estado === 'proximo' ? 'secondary' : 'outline'}>{plan.estado}</Badge></TableCell>
-                  <TableCell>{new Date(plan.fecha_inicio).toLocaleDateString()} - {new Date(plan.fecha_fin).toLocaleDateString()}</TableCell>
-                  <TableCell className="text-right">
-                    {plan.estado === 'inactivo' && (
-                      <Button variant="outline" size="sm" onClick={() => handleScheduleClick(plan)}>
-                        Programar
-                      </Button>
-                    )}
-                  </TableCell>
+          {planes.length > 0 ? (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Libro</TableHead>
+                  <TableHead>Estado</TableHead>
+                  <TableHead>Duración</TableHead>
+                  <TableHead className="text-right">Acciones</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {planes.map(plan => (
+                  <TableRow key={plan.id}>
+                    <TableCell className="font-medium">{plan.nombre_libro}</TableCell>
+                    <TableCell><Badge variant={plan.estado === 'activo' ? 'default' : plan.estado === 'proximo' ? 'secondary' : 'outline'}>{plan.estado}</Badge></TableCell>
+                    <TableCell>{new Date(plan.fecha_inicio).toLocaleDateString()} - {new Date(plan.fecha_fin).toLocaleDateString()}</TableCell>
+                    <TableCell className="text-right">
+                      {plan.estado === 'inactivo' && (
+                        <Button variant="outline" size="sm" onClick={() => handleScheduleClick(plan)}>
+                          Programar
+                        </Button>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          ) : (
+            <EmptyState
+              Icon={PackageOpen}
+              title="No Hay Planes Creados"
+              description="Parece que aún no has generado ningún plan de lectura. ¡Usa el formulario para crear el primero!"
+            />
+          )}
         </CardContent>
       </Card>
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
