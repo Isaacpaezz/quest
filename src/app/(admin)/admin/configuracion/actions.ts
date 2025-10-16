@@ -3,12 +3,13 @@
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
+import { ActionState } from '@/types/definitions'
 
 const SettingsSchema = z.object({
   monto_penalizacion: z.coerce.number().positive('El monto debe ser un número positivo.'),
 })
 
-export async function actualizarConfiguracionAction(prevState: any, formData: FormData) {
+export async function actualizarConfiguracionAction(prevState: ActionState, formData: FormData): Promise<ActionState> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   const { data: profile } = await supabase.from('perfiles').select('rol').eq('id', user!.id).single()

@@ -53,7 +53,7 @@ export function PrayerTimer({ minutosRequeridos, segundosIniciales, capituloId, 
     // Si se está pausando, guardar el progreso
     if (!nuevoEstadoActivo && !estaCompleto) {
       actualizarProgresoOracionAction({ segundosAcumulados: segundos, capituloId, oracionCompletada: false })
-        .then((res: any) => {
+        .then((res) => {
           if (!res.error) toast.info('Progreso guardado', { description: 'Tu tiempo de oración ha sido guardado.' })
         })
     }

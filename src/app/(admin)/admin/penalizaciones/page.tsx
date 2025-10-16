@@ -3,12 +3,13 @@ import { PenaltiesClient } from './_components/penalties-client'
 
 export default async function PenaltiesManagementPage() {
   const supabase = await createClient()
-  const { data: penalties, error } = await supabase
+  const { data: penalties } = await supabase
     .from('penalizaciones')
     .select(`id, monto, monto_pagado, perfiles (id, nombre_usuario)`)
     .eq('estado', 'pendiente')
 
   // Procesar los datos para agrupar por usuario
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const usersWithDebt = (penalties || []).reduce((acc: any, penalty: any) => {
     const userId = penalty.perfiles.id
     if (!acc[userId]) {

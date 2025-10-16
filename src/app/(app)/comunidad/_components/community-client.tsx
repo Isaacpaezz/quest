@@ -1,27 +1,14 @@
 'use client'
 
+import { CommunityMember } from '@/types/definitions'
+import { Tables } from '@/types/database'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-
-type CommunityData = {
-  id: string
-  nombre_usuario: string
-  progresoHoy: {
-    lectura_completada: boolean
-    oracion_completada: boolean
-  }
-  deuda: {
-    total: number
-    dias_pendientes: number
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    penalizaciones: any[]
-  }
-}
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { CheckCircle2, XCircle, ShieldAlert, ChevronDown } from 'lucide-react'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
-import { Badge } from '@/components/ui/badge' // Asegúrate de que Badge está importado
+import { Badge } from '@/components/ui/badge'
 
-export function CommunityClient({ communityData }: { communityData: CommunityData[] }) {
+export function CommunityClient({ communityData }: { communityData: CommunityMember[] }) {
   const accountabilityData = communityData
     .filter(user => user.deuda.total > 0)
     .sort((a, b) => b.deuda.total - a.deuda.total);
@@ -100,11 +87,11 @@ export function CommunityClient({ communityData }: { communityData: CommunityDat
                             <div className="p-4">
                               <h4 className="font-semibold mb-2">Detalle de Incumplimientos:</h4>
                               <ul className="space-y-2">
-                                {user.deuda.penalizaciones.map((p: any) => (
+                                {user.deuda.penalizaciones.map((p: Tables<'penalizaciones'> & { motivo: string }) => (
                                   <li key={p.id} className="text-sm flex justify-between items-center">
                                     <span>
                                       {new Date(p.fecha_incumplimiento).toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' })}
-                                      : <span className="font-mono">{parseFloat(p.monto).toLocaleString('es-ES', { style: 'currency', currency: 'USD' })}</span>
+                                      : <span className="font-mono">{p.monto.toLocaleString('es-ES', { style: 'currency', currency: 'USD' })}</span>
                                     </span>
                                     <Badge variant="destructive">{p.motivo}</Badge>
                                   </li>
