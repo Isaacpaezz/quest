@@ -74,7 +74,7 @@ export async function registrarProgresoLecturaAction(prevState: any, formData: F
     return { error: 'Hubo un error en la base de datos. Inténtalo de nuevo.' }
   }
 
-  revalidatePath('/')
+  revalidatePath('/sustento-diario')
   return { message: '¡Tu resumen ha sido guardado exitosamente!' }
 }
 
@@ -120,6 +120,6 @@ export async function actualizarProgresoOracionAction(datos: { segundosAcumulado
     return { error: 'Error en la base de datos.' };
   }
 
-  revalidatePath('/');
+  revalidatePath('/sustento-diario');
   return { message: 'Progreso guardado.' };
 }
