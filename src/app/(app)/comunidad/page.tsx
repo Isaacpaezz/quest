@@ -69,8 +69,8 @@ export default async function CommunityPage() {
   return (
     <div className="container mx-auto p-4 sm:p-8">
       <header className="mb-8">
-        <h1 className="text-3xl font-bold text-foreground">Pulso de la Comunidad</h1>
-        <p className="text-muted-foreground">Aquí seguimos juntos nuestra senda, con transparencia y apoyo mutuo.</p>
+        <h1 className="text-3xl font-bold text-foreground">Progreso</h1>
+        <p className="text-muted-foreground">Crecemos, con transparencia y apoyo.</p>
       </header>
       <CommunityClient communityData={communityData} />
     </div>

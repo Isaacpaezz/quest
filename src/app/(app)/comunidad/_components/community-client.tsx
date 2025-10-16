@@ -16,7 +16,7 @@ export function CommunityClient({ communityData }: { communityData: any[] }) {
       {/* Tarjeta de Pulso Diario (sin cambios) */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2"><CheckCircle2 className="text-green-500" />El Pulso de Hoy</CardTitle>
+          <CardTitle className="flex items-center gap-2"><CheckCircle2 className="text-green-500" />Hoy</CardTitle>
         </CardHeader>
         <CardContent>
           <Table>
@@ -51,15 +51,15 @@ export function CommunityClient({ communityData }: { communityData: any[] }) {
       {/* Tarjeta de Muro de Responsabilidad (ACTUALIZADA) */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2"><ShieldAlert className="text-destructive" />Muro de la Responsabilidad</CardTitle>
+          <CardTitle className="flex items-center gap-2"><ShieldAlert className="text-destructive" />Muro</CardTitle>
         </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Miembro</TableHead>
-                <TableHead>Días Pendientes</TableHead>
-                <TableHead className="text-right">Deuda Total</TableHead>
+                <TableHead>Días Falla</TableHead>
+                <TableHead className="text-right">Deuda</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
