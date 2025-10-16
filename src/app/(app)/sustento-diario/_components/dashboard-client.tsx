@@ -18,7 +18,7 @@ export function DashboardClient({ dailyMission, userProgress }: { dailyMission: 
 
   return (
     <>
-      <Card className="max-w-2xl mx-auto">
+      <Card className="w-full md:max-w-2xl mx-auto">
         {/* ... (El CardHeader se mantiene igual) ... */}
          <CardHeader>
           <CardTitle className="flex items-center gap-2">

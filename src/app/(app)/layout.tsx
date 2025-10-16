@@ -20,7 +20,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         <Header />
         
         {/* CONTENIDO DE LA PÁGINA */}
-        <main className="flex-1 p-4 pb-24 md:pb-4"> {/* Padding inferior en móvil para la Tab Bar */}
+        <main className="flex-1 px-2 py-4 pb-24 md:px-4 md:pb-4"> {/* Padding horizontal reducido en móvil */}
           {children}
         </main>
         

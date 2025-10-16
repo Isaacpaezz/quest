@@ -21,7 +21,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         {/* Usamos el mismo header móvil */}
         <Header />
         
-        <main className="flex-1 p-4 pb-24 md:pb-4">
+        <main className="flex-1 px-2 py-4 pb-24 md:px-4 md:pb-4">
           {/* AÑADIMOS UN TÍTULO DISTINTIVO PARA EL PANEL DE ADMIN */}
           <div className="mb-4 p-2 rounded-md bg-destructive/10 border border-destructive/20">
             <h1 className="text-lg font-semibold text-destructive">Panel de Administrador</h1>

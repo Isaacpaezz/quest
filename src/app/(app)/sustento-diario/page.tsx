@@ -40,12 +40,12 @@ export default async function DashboardPage() {
     .single()
 
   return (
-    <div className="container mx-auto p-4 sm:p-8">
-      <header className="mb-8">
+    <>
+      <header className="mb-6">
         <h1 className="text-3xl font-bold text-foreground">Tu Senda Diaria</h1>
         <p className="text-muted-foreground">Este es tu espacio para crecer y conectar.</p>
       </header>
       <DashboardClient dailyMission={dailyMission} userProgress={userProgress} />
-    </div>
+    </>
   )
 }
