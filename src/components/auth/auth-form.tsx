@@ -81,6 +81,7 @@ export default function AuthForm() {
             <Input
               id="username"
               type="text"
+              autoComplete="username"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               placeholder="Tu nombre en la comunidad"
@@ -95,6 +96,7 @@ export default function AuthForm() {
           <Input
             id="email"
             type="email"
+            autoComplete="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="tu@email.com"
@@ -108,6 +110,7 @@ export default function AuthForm() {
           <Input
             id="password"
             type="password"
+            autoComplete={isNewUser ? 'new-password' : 'current-password'}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder="••••••••"
