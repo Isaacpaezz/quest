@@ -19,6 +19,7 @@ export type Database = {
           creado_en: string
           id: number
           referencia_contenido: string | null
+          resumen_actividad: string | null
           tipo_actividad: Database["public"]["Enums"]["tipo_actividad"]
           usuario_id: string
         }
@@ -26,6 +27,7 @@ export type Database = {
           creado_en?: string
           id?: number
           referencia_contenido?: string | null
+          resumen_actividad?: string | null
           tipo_actividad: Database["public"]["Enums"]["tipo_actividad"]
           usuario_id: string
         }
@@ -33,6 +35,7 @@ export type Database = {
           creado_en?: string
           id?: number
           referencia_contenido?: string | null
+          resumen_actividad?: string | null
           tipo_actividad?: Database["public"]["Enums"]["tipo_actividad"]
           usuario_id?: string
         }

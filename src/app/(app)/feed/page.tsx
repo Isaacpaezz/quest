@@ -10,7 +10,7 @@ export default async function FeedPage() {
   const { data: activities } = await supabase
     .from('actividad_comunidad')
     .select(`
-      id, creado_en, tipo_actividad, referencia_contenido,
+      id, creado_en, tipo_actividad, referencia_contenido, resumen_actividad,
       perfiles ( nombre_usuario )
     `)
     .order('creado_en', { ascending: false })
