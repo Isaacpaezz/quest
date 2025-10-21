@@ -8,7 +8,7 @@ function calculateStreak(progress: Tables<'progreso_usuario'>[]): number {
   if (progress.length === 0) return 0;
 
   let streak = 0;
-  let today = new Date();
+  const today = new Date();
   today.setHours(0, 0, 0, 0);
 
   // Comprobar si el último día completado es hoy o ayer
