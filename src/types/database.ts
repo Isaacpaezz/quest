@@ -14,38 +14,6 @@ export type Database = {
   }
   public: {
     Tables: {
-      actividad_comunidad: {
-        Row: {
-          creado_en: string
-          id: number
-          referencia_contenido: string | null
-          tipo_actividad: Database["public"]["Enums"]["tipo_actividad"]
-          usuario_id: string
-        }
-        Insert: {
-          creado_en?: string
-          id?: number
-          referencia_contenido?: string | null
-          tipo_actividad: Database["public"]["Enums"]["tipo_actividad"]
-          usuario_id: string
-        }
-        Update: {
-          creado_en?: string
-          id?: number
-          referencia_contenido?: string | null
-          tipo_actividad?: Database["public"]["Enums"]["tipo_actividad"]
-          usuario_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "actividad_comunidad_usuario_id_fkey"
-            columns: ["usuario_id"]
-            isOneToOne: false
-            referencedRelation: "perfiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       capitulos_diarios: {
         Row: {
           fecha_lectura: string
@@ -179,9 +147,7 @@ export type Database = {
           fecha_progreso: string
           id: number
           lectura_completada: boolean
-          lectura_completada_en: string | null
           oracion_completada: boolean
-          oracion_completada_en: string | null
           resumen_lectura: string | null
           segundos_oracion_acumulados: number
           usuario_id: string
@@ -191,9 +157,7 @@ export type Database = {
           fecha_progreso?: string
           id?: number
           lectura_completada?: boolean
-          lectura_completada_en?: string | null
           oracion_completada?: boolean
-          oracion_completada_en?: string | null
           resumen_lectura?: string | null
           segundos_oracion_acumulados?: number
           usuario_id: string
@@ -203,9 +167,7 @@ export type Database = {
           fecha_progreso?: string
           id?: number
           lectura_completada?: boolean
-          lectura_completada_en?: string | null
           oracion_completada?: boolean
-          oracion_completada_en?: string | null
           resumen_lectura?: string | null
           segundos_oracion_acumulados?: number
           usuario_id?: string
@@ -270,7 +232,6 @@ export type Database = {
     Enums: {
       penalizacion_estado: "pendiente" | "pagada"
       plan_estado: "inactivo" | "activo" | "proximo" | "completado"
-      tipo_actividad: "lectura_completada" | "oracion_completada"
     }
     CompositeTypes: {
       capitulo_diario_type: {
@@ -403,7 +364,6 @@ export const Constants = {
     Enums: {
       penalizacion_estado: ["pendiente", "pagada"],
       plan_estado: ["inactivo", "activo", "proximo", "completado"],
-      tipo_actividad: ["lectura_completada", "oracion_completada"],
     },
   },
 } as const

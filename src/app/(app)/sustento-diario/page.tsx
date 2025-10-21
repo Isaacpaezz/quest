@@ -34,7 +34,7 @@ export default async function DashboardPage() {
   // 2. Obtener el progreso del usuario para la misión de hoy
   const { data: userProgress } = await supabase
     .from('progreso_usuario')
-    .select('lectura_completada, oracion_completada, segundos_oracion_acumulados, lectura_completada_en, oracion_completada_en')
+    .select('lectura_completada, oracion_completada, segundos_oracion_acumulados')
     .eq('usuario_id', user.id)
     .eq('fecha_progreso', today)
     .single()
