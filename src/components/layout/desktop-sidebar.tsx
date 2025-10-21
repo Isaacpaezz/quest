@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
-import { BookOpen, Users, History, User, ListChecks, ShieldX, Settings } from 'lucide-react'
+import { BookOpen, Users, History, Newspaper, User, ListChecks, ShieldX, Settings } from 'lucide-react'
 import LogoutButton from '@/components/auth/logout-button'
 
 // Usamos un componente de servidor para obtener el rol del usuario aquí mismo
@@ -21,13 +21,16 @@ export async function DesktopSidebar() {
       <nav className="flex-1 p-4 space-y-2">
         <h2 className="px-2 text-xs font-semibold tracking-wider text-muted-foreground uppercase">Principal</h2>
         <Link href="/sustento-diario" className="flex items-center gap-3 px-2 py-2 rounded-md text-sm font-medium hover:bg-muted">
-          <BookOpen className="h-5 w-5" /> Sustento Diario
+          <BookOpen className="h-5 w-5" /> Sustento
         </Link>
         <Link href="/comunidad" className="flex items-center gap-3 px-2 py-2 rounded-md text-sm font-medium hover:bg-muted">
           <Users className="h-5 w-5" /> Comunidad
         </Link>
         <Link href="/historial" className="flex items-center gap-3 px-2 py-2 rounded-md text-sm font-medium hover:bg-muted">
           <History className="h-5 w-5" /> Historial
+        </Link>
+        <Link href="/feed" className="flex items-center gap-3 px-2 py-2 rounded-md text-sm font-medium hover:bg-muted">
+          <Newspaper className="h-5 w-5" /> Feed
         </Link>
         
         {isAdmin && (

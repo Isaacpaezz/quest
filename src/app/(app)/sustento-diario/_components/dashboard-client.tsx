@@ -15,6 +15,23 @@ import { RegisterReadingDialog } from './register-reading-dialog'
 import { Toaster } from '@/components/ui/sonner'
 import { PrayerTimer } from './prayer-timer'
 
+// Componente helper para mostrar el estado completado
+function CompletedState({ timestamp }: { timestamp: string }) {
+  const completionTime = new Date(timestamp).toLocaleTimeString('es-ES', {
+    hour: '2-digit',
+    minute: '2-digit'
+  })
+  return (
+    <div className="flex items-center gap-2 text-green-600">
+      <CheckCircle2 size={20} />
+      <div className="flex flex-col items-start">
+        <span className="font-semibold">Completado</span>
+        <span className="text-xs">a las {completionTime}</span>
+      </div>
+    </div>
+  )
+}
+
 // El componente recibe los datos pre-cargados desde la página del servidor
 export function DashboardClient({ dailyMission, userProgress }: DailyData) {
   const [isReadingDialogOpen, setIsReadingDialogOpen] = useState(false)
@@ -52,10 +69,7 @@ export function DashboardClient({ dailyMission, userProgress }: DailyData) {
                   </div>
                 </div>
                 {userProgress?.lectura_completada ? (
-                  <div className="flex items-center gap-2 text-green-600">
-                    <CheckCircle2 size={20} />
-                    <span className="font-semibold">Completado</span>
-                  </div>
+                  <CompletedState timestamp={userProgress.lectura_completada_en} />
                 ) : (
                   <Button onClick={() => setIsReadingDialogOpen(true)}>Registrar Lectura</Button>
                 )}
@@ -72,12 +86,16 @@ export function DashboardClient({ dailyMission, userProgress }: DailyData) {
                     <p className="text-muted-foreground">Conecta y reflexiona.</p>
                   </div>
                 </div>
-                <PrayerTimer
-                  minutosRequeridos={dailyMission.minutos_oracion_requeridos}
-                  segundosIniciales={userProgress?.segundos_oracion_acumulados || 0}
-                  capituloId={chapterInfo.id}
-                  oracionCompletada={userProgress?.oracion_completada || false}
-                />
+                {userProgress?.oracion_completada ? (
+                  <CompletedState timestamp={userProgress.oracion_completada_en} />
+                ) : (
+                  <PrayerTimer
+                    minutosRequeridos={dailyMission.minutos_oracion_requeridos}
+                    segundosIniciales={userProgress?.segundos_oracion_acumulados || 0}
+                    capituloId={chapterInfo.id}
+                    oracionCompletada={userProgress?.oracion_completada || false}
+                  />
+                )}
               </div>
             </>
           )}
