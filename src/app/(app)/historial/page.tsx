@@ -13,8 +13,8 @@ export default async function HistoryPage() {
   return (
     <div className="container mx-auto p-4 sm:p-8">
       <header className="mb-8">
-        <h1 className="text-3xl font-bold text-foreground">Historial de la Comunidad</h1>
-        <p className="text-muted-foreground">Un registro de los libros que hemos conquistado juntos en nuestra senda.</p>
+        <h1 className="text-3xl font-bold text-foreground">Historial</h1>
+        <p className="text-muted-foreground">Un registro de los libros que hemos estudiado.</p>
       </header>
       <HistoryClient planes={planes || []} />
     </div>

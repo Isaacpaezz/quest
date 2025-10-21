@@ -1,13 +1,14 @@
 'use client'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { BookOpen, Users, History, User } from 'lucide-react'
+import { BookOpen, Users, History, Newspaper, User } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const navLinks = [
-  { href: '/sustento-diario', label: 'Sustento Diario', icon: BookOpen },
+  { href: '/sustento-diario', label: 'Sustento', icon: BookOpen },
   { href: '/comunidad', label: 'Comunidad', icon: Users },
   { href: '/historial', label: 'Historial', icon: History },
+  { href: '/feed', label: 'Feed', icon: Newspaper },
   { href: '/perfil', label: 'Mi Perfil', icon: User },
 ]
 

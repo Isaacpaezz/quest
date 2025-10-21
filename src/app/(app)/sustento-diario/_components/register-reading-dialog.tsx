@@ -47,6 +47,8 @@ export function RegisterReadingDialog({ open, onOpenChange, chapterId, chapterRe
         </DialogHeader>
         <form action={formAction} className="space-y-4">
           <input type="hidden" name="capituloId" value={chapterId} />
+          {/* NUEVO INPUT OCULTO */}
+          <input type="hidden" name="capituloReferencia" value={chapterReference} />
           <div>
             <Label htmlFor="resumen">Tu Resumen</Label>
             <Textarea

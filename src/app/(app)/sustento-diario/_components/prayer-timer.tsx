@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { CheckCircle2 } from 'lucide-react'
@@ -24,37 +24,60 @@ export function PrayerTimer({ minutosRequeridos, segundosIniciales, capituloId, 
   const [segundos, setSegundos] = useState(segundosIniciales)
   const [estaActivo, setEstaActivo] = useState(false)
   const [estaCompleto, setEstaCompleto] = useState(oracionCompletada)
+  
+  // Usamos useRef para mantener una referencia estable al intervalo
+  const intervalRef = useRef<NodeJS.Timeout | null>(null)
 
-  // Efecto principal para el temporizador
+  // Efecto para iniciar y detener el temporizador
   useEffect(() => {
-    if (!estaActivo || estaCompleto) return
+    if (estaActivo && !estaCompleto) {
+      intervalRef.current = setInterval(() => {
+        setSegundos(prevSegundos => {
+          const nuevosSegundos = prevSegundos + 1
+          if (nuevosSegundos >= totalSegundosRequeridos) {
+            // ¡Lógica de finalización dentro del setter!
+            if (intervalRef.current) clearInterval(intervalRef.current)
+            setEstaCompleto(true)
+            setEstaActivo(false)
+            return totalSegundosRequeridos
+          }
+          return nuevosSegundos
+        })
+      }, 1000)
+    } else {
+      if (intervalRef.current) clearInterval(intervalRef.current)
+    }
 
-    const intervalo = setInterval(() => {
-      setSegundos(s => {
-        const nuevosSegundos = s + 1
-        if (nuevosSegundos >= totalSegundosRequeridos) {
-          setEstaActivo(false)
-          setEstaCompleto(true)
-          actualizarProgresoOracionAction({ segundosAcumulados: nuevosSegundos, capituloId, oracionCompletada: true })
-            .then(() => toast.success('¡Oración completada!', { description: 'Has cumplido tu tiempo de oración de hoy.' }))
-          return totalSegundosRequeridos
-        }
-        return nuevosSegundos
+    // Función de limpieza
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current)
+    }
+  }, [estaActivo, estaCompleto, totalSegundosRequeridos])
+
+  // Efecto DEDICADO para llamar a la action al completar
+  useEffect(() => {
+    // Si el estado acaba de cambiar a completo, y no lo estaba antes
+    if (estaCompleto && !oracionCompletada) {
+      actualizarProgresoOracionAction({ 
+        segundosAcumulados: totalSegundosRequeridos, 
+        capituloId, 
+        oracionCompletada: true 
       })
-    }, 1000)
-
-    return () => clearInterval(intervalo)
-  }, [estaActivo, estaCompleto, totalSegundosRequeridos, capituloId])
+      .then(() => {
+        toast.success('¡Oración completada!', { description: 'Has cumplido tu tiempo de oración de hoy.' })
+      })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [estaCompleto]) // Se ejecuta solo cuando `estaCompleto` cambia
   
   const handleToggle = () => {
     const nuevoEstadoActivo = !estaActivo
     setEstaActivo(nuevoEstadoActivo)
 
-    // Si se está pausando, guardar el progreso
     if (!nuevoEstadoActivo && !estaCompleto) {
       actualizarProgresoOracionAction({ segundosAcumulados: segundos, capituloId, oracionCompletada: false })
-        .then((res) => {
-          if (!res.error) toast.info('Progreso guardado', { description: 'Tu tiempo de oración ha sido guardado.' })
+        .then(res => {
+          if(!res.error) toast.info('Progreso guardado', { description: 'Tu tiempo de oración ha sido guardado.' })
         })
     }
   }
