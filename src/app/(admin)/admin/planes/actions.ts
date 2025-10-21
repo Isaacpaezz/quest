@@ -4,6 +4,7 @@ import { z } from 'zod'
 import { LIBROS_BIBLIA } from '@/lib/bible-data'
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
+import { ActionState } from '@/types/definitions'
 
 const PlanSchema = z.object({
   nombre_libro: z.string().min(1, 'Debes seleccionar un libro.'),
@@ -11,7 +12,7 @@ const PlanSchema = z.object({
   minutos_oracion: z.coerce.number().min(1, 'Los minutos deben ser mayor a 0.'),
 })
 
-export async function generarPlanAction(prevState: any, formData: FormData) {
+export async function generarPlanAction(prevState: ActionState, formData: FormData): Promise<ActionState> {
   const validatedFields = PlanSchema.safeParse({
     nombre_libro: formData.get('nombre_libro'),
     fecha_inicio: formData.get('fecha_inicio'),
@@ -73,7 +74,7 @@ export async function generarPlanAction(prevState: any, formData: FormData) {
   return { message: `¡Plan para ${nombre_libro} creado y guardado exitosamente!` }
 }
 
-export async function programarPlanSiguienteAction(planId: number) {
+export async function programarPlanSiguienteAction(planId: number): Promise<ActionState> {
   const supabase = await createClient()
   const { error } = await supabase.rpc('programar_plan_siguiente', {
     plan_id_a_programar: planId,

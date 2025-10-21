@@ -1,10 +1,9 @@
-import DashboardPage from './(app)/page'
+import { redirect } from 'next/navigation'
 
 /**
  * La página raíz de la aplicación.
- * Simplemente renderiza el componente del Dashboard principal,
- * cuya lógica y protección ya están definidas en (app)/page.tsx y (app)/layout.tsx.
+ * Redirige a la página de sustento diario.
  */
 export default function HomePage() {
-  return <DashboardPage />;
+  redirect('/sustento-diario')
 }

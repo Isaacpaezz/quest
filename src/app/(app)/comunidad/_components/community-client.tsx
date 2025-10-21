@@ -1,12 +1,14 @@
 'use client'
 
+import { CommunityMember } from '@/types/definitions'
+import { Tables } from '@/types/database'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { CheckCircle2, XCircle, ShieldAlert, ChevronDown } from 'lucide-react'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
-import { Badge } from '@/components/ui/badge' // Asegúrate de que Badge está importado
+import { Badge } from '@/components/ui/badge'
 
-export function CommunityClient({ communityData }: { communityData: any[] }) {
+export function CommunityClient({ communityData }: { communityData: CommunityMember[] }) {
   const accountabilityData = communityData
     .filter(user => user.deuda.total > 0)
     .sort((a, b) => b.deuda.total - a.deuda.total);
@@ -16,7 +18,7 @@ export function CommunityClient({ communityData }: { communityData: any[] }) {
       {/* Tarjeta de Pulso Diario (sin cambios) */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2"><CheckCircle2 className="text-green-500" />El Pulso de Hoy</CardTitle>
+          <CardTitle className="flex items-center gap-2"><CheckCircle2 className="text-green-500" />Hoy</CardTitle>
         </CardHeader>
         <CardContent>
           <Table>
@@ -51,15 +53,15 @@ export function CommunityClient({ communityData }: { communityData: any[] }) {
       {/* Tarjeta de Muro de Responsabilidad (ACTUALIZADA) */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2"><ShieldAlert className="text-destructive" />Muro de la Responsabilidad</CardTitle>
+          <CardTitle className="flex items-center gap-2"><ShieldAlert className="text-destructive" />Muro</CardTitle>
         </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Miembro</TableHead>
-                <TableHead>Días Pendientes</TableHead>
-                <TableHead className="text-right">Deuda Total</TableHead>
+                <TableHead>Días Falla</TableHead>
+                <TableHead className="text-right">Deuda</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -85,11 +87,11 @@ export function CommunityClient({ communityData }: { communityData: any[] }) {
                             <div className="p-4">
                               <h4 className="font-semibold mb-2">Detalle de Incumplimientos:</h4>
                               <ul className="space-y-2">
-                                {user.deuda.penalizaciones.map((p: any) => (
+                                {user.deuda.penalizaciones.map((p: Tables<'penalizaciones'> & { motivo: string }) => (
                                   <li key={p.id} className="text-sm flex justify-between items-center">
                                     <span>
                                       {new Date(p.fecha_incumplimiento).toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' })}
-                                      : <span className="font-mono">{parseFloat(p.monto).toLocaleString('es-ES', { style: 'currency', currency: 'USD' })}</span>
+                                      : <span className="font-mono">{p.monto.toLocaleString('es-ES', { style: 'currency', currency: 'USD' })}</span>
                                     </span>
                                     <Badge variant="destructive">{p.motivo}</Badge>
                                   </li>

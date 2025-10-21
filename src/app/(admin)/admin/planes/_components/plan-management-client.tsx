@@ -2,6 +2,8 @@
 
 import { useActionState, useEffect, useState } from 'react'
 import { useFormStatus } from 'react-dom'
+import { Tables } from '@/types/database'
+import { ActionState } from '@/types/definitions'
 import { LIBROS_BIBLIA } from '@/lib/bible-data'
 import { generarPlanAction, programarPlanSiguienteAction } from '../actions'
 import { Button } from '@/components/ui/button'
@@ -23,25 +25,12 @@ function SubmitButton() {
   return <Button type="submit" disabled={pending}>{pending ? 'Generando...' : 'Generar Plan'}</Button>
 }
 
-type EstadoAccion = {
-  errors?: {
-    nombre_libro?: string[]
-    fecha_inicio?: string[]
-    minutos_oracion?: string[]
-    _form?: string[]
-  }
-  message?: string
-}
+const estadoInicialCreacion: ActionState = { errors: {}, message: undefined };
 
-const estadoInicial: EstadoAccion = { errors: {}, message: undefined };
-
-export function PlanManagementClient({ planes }: { planes: any[] }) {
-  const [createState, formAction] = useActionState<EstadoAccion, FormData>(
-    generarPlanAction,
-    estadoInicial
-  )
+export function PlanManagementClient({ planes }: { planes: Tables<'planes_lectura'>[] }) {
+  const [createState, formAction] = useActionState(generarPlanAction, estadoInicialCreacion)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
-  const [selectedPlan, setSelectedPlan] = useState<any | null>(null)
+  const [selectedPlan, setSelectedPlan] = useState<Tables<'planes_lectura'> | null>(null)
 
   useEffect(() => {
     if (createState.message) {
@@ -49,9 +38,9 @@ export function PlanManagementClient({ planes }: { planes: any[] }) {
     } else if (createState.errors?._form) {
       toast.error('Error al crear el plan', { description: createState.errors._form[0] })
     }
-  }, [createState, toast])
+  }, [createState])
 
-  const handleScheduleClick = (plan: any) => {
+  const handleScheduleClick = (plan: Tables<'planes_lectura'>) => {
     setSelectedPlan(plan)
     setIsDialogOpen(true)
   }
@@ -59,10 +48,10 @@ export function PlanManagementClient({ planes }: { planes: any[] }) {
   const handleScheduleConfirm = async () => {
     if (!selectedPlan) return
     const result = await programarPlanSiguienteAction(selectedPlan.id)
-    if ((result as any).error) {
-      toast.error('Error', { description: (result as any).error })
-    } else if ((result as any).message) {
-      toast.success('Éxito', { description: (result as any).message })
+    if (result.error) {
+      toast.error('Error', { description: result.error })
+    } else if (result.message) {
+      toast.success('Éxito', { description: result.message })
     }
     setIsDialogOpen(false)
     setSelectedPlan(null)

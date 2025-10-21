@@ -1,6 +1,13 @@
 'use client'
 
 import { useState } from 'react'
+
+type DailyData = {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  dailyMission: any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  userProgress: any
+}
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { BookOpen, CheckCircle2, ShieldAlert, Target } from 'lucide-react'
@@ -9,7 +16,7 @@ import { Toaster } from '@/components/ui/sonner'
 import { PrayerTimer } from './prayer-timer'
 
 // El componente recibe los datos pre-cargados desde la página del servidor
-export function DashboardClient({ dailyMission, userProgress }: { dailyMission: any, userProgress: any }) {
+export function DashboardClient({ dailyMission, userProgress }: DailyData) {
   const [isReadingDialogOpen, setIsReadingDialogOpen] = useState(false)
   
   const chapterInfo = Array.isArray(dailyMission?.capitulos_diarios)

@@ -3,7 +3,7 @@ import { SettingsForm } from './_components/settings-form'
 
 export default async function SettingsPage() {
   const supabase = await createClient()
-  const { data: setting, error } = await supabase
+  const { data: setting } = await supabase
     .from('configuracion_app')
     .select('valor')
     .eq('clave', 'monto_penalizacion')

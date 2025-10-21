@@ -1,9 +1,9 @@
 'use client'
-import { Button } from '@/components/ui/button'
 import LogoutButton from '@/components/auth/logout-button'
 import { ListChecks, ShieldX, Settings, User } from 'lucide-react'
 import Link from 'next/link'
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function UserProfile({ profile }: { profile: any }) {
   const isAdmin = profile?.rol === 'admin'
 

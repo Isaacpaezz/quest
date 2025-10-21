@@ -4,6 +4,7 @@ import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
+import { ActionState } from '@/types/definitions'
 
 const ReadingProgressSchema = z.object({
   resumen: z.string().min(10, 'El resumen debe tener al menos 10 caracteres.'),
@@ -16,7 +17,7 @@ const OracionProgressSchema = z.object({
   oracionCompletada: z.boolean(),
 });
 
-export async function registrarProgresoLecturaAction(prevState: any, formData: FormData) {
+export async function registrarProgresoLecturaAction(prevState: ActionState, formData: FormData): Promise<ActionState> {
   // --- INICIO DE LA CORRECCIÓN ---
   // Se crea el cliente de Supabase de la forma correcta para una Server Action
   const cookieStore = await cookies()
@@ -78,7 +79,7 @@ export async function registrarProgresoLecturaAction(prevState: any, formData: F
   return { message: '¡Tu resumen ha sido guardado exitosamente!' }
 }
 
-export async function actualizarProgresoOracionAction(datos: { segundosAcumulados: number, capituloId: number, oracionCompletada: boolean }) {
+export async function actualizarProgresoOracionAction(datos: { segundosAcumulados: number, capituloId: number, oracionCompletada: boolean }): Promise<ActionState> {
   const cookieStore = await cookies();
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,

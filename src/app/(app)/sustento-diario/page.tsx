@@ -18,7 +18,7 @@ export default async function DashboardPage() {
   // 1. Obtener la misión de hoy (capítulo y tiempo de oración)
   const today = new Date().toISOString().split('T')[0] // Formato YYYY-MM-DD
 
-  const { data: dailyMission, error: missionError } = await supabase
+  const { data: dailyMission } = await supabase
     .from('planes_lectura')
     .select(`
       minutos_oracion_requeridos,
@@ -32,7 +32,7 @@ export default async function DashboardPage() {
     .single()
 
   // 2. Obtener el progreso del usuario para la misión de hoy
-  const { data: userProgress, error: progressError } = await supabase
+  const { data: userProgress } = await supabase
     .from('progreso_usuario')
     .select('lectura_completada, oracion_completada, segundos_oracion_acumulados')
     .eq('usuario_id', user.id)
@@ -42,8 +42,8 @@ export default async function DashboardPage() {
   return (
     <>
       <header className="mb-6">
-        <h1 className="text-3xl font-bold text-foreground">Tu Senda Diaria</h1>
-        <p className="text-muted-foreground">Este es tu espacio para crecer y conectar.</p>
+        <h1 className="text-3xl font-bold text-foreground">Sustento Diario</h1>
+        <p className="text-muted-foreground">Espacio para crecer y conectar con Dios.</p>
       </header>
       <DashboardClient dailyMission={dailyMission} userProgress={userProgress} />
     </>

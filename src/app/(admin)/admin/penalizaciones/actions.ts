@@ -2,8 +2,9 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
+import { ActionState } from '@/types/definitions'
 
-export async function aplicarPagoAction(usuarioId: string, monto: number) {
+export async function aplicarPagoAction(usuarioId: string, monto: number): Promise<ActionState> {
   const supabase = await createClient()
   
   // Verificación de rol de administrador por seguridad

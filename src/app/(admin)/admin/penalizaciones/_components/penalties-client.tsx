@@ -13,8 +13,10 @@ import { Toaster } from '@/components/ui/sonner'
 import { EmptyState } from '@/components/shared/empty-state'
 import { ShieldCheck } from 'lucide-react'
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function PenaltiesClient({ users: initialUsers }: { users: any[] }) {
-  const [users, setUsers] = useState(initialUsers)
+  const [users] = useState(initialUsers)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [selectedUser, setSelectedUser] = useState<any | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const amountRef = useRef<HTMLInputElement>(null)
