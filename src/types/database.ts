@@ -231,7 +231,7 @@ export type Database = {
     }
     Enums: {
       penalizacion_estado: "pendiente" | "pagada"
-      plan_estado: "inactivo" | "activo" | "proximo"
+      plan_estado: "inactivo" | "activo" | "proximo" | "completado"
     }
     CompositeTypes: {
       capitulo_diario_type: {
@@ -363,7 +363,7 @@ export const Constants = {
   public: {
     Enums: {
       penalizacion_estado: ["pendiente", "pagada"],
-      plan_estado: ["inactivo", "activo", "proximo"],
+      plan_estado: ["inactivo", "activo", "proximo", "completado"],
     },
   },
 } as const
