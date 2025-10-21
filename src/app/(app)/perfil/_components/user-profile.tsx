@@ -1,10 +1,21 @@
 'use client'
 import LogoutButton from '@/components/auth/logout-button'
-import { ListChecks, ShieldX, Settings, User } from 'lucide-react'
+import { ListChecks, ShieldX, Settings, User, Flame, CheckCircle } from 'lucide-react'
 import Link from 'next/link'
 
+// Sub-componente para las tarjetas de estadísticas
+function StatCard({ Icon, value, label }: { Icon: React.ElementType, value: number, label: string }) {
+  return (
+    <div className="flex flex-col items-center p-4 bg-muted rounded-lg">
+      <Icon className="h-8 w-8 text-primary mb-2" />
+      <p className="text-2xl font-bold">{value}</p>
+      <p className="text-sm text-muted-foreground">{label}</p>
+    </div>
+  )
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function UserProfile({ profile }: { profile: any }) {
+export function UserProfile({ profile, stats }: { profile: any, stats: { streak: number, totalMissions: number } }) {
   const isAdmin = profile?.rol === 'admin'
 
   return (
@@ -16,6 +27,12 @@ export function UserProfile({ profile }: { profile: any }) {
         <p className="text-2xl font-bold">{profile?.nombre_usuario}</p>
       </div>
       
+      {/* NUEVA SECCIÓN DE ESTADÍSTICAS */}
+      <div className="mt-8 grid grid-cols-2 gap-4">
+        <StatCard Icon={Flame} value={stats.streak} label="Días de Racha" />
+        <StatCard Icon={CheckCircle} value={stats.totalMissions} label="Misiones Completadas" />
+      </div>
+
       <div className="mt-8 space-y-2">
         <div className="flex justify-between py-4 border-t">
           <p className="text-muted-foreground text-sm">Correo Electrónico</p>
