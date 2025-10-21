@@ -83,9 +83,11 @@ export async function registrarProgresoLecturaAction(prevState: ActionState, for
     usuario_id: user.id,
     tipo_actividad: 'lectura_completada',
     referencia_contenido: capituloReferencia,
+    resumen_actividad: resumen, // AÑADIDO
   })
 
   revalidatePath('/sustento-diario')
+  revalidatePath('/feed') // Revalidar también el feed
   return { message: '¡Tu resumen ha sido guardado exitosamente!' }
 }
 
