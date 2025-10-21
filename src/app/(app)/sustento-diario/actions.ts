@@ -9,6 +9,7 @@ import { ActionState } from '@/types/definitions'
 const ReadingProgressSchema = z.object({
   resumen: z.string().min(10, 'El resumen debe tener al menos 10 caracteres.'),
   capituloId: z.coerce.number(),
+  capituloReferencia: z.string(), // NUEVO CAMPO
 })
 
 const OracionProgressSchema = z.object({
@@ -49,6 +50,7 @@ export async function registrarProgresoLecturaAction(prevState: ActionState, for
   const validatedFields = ReadingProgressSchema.safeParse({
     resumen: formData.get('resumen'),
     capituloId: formData.get('capituloId'),
+    capituloReferencia: formData.get('capituloReferencia'), // NUEVO CAMPO
   })
 
   if (!validatedFields.success) {
@@ -57,7 +59,7 @@ export async function registrarProgresoLecturaAction(prevState: ActionState, for
     }
   }
   
-  const { resumen, capituloId } = validatedFields.data
+  const { resumen, capituloId, capituloReferencia } = validatedFields.data
   const fechaHoy = new Date().toISOString().split('T')[0]
 
   const { error } = await supabase.from('progreso_usuario').upsert({
@@ -66,6 +68,7 @@ export async function registrarProgresoLecturaAction(prevState: ActionState, for
     capitulo_id: capituloId,
     resumen_lectura: resumen,
     lectura_completada: true,
+    lectura_completada_en: new Date().toISOString(), // AÑADIDO
   }, {
     onConflict: 'usuario_id,fecha_progreso'
   })
@@ -74,6 +77,13 @@ export async function registrarProgresoLecturaAction(prevState: ActionState, for
     console.error('Error al guardar el progreso de lectura:', error)
     return { error: 'Hubo un error en la base de datos. Inténtalo de nuevo.' }
   }
+
+  // NUEVO: Registrar evento en el feed de actividad
+  await supabase.from('actividad_comunidad').insert({
+    usuario_id: user.id,
+    tipo_actividad: 'lectura_completada',
+    referencia_contenido: capituloReferencia,
+  })
 
   revalidatePath('/sustento-diario')
   return { message: '¡Tu resumen ha sido guardado exitosamente!' }
@@ -114,11 +124,21 @@ export async function actualizarProgresoOracionAction(datos: { segundosAcumulado
     capitulo_id: capituloId,
     segundos_oracion_acumulados: segundosAcumulados,
     oracion_completada: oracionCompletada,
+    // AÑADIDO: Guardar el timestamp solo si se completa
+    ...(oracionCompletada && { oracion_completada_en: new Date().toISOString() }),
   }, { onConflict: 'usuario_id,fecha_progreso' });
 
   if (error) {
     console.error('Error al guardar progreso de oración:', error);
     return { error: 'Error en la base de datos.' };
+  }
+
+  // NUEVO: Registrar evento SOLO si la oración se ha completado
+  if (oracionCompletada) {
+    await supabase.from('actividad_comunidad').insert({
+      usuario_id: user.id,
+      tipo_actividad: 'oracion_completada',
+    })
   }
 
   revalidatePath('/sustento-diario');
