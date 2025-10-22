@@ -6,7 +6,8 @@ const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "Quest",
-  description: "Tu senda espiritual diaria",
+  description: "Lectura diaria para crecer y conectar.",
+  manifest: "/manifest.json",
 };
 
 export default function RootLayout({
