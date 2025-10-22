@@ -3,12 +3,19 @@
 import { ActivityCard } from './activity-card'
 import { EmptyState } from '@/components/shared/empty-state'
 import { Newspaper } from 'lucide-react'
+import { getTodayInVenezuela } from '@/lib/utils'
 
 // Helper para formatear los encabezados de fecha
 function formatDateHeader(dateString: string) {
-  // Comparar solo las fechas (YYYY-MM-DD) sin considerar la hora
-  const today = new Date().toISOString().split('T')[0];
-  const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+  // Comparar fechas en zona horaria de Venezuela
+  const today = getTodayInVenezuela();
+  // Calcular ayer en Venezuela
+  const yesterdayDate = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Caracas' }));
+  yesterdayDate.setDate(yesterdayDate.getDate() - 1);
+  const year = yesterdayDate.getFullYear();
+  const month = String(yesterdayDate.getMonth() + 1).padStart(2, '0');
+  const day = String(yesterdayDate.getDate()).padStart(2, '0');
+  const yesterday = `${year}-${month}-${day}`;
   
   if (dateString === today) {
     return 'Hoy';

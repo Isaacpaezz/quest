@@ -5,6 +5,7 @@ import { cookies } from 'next/headers'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 import { ActionState } from '@/types/definitions'
+import { getTodayInVenezuela } from '@/lib/utils'
 
 const ReadingProgressSchema = z.object({
   resumen: z.string().min(10, 'El resumen debe tener al menos 10 caracteres.'),
@@ -60,7 +61,7 @@ export async function registrarProgresoLecturaAction(prevState: ActionState, for
   }
   
   const { resumen, capituloId, capituloReferencia } = validatedFields.data
-  const fechaHoy = new Date().toISOString().split('T')[0]
+  const fechaHoy = getTodayInVenezuela()
 
   const { error } = await supabase.from('progreso_usuario').upsert({
     usuario_id: user.id,
@@ -118,7 +119,7 @@ export async function actualizarProgresoOracionAction(datos: { segundosAcumulado
   if (!validatedFields.success) return { error: 'Datos inválidos.' };
   
   const { segundosAcumulados, capituloId, oracionCompletada } = validatedFields.data;
-  const fechaHoy = new Date().toISOString().split('T')[0];
+  const fechaHoy = getTodayInVenezuela();
 
   const { error } = await supabase.from('progreso_usuario').upsert({
     usuario_id: user.id,
