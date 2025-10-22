@@ -6,8 +6,12 @@ const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "Quest",
-  description: "Lectura diaria para crecer y conectar.",
+  description: "Una aplicación para el seguimiento diario de la lectura bíblica y la oración",
   manifest: "/manifest.json",
+  icons: {
+    icon: '/favicon.ico',
+    apple: '/apple-touch-icon.png',
+  },
 };
 
 export default function RootLayout({
