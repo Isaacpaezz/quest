@@ -4,7 +4,7 @@ import { CommunityMember } from '@/types/definitions'
 import { Tables } from '@/types/database'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { CheckCircle2, XCircle, ShieldAlert, ChevronDown } from 'lucide-react'
+import { CheckCircle2, XCircle, ShieldAlert, ChevronDown, Flame } from 'lucide-react'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { Badge } from '@/components/ui/badge'
 
@@ -27,6 +27,7 @@ export function CommunityClient({ communityData }: { communityData: CommunityMem
                 <TableHead>Miembro</TableHead>
                 <TableHead className="text-center">Lectura</TableHead>
                 <TableHead className="text-center">Oración</TableHead>
+                <TableHead className="text-center"><Flame className="mx-auto h-5 w-5 text-orange-500" /></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -43,6 +44,7 @@ export function CommunityClient({ communityData }: { communityData: CommunityMem
                       ? <CheckCircle2 className="mx-auto text-green-500" /> 
                       : <XCircle className="mx-auto text-muted-foreground/50" />}
                   </TableCell>
+                  <TableCell className="text-center font-bold text-orange-500">{user.streak}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
