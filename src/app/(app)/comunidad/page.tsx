@@ -3,13 +3,14 @@ import { redirect } from 'next/navigation'
 import { CommunityClient } from './_components/community-client'
 import { Tables } from '@/types/database'
 import { CommunityMember } from '@/types/definitions'
+import { getTodayInVenezuela } from '@/lib/utils'
 
 export default async function CommunityPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const today = new Date().toISOString().split('T')[0]
+  const today = getTodayInVenezuela()
 
   // CAMBIO CLAVE: Tipamos las respuestas de Supabase
   const [profilesRes, progressTodayRes, penaltiesRes] = await Promise.all([

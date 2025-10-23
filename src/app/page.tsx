@@ -1,9 +1,6 @@
 import { redirect } from 'next/navigation'
 
-/**
- * La página raíz de la aplicación.
- * Redirige a la página de sustento diario.
- */
 export default function HomePage() {
+  // La página raíz de todo el sitio simplemente redirige al dashboard principal.
   redirect('/sustento-diario')
 }

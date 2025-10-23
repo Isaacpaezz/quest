@@ -16,10 +16,16 @@ export default async function FeedPage() {
     .order('creado_en', { ascending: false })
     .limit(100) // Aumentamos el límite para tener más datos para agrupar
 
-  // PROCESAMIENTO DE DATOS: Agrupar por fecha
+  // PROCESAMIENTO DE DATOS: Agrupar por fecha en zona horaria de Venezuela
   type Activity = NonNullable<typeof activities>[number];
   const groupedActivities: Record<string, Activity[]> = (activities || []).reduce((acc, activity) => {
-    const date = new Date(activity.creado_en).toISOString().split('T')[0];
+    // Convertir timestamp UTC a fecha en Venezuela
+    const activityDate = new Date(activity.creado_en);
+    const venezuelaDate = new Date(activityDate.toLocaleString('en-US', { timeZone: 'America/Caracas' }));
+    const year = venezuelaDate.getFullYear();
+    const month = String(venezuelaDate.getMonth() + 1).padStart(2, '0');
+    const day = String(venezuelaDate.getDate()).padStart(2, '0');
+    const date = `${year}-${month}-${day}`;
     if (!acc[date]) {
       acc[date] = [];
     }

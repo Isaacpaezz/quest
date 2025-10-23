@@ -14,7 +14,7 @@ export async function DesktopSidebar() {
   return (
     <aside className="hidden md:flex flex-col w-64 border-r fixed h-full bg-background">
       <div className="p-4 border-b">
-        <Link href="/sustento-diario">
+        <Link href="/">
           <h1 className="text-2xl font-bold text-primary">Quest</h1>
         </Link>
       </div>

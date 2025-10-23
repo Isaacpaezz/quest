@@ -261,14 +261,8 @@ export type Database = {
         Args: { plan_id_a_programar: number }
         Returns: undefined
       }
-      registrar_penalizaciones_diarias: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
-      transicion_automatica_de_plan: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
+      registrar_penalizaciones_diarias: { Args: never; Returns: undefined }
+      transicion_automatica_de_plan: { Args: never; Returns: undefined }
     }
     Enums: {
       penalizacion_estado: "pendiente" | "pagada"
