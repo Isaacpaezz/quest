@@ -16,6 +16,7 @@ export type CommunityMember = Tables<'perfiles'> & {
     lectura_completada: boolean;
     oracion_completada: boolean;
   };
+  streak: number; // Racha de días consecutivos completados
   deuda: {
     total: number;
     dias_pendientes: number;

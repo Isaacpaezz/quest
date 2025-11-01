@@ -12,14 +12,16 @@ export default async function CommunityPage() {
 
   const today = getTodayInVenezuela()
 
-  // CAMBIO CLAVE: Tipamos las respuestas de Supabase
-  const [profilesRes, progressTodayRes, penaltiesRes] = await Promise.all([
+  // Obtener todos los datos en paralelo, incluyendo rachas
+  const [profilesRes, progressTodayRes, penaltiesRes, streaksRes] = await Promise.all([
     supabase.from('perfiles').select('*'),
     supabase.from('progreso_usuario').select('*').eq('fecha_progreso', today),
     supabase.from('penalizaciones').select('*').eq('estado', 'pendiente'),
+    supabase.rpc('get_all_user_streaks'), // Obtener rachas de todos los usuarios
   ])
 
   const pendingPenalties = penaltiesRes.data as Tables<'penalizaciones'>[] || []
+  const streaksData = streaksRes.data || []
   
   const penaltyDates = pendingPenalties.map(p => p.fecha_incumplimiento);
   const penaltyUserIds = pendingPenalties.map(p => p.usuario_id);
@@ -33,6 +35,7 @@ export default async function CommunityPage() {
   const communityData: CommunityMember[] = (profilesRes.data || []).map((profile): CommunityMember => {
     const todayProgress = (progressTodayRes.data || []).find(p => p.usuario_id === profile.id)
     const userPenalties = pendingPenalties.filter(p => p.usuario_id === profile.id)
+    const userStreak = streaksData.find((s: { user_id: string }) => s.user_id === profile.id)
 
     const enrichedPenalties = userPenalties.map(penalty => {
       const progressRecord = (historicProgressData || []).find(hp => 
@@ -55,6 +58,7 @@ export default async function CommunityPage() {
         lectura_completada: todayProgress?.lectura_completada || false,
         oracion_completada: todayProgress?.oracion_completada || false,
       },
+      streak: userStreak?.streak_count || 0, // Añadir racha del usuario
       deuda: {
         total: totalDeuda,
         dias_pendientes: enrichedPenalties.length,
