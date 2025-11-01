@@ -45,11 +45,11 @@ export function UserProfile({ profile, stats }: { profile: any, stats: { streak:
         </div>
       </div>
 
-      {/* NUEVA SECCIÓN DE NOTIFICACIONES */}
-      <div className="mt-8">
-        <h3 className="text-lg font-semibold mb-4">Notificaciones</h3>
-        <NotificationManager />
-      </div>
+          {/* NUEVA SECCIÓN DE NOTIFICACIONES */}
+          <div className="mt-8">
+            <h3 className="text-lg font-semibold mb-4">Notificaciones</h3>
+            <NotificationManager />
+          </div>
 
       {isAdmin && (
         <div className="mt-8">

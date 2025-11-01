@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { ActionState } from '@/types/definitions'
+import type { Json } from '@/types/database'
 
 export async function guardarSuscripcionPushAction(subscription: PushSubscription | null): Promise<ActionState> {
   const supabase = await createClient()
@@ -19,14 +20,14 @@ export async function guardarSuscripcionPushAction(subscription: PushSubscriptio
   }
 
   // Usamos upsert para crear o actualizar la suscripción
+  const payload = subscription.toJSON() as unknown as Json
   const { error } = await supabase.from('suscripciones_push').upsert({
     usuario_id: user.id,
-    // Convertimos a tipo genérico JSON serializable evitando any explícito
-    subscription: subscription as unknown as Record<string, unknown>,
+    subscription: payload,
   }, { onConflict: 'usuario_id' })
 
   if (error) {
-    console.error('Error al guardar suscripción push:', error)
+    console.error("Error al guardar suscripción push:", error)
     return { error: 'No se pudo guardar la suscripción.' }
   }
 
