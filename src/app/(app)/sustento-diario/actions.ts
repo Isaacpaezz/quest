@@ -111,6 +111,10 @@ export async function registrarProgresoLecturaAction(prevState: ActionState, for
         .from('suscripciones_push')
         .select('subscription, usuario_id')
       if (!subsErr) subscriptions = data as unknown[]
+    } else {
+      // Sin service role: usar RPC SECURITY DEFINER para obtener todas las suscripciones
+      const { data, error: rpcErr } = await supabase.rpc('get_all_push_subscriptions')
+      if (!rpcErr) subscriptions = (data as unknown[]) || []
     }
 
     type WebPushSub = {
@@ -222,6 +226,9 @@ export async function actualizarProgresoOracionAction(datos: { segundosAcumulado
           .from('suscripciones_push')
           .select('subscription, usuario_id')
         if (!subsErr) subscriptions = data as unknown[]
+      } else {
+        const { data, error: rpcErr } = await supabase.rpc('get_all_push_subscriptions')
+        if (!rpcErr) subscriptions = (data as unknown[]) || []
       }
 
       type WebPushSub = {
