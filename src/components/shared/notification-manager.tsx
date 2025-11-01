@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import type { Json } from '@/types/database'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { guardarSuscripcionPushAction } from '@/app/(app)/perfil/actions'
@@ -14,6 +15,17 @@ function urlBase64ToUint8Array(base64String: string) {
     outputArray[i] = rawData.charCodeAt(i);
   }
   return outputArray;
+}
+
+function arrayBufferToBase64Url(buffer: ArrayBuffer | null): string | null {
+  if (!buffer) return null
+  const bytes = new Uint8Array(buffer)
+  let binary = ''
+  for (let i = 0; i < bytes.byteLength; i++) {
+    binary += String.fromCharCode(bytes[i])
+  }
+  const base64 = btoa(binary)
+  return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
 }
 
 export function NotificationManager() {
@@ -36,7 +48,7 @@ export function NotificationManager() {
         const registration = await navigator.serviceWorker.ready
         const subscription = await registration.pushManager.getSubscription()
         setIsSubscribed(!!subscription)
-      } catch (e) {
+      } catch {
         // Entorno no seguro o SW no listo; degradamos con gracia
         setIsSubscribed(false)
       } finally {
@@ -79,7 +91,18 @@ export function NotificationManager() {
           userVisibleOnly: true,
           applicationServerKey: urlBase64ToUint8Array(process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY),
         });
-        const result = await guardarSuscripcionPushAction(subscription);
+        // Serializar a objeto plano compatible con Server Actions
+        const payload = typeof subscription.toJSON === 'function'
+          ? subscription.toJSON()
+          : {
+              endpoint: subscription.endpoint,
+              expirationTime: subscription.expirationTime,
+              keys: {
+                p256dh: arrayBufferToBase64Url(subscription.getKey('p256dh')),
+                auth: arrayBufferToBase64Url(subscription.getKey('auth')),
+              },
+            }
+        const result = await guardarSuscripcionPushAction(payload as Json);
         if (result.error) {
           toast.error('Error', { description: result.error });
           await subscription.unsubscribe();

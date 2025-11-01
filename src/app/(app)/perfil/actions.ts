@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { ActionState } from '@/types/definitions'
 import type { Json } from '@/types/database'
 
-export async function guardarSuscripcionPushAction(subscription: PushSubscription | null): Promise<ActionState> {
+export async function guardarSuscripcionPushAction(subscription: Json | null): Promise<ActionState> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
@@ -20,7 +20,7 @@ export async function guardarSuscripcionPushAction(subscription: PushSubscriptio
   }
 
   // Usamos upsert para crear o actualizar la suscripción
-  const payload = subscription.toJSON() as unknown as Json
+  const payload = subscription as Json
   const { error } = await supabase.from('suscripciones_push').upsert({
     usuario_id: user.id,
     subscription: payload,
