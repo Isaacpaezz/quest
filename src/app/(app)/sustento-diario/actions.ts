@@ -110,7 +110,6 @@ export async function registrarProgresoLecturaAction(prevState: ActionState, for
       const { data, error: subsErr } = await admin
         .from('suscripciones_push')
         .select('subscription, usuario_id')
-        .not('usuario_id', 'eq', user.id)
       if (!subsErr) subscriptions = data as unknown[]
     }
 
@@ -122,7 +121,7 @@ export async function registrarProgresoLecturaAction(prevState: ActionState, for
     let subs: Array<{ subscription: WebPushSub; usuario_id: string }> =
       Array.isArray(subscriptions) ? (subscriptions as Array<{ subscription: WebPushSub; usuario_id: string }>) : []
 
-    // Fallback: si no hay otras suscripciones (por RLS o porque estás solo), te notificamos a ti para probar E2E
+    // Fallback: si no hay suscripciones (por RLS o porque no hay nadie suscrito), te notificamos a ti para probar E2E
     if (!subs.length) {
       const { data: own } = await supabase
         .from('suscripciones_push')
@@ -222,7 +221,6 @@ export async function actualizarProgresoOracionAction(datos: { segundosAcumulado
         const { data, error: subsErr } = await admin
           .from('suscripciones_push')
           .select('subscription, usuario_id')
-          .not('usuario_id', 'eq', user.id)
         if (!subsErr) subscriptions = data as unknown[]
       }
 
