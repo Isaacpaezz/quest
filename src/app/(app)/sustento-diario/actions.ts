@@ -7,6 +7,7 @@ import { z } from 'zod'
 import { ActionState } from '@/types/definitions'
 import { getTodayInVenezuela } from '@/lib/utils'
 import { pushService } from '@/lib/web-push'
+import { createAdminClient } from '@/lib/supabase/admin'
 import type { PushSubscription as WebPushSubscription } from 'web-push'
 
 const ReadingProgressSchema = z.object({
@@ -102,18 +103,34 @@ export async function registrarProgresoLecturaAction(prevState: ActionState, for
       body: `${profile?.nombre_usuario || 'Alguien'} ha completado su lectura de ${capituloReferencia}.`
     })
 
-    const { data: subscriptions } = await supabase
-      .from('suscripciones_push')
-      .select('subscription, usuario_id')
-      .not('usuario_id', 'eq', user.id)
+    // Intentar usar cliente admin (service role) para leer suscripciones de otros (RLS bypass)
+    const admin = createAdminClient()
+    let subscriptions: unknown[] | null = null
+    if (admin) {
+      const { data, error: subsErr } = await admin
+        .from('suscripciones_push')
+        .select('subscription, usuario_id')
+        .not('usuario_id', 'eq', user.id)
+      if (!subsErr) subscriptions = data as unknown[]
+    }
 
     type WebPushSub = {
       endpoint: string
       expirationTime?: number | null
       keys?: { p256dh?: string | null; auth?: string | null }
     }
-    const subs: Array<{ subscription: WebPushSub; usuario_id: string }> =
+    let subs: Array<{ subscription: WebPushSub; usuario_id: string }> =
       Array.isArray(subscriptions) ? (subscriptions as Array<{ subscription: WebPushSub; usuario_id: string }>) : []
+
+    // Fallback: si no hay otras suscripciones (por RLS o porque estás solo), te notificamos a ti para probar E2E
+    if (!subs.length) {
+      const { data: own } = await supabase
+        .from('suscripciones_push')
+        .select('subscription, usuario_id')
+        .eq('usuario_id', user.id)
+        .single()
+      if (own?.subscription) subs = [{ subscription: own.subscription as WebPushSub, usuario_id: user.id }]
+    }
 
     if (subs.length) {
       await Promise.all(
@@ -199,18 +216,32 @@ export async function actualizarProgresoOracionAction(datos: { segundosAcumulado
         body: `${profile?.nombre_usuario || 'Alguien'} ha completado su tiempo de oración.`
       })
 
-      const { data: subscriptions } = await supabase
-        .from('suscripciones_push')
-        .select('subscription, usuario_id')
-        .not('usuario_id', 'eq', user.id)
+      const admin = createAdminClient()
+      let subscriptions: unknown[] | null = null
+      if (admin) {
+        const { data, error: subsErr } = await admin
+          .from('suscripciones_push')
+          .select('subscription, usuario_id')
+          .not('usuario_id', 'eq', user.id)
+        if (!subsErr) subscriptions = data as unknown[]
+      }
 
       type WebPushSub = {
         endpoint: string
         expirationTime?: number | null
         keys?: { p256dh?: string | null; auth?: string | null }
       }
-      const subs: Array<{ subscription: WebPushSub; usuario_id: string }> =
+      let subs: Array<{ subscription: WebPushSub; usuario_id: string }> =
         Array.isArray(subscriptions) ? (subscriptions as Array<{ subscription: WebPushSub; usuario_id: string }>) : []
+
+      if (!subs.length) {
+        const { data: own } = await supabase
+          .from('suscripciones_push')
+          .select('subscription, usuario_id')
+          .eq('usuario_id', user.id)
+          .single()
+        if (own?.subscription) subs = [{ subscription: own.subscription as WebPushSub, usuario_id: user.id }]
+      }
 
       if (subs.length) {
         await Promise.all(
