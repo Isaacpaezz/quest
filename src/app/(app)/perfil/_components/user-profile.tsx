@@ -1,5 +1,6 @@
 'use client'
 import LogoutButton from '@/components/auth/logout-button'
+import { NotificationManager } from '@/components/shared/notification-manager'
 import { ListChecks, ShieldX, Settings, User, Flame, CheckCircle } from 'lucide-react'
 import Link from 'next/link'
 
@@ -42,6 +43,12 @@ export function UserProfile({ profile, stats }: { profile: any, stats: { streak:
           <p className="text-muted-foreground text-sm">Miembro Desde</p>
           <p className="text-sm font-medium">{new Date(profile?.creado_en).toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })}</p>
         </div>
+      </div>
+
+      {/* NUEVA SECCIÓN DE NOTIFICACIONES */}
+      <div className="mt-8">
+        <h3 className="text-lg font-semibold mb-4">Notificaciones</h3>
+        <NotificationManager />
       </div>
 
       {isAdmin && (
