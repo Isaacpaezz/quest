@@ -4,6 +4,8 @@ import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"] });
 
+export const runtime = 'nodejs'
+
 export const metadata: Metadata = {
   title: "Quest",
   description: "Una aplicación para el seguimiento diario de la lectura bíblica y la oración",

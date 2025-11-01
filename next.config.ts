@@ -13,7 +13,13 @@ const withPWA = withPWAInit({
   register: true,
   // @ts-expect-error: la opción skipWaiting está soportada por el plugin aunque no aparezca en sus tipos
   skipWaiting: true,
-  swSrc: "src/app/sw.ts", // usar nuestro Service Worker en TS
+  // Intentar extender el SW generado por defecto e inyectar script extra con listeners push
+  extendDefaultSW: true,
+  workbox: {
+    importScripts: ["/sw-extra.js"],
+  },
+  // Nota: si extendDefaultSW no funciona en tu versión, podemos volver a injectManifest con swSrc
+  // swSrc: "src/app/sw.js",
   cacheOnFrontEndNav: true,
   aggressiveFrontEndNavCaching: true,
 });

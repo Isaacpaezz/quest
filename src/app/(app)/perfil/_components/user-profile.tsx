@@ -58,9 +58,14 @@ export function UserProfile({ profile, stats }: { profile: any, stats: { streak:
                   variant="outline"
                   size="sm"
                   onClick={async () => {
-                    const res = await enviarNotificacionPruebaAction()
-                    if (res.error) toast.error('Error', { description: res.error })
-                    else toast.success(res.message ?? 'Notificación enviada')
+                    try {
+                      const res = await enviarNotificacionPruebaAction()
+                      if (res.error) toast.error('Error', { description: res.error })
+                      else toast.success(res.message ?? 'Notificación enviada')
+                    } catch (err) {
+                      console.error(err)
+                      toast.error('No se pudo ejecutar la acción', { description: 'Revisa la consola o intenta nuevamente.' })
+                    }
                   }}
                 >
                   Enviar Notificación de Prueba
