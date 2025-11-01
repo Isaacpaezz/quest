@@ -6,6 +6,8 @@ import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 import { ActionState } from '@/types/definitions'
 import { getTodayInVenezuela } from '@/lib/utils'
+import { pushService } from '@/lib/web-push'
+import type { PushSubscription as WebPushSubscription } from 'web-push'
 
 const ReadingProgressSchema = z.object({
   resumen: z.string().min(10, 'El resumen debe tener al menos 10 caracteres.'),
@@ -87,6 +89,47 @@ export async function registrarProgresoLecturaAction(prevState: ActionState, for
     resumen_actividad: resumen, // AÑADIDO
   })
 
+  // Enviar notificaciones push a otros miembros suscritos (no al emisor)
+  try {
+    const { data: profile } = await supabase
+      .from('perfiles')
+      .select('nombre_usuario')
+      .eq('id', user.id)
+      .single()
+
+    const payload = JSON.stringify({
+      title: 'Nueva Actividad en Quest',
+      body: `${profile?.nombre_usuario || 'Alguien'} ha completado su lectura de ${capituloReferencia}.`
+    })
+
+    const { data: subscriptions } = await supabase
+      .from('suscripciones_push')
+      .select('subscription, usuario_id')
+      .not('usuario_id', 'eq', user.id)
+
+    type WebPushSub = {
+      endpoint: string
+      expirationTime?: number | null
+      keys?: { p256dh?: string | null; auth?: string | null }
+    }
+    const subs: Array<{ subscription: WebPushSub; usuario_id: string }> =
+      Array.isArray(subscriptions) ? (subscriptions as Array<{ subscription: WebPushSub; usuario_id: string }>) : []
+
+    if (subs.length) {
+      await Promise.all(
+        subs.map((s) =>
+          pushService
+            .sendNotification(s.subscription as unknown as WebPushSubscription, payload)
+            .catch((err: unknown) => {
+              console.error('Error sending notification:', err)
+            })
+        )
+      )
+    }
+  } catch (err) {
+    console.error('Error preparando o enviando notificaciones de lectura:', err)
+  }
+
   revalidatePath('/sustento-diario')
   revalidatePath('/feed') // Revalidar también el feed
   return { message: '¡Tu resumen ha sido guardado exitosamente!' }
@@ -142,6 +185,47 @@ export async function actualizarProgresoOracionAction(datos: { segundosAcumulado
       usuario_id: user.id,
       tipo_actividad: 'oracion_completada',
     })
+
+    // Enviar notificaciones push a otros miembros suscritos (no al emisor)
+    try {
+      const { data: profile } = await supabase
+        .from('perfiles')
+        .select('nombre_usuario')
+        .eq('id', user.id)
+        .single()
+
+      const payload = JSON.stringify({
+        title: 'Nueva Actividad en Quest',
+        body: `${profile?.nombre_usuario || 'Alguien'} ha completado su tiempo de oración.`
+      })
+
+      const { data: subscriptions } = await supabase
+        .from('suscripciones_push')
+        .select('subscription, usuario_id')
+        .not('usuario_id', 'eq', user.id)
+
+      type WebPushSub = {
+        endpoint: string
+        expirationTime?: number | null
+        keys?: { p256dh?: string | null; auth?: string | null }
+      }
+      const subs: Array<{ subscription: WebPushSub; usuario_id: string }> =
+        Array.isArray(subscriptions) ? (subscriptions as Array<{ subscription: WebPushSub; usuario_id: string }>) : []
+
+      if (subs.length) {
+        await Promise.all(
+          subs.map((s) =>
+            pushService
+              .sendNotification(s.subscription as unknown as WebPushSubscription, payload)
+              .catch((err: unknown) => {
+                console.error('Error sending notification:', err)
+              })
+          )
+        )
+      }
+    } catch (err) {
+      console.error('Error preparando o enviando notificaciones de oración:', err)
+    }
   }
 
   revalidatePath('/sustento-diario');
