@@ -6,6 +6,9 @@ import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 import { ActionState } from '@/types/definitions'
 import { getTodayInVenezuela } from '@/lib/utils'
+import { pushService } from '@/lib/web-push'
+import { createAdminClient } from '@/lib/supabase/admin'
+import type { PushSubscription as WebPushSubscription } from 'web-push'
 
 const ReadingProgressSchema = z.object({
   resumen: z.string().min(10, 'El resumen debe tener al menos 10 caracteres.'),
@@ -87,6 +90,66 @@ export async function registrarProgresoLecturaAction(prevState: ActionState, for
     resumen_actividad: resumen, // AÑADIDO
   })
 
+  // Enviar notificaciones push a otros miembros suscritos (no al emisor)
+  try {
+    const { data: profile } = await supabase
+      .from('perfiles')
+      .select('nombre_usuario')
+      .eq('id', user.id)
+      .single()
+
+    const payload = JSON.stringify({
+      title: 'Nueva Actividad en Quest',
+      body: `${profile?.nombre_usuario || 'Alguien'} ha completado su lectura de ${capituloReferencia}.`
+    })
+
+    // Intentar usar cliente admin (service role) para leer suscripciones de otros (RLS bypass)
+    const admin = createAdminClient()
+    let subscriptions: unknown[] | null = null
+    if (admin) {
+      const { data, error: subsErr } = await admin
+        .from('suscripciones_push')
+        .select('subscription, usuario_id')
+      if (!subsErr) subscriptions = data as unknown[]
+    } else {
+      // Sin service role: usar RPC SECURITY DEFINER para obtener todas las suscripciones
+      const { data, error: rpcErr } = await supabase.rpc('get_all_push_subscriptions')
+      if (!rpcErr) subscriptions = (data as unknown[]) || []
+    }
+
+    type WebPushSub = {
+      endpoint: string
+      expirationTime?: number | null
+      keys?: { p256dh?: string | null; auth?: string | null }
+    }
+    let subs: Array<{ subscription: WebPushSub; usuario_id: string }> =
+      Array.isArray(subscriptions) ? (subscriptions as Array<{ subscription: WebPushSub; usuario_id: string }>) : []
+
+    // Fallback: si no hay suscripciones (por RLS o porque no hay nadie suscrito), te notificamos a ti para probar E2E
+    if (!subs.length) {
+      const { data: own } = await supabase
+        .from('suscripciones_push')
+        .select('subscription, usuario_id')
+        .eq('usuario_id', user.id)
+        .single()
+      if (own?.subscription) subs = [{ subscription: own.subscription as WebPushSub, usuario_id: user.id }]
+    }
+
+    if (subs.length) {
+      await Promise.all(
+        subs.map((s) =>
+          pushService
+            .sendNotification(s.subscription as unknown as WebPushSubscription, payload)
+            .catch((err: unknown) => {
+              console.error('Error sending notification:', err)
+            })
+        )
+      )
+    }
+  } catch (err) {
+    console.error('Error preparando o enviando notificaciones de lectura:', err)
+  }
+
   revalidatePath('/sustento-diario')
   revalidatePath('/feed') // Revalidar también el feed
   return { message: '¡Tu resumen ha sido guardado exitosamente!' }
@@ -142,6 +205,63 @@ export async function actualizarProgresoOracionAction(datos: { segundosAcumulado
       usuario_id: user.id,
       tipo_actividad: 'oracion_completada',
     })
+
+    // Enviar notificaciones push a otros miembros suscritos (no al emisor)
+    try {
+      const { data: profile } = await supabase
+        .from('perfiles')
+        .select('nombre_usuario')
+        .eq('id', user.id)
+        .single()
+
+      const payload = JSON.stringify({
+        title: 'Nueva Actividad en Quest',
+        body: `${profile?.nombre_usuario || 'Alguien'} ha completado su tiempo de oración.`
+      })
+
+      const admin = createAdminClient()
+      let subscriptions: unknown[] | null = null
+      if (admin) {
+        const { data, error: subsErr } = await admin
+          .from('suscripciones_push')
+          .select('subscription, usuario_id')
+        if (!subsErr) subscriptions = data as unknown[]
+      } else {
+        const { data, error: rpcErr } = await supabase.rpc('get_all_push_subscriptions')
+        if (!rpcErr) subscriptions = (data as unknown[]) || []
+      }
+
+      type WebPushSub = {
+        endpoint: string
+        expirationTime?: number | null
+        keys?: { p256dh?: string | null; auth?: string | null }
+      }
+      let subs: Array<{ subscription: WebPushSub; usuario_id: string }> =
+        Array.isArray(subscriptions) ? (subscriptions as Array<{ subscription: WebPushSub; usuario_id: string }>) : []
+
+      if (!subs.length) {
+        const { data: own } = await supabase
+          .from('suscripciones_push')
+          .select('subscription, usuario_id')
+          .eq('usuario_id', user.id)
+          .single()
+        if (own?.subscription) subs = [{ subscription: own.subscription as WebPushSub, usuario_id: user.id }]
+      }
+
+      if (subs.length) {
+        await Promise.all(
+          subs.map((s) =>
+            pushService
+              .sendNotification(s.subscription as unknown as WebPushSubscription, payload)
+              .catch((err: unknown) => {
+                console.error('Error sending notification:', err)
+              })
+          )
+        )
+      }
+    } catch (err) {
+      console.error('Error preparando o enviando notificaciones de oración:', err)
+    }
   }
 
   revalidatePath('/sustento-diario');

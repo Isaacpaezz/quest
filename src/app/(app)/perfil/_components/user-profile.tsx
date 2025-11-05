@@ -1,7 +1,11 @@
 'use client'
 import LogoutButton from '@/components/auth/logout-button'
+import { NotificationManager } from '@/components/shared/notification-manager'
 import { ListChecks, ShieldX, Settings, User, Flame, CheckCircle } from 'lucide-react'
 import Link from 'next/link'
+import { Button } from '@/components/ui/button'
+import { toast } from 'sonner'
+import { enviarNotificacionPruebaAction } from '@/app/(app)/perfil/actions'
 
 // Sub-componente para las tarjetas de estadísticas
 function StatCard({ Icon, value, label }: { Icon: React.ElementType, value: number, label: string }) {
@@ -44,6 +48,31 @@ export function UserProfile({ profile, stats }: { profile: any, stats: { streak:
         </div>
       </div>
 
+          {/* NUEVA SECCIÓN DE NOTIFICACIONES */}
+          <div className="mt-8">
+            <h3 className="text-lg font-semibold mb-4">Notificaciones</h3>
+            <NotificationManager />
+            {isAdmin && (
+              <div className="mt-3">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={async () => {
+                    try {
+                      const res = await enviarNotificacionPruebaAction()
+                      if (res.error) toast.error('Error', { description: res.error })
+                      else toast.success(res.message ?? 'Notificación enviada')
+                    } catch (err) {
+                      console.error(err)
+                      toast.error('No se pudo ejecutar la acción', { description: 'Revisa la consola o intenta nuevamente.' })
+                    }
+                  }}
+                >
+                  Enviar Notificación de Prueba
+                </Button>
+              </div>
+            )}
+          </div>
       {isAdmin && (
         <div className="mt-8">
           <h3 className="text-lg font-semibold mb-4">Panel de Administrador</h3>
