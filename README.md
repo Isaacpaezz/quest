@@ -1,36 +1,72 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Quest - Comunidad de Crecimiento Espiritual
 
-## Getting Started
+Quest es una aplicación web diseñada para fomentar la disciplina espiritual y el crecimiento comunitario a través del seguimiento de hábitos diarios (lectura y oración) y la responsabilidad compartida.
 
-First, run the development server:
+## 🌟 Características Principales
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+- **Seguimiento Diario:** Registro simple de lectura bíblica y tiempo de oración.
+- **Gamificación:** Sistema de rachas (fuego 🔥) para motivar la consistencia.
+- **Muro de Responsabilidad:** Visualización transparente de las penalizaciones por incumplimiento.
+- **Comunidad:** Feed de actividad para ver el progreso de otros miembros.
+- **Gestión de Planes:** Sistema flexible para crear y seguir planes de lectura.
+- **Penalizaciones:** Cálculo automático de deudas por días fallidos (excluyendo domingos).
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## 🛠️ Tecnologías
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- **Frontend:** Next.js 14 (App Router), Tailwind CSS, Shadcn UI.
+- **Backend:** Supabase (PostgreSQL, Auth, Realtime).
+- **Base de Datos:** PostgreSQL con funciones RPC y Triggers para lógica de negocio.
+- **PWA:** Soporte para instalación en dispositivos móviles.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 🚀 Comenzando
 
-## Learn More
+### Prerrequisitos
 
-To learn more about Next.js, take a look at the following resources:
+- Node.js 18+
+- Cuenta de Supabase
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### Instalación
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+1.  Clonar el repositorio:
 
-## Deploy on Vercel
+    ```bash
+    git clone https://github.com/tu-usuario/quest.git
+    cd quest
+    ```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+2.  Instalar dependencias:
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+    ```bash
+    npm install
+    ```
+
+3.  Configurar variables de entorno:
+    Crear un archivo `.env.local` con las credenciales de Supabase:
+
+    ```env
+    NEXT_PUBLIC_SUPABASE_URL=tu_url_de_supabase
+    NEXT_PUBLIC_SUPABASE_ANON_KEY=tu_clave_anonima
+    ```
+
+4.  Iniciar el servidor de desarrollo:
+    ```bash
+    npm run dev
+    ```
+
+## 📚 Documentación
+
+La documentación detallada de los módulos se encuentra en la carpeta `docs/`:
+
+- [01 - Gestión de Planes](docs/01-gestion-de-planes.md)
+- [02 - Historial y Estadísticas](docs/02-historial-y-estadisticas.md)
+- [03 - Gamificación y Comunidad](docs/03-gamificacion-comunidad.md)
+- [04 - Gestión de Penalizaciones](docs/04-gestion-penalizaciones.md)
+- [05 - Muro de Actividad](docs/05-muro-actividad.md)
+- [06 - Configuración de Admin](docs/06-configuracion-admin.md)
+- [07 - Plan de Pulido UX](docs/07-plan-pulido-ux.md)
+- [08 - Gamificación de Perfil](docs/08-gamificacion-perfil.md)
+- [09 - Configuración PWA](docs/09-configuracion-pwa.md)
+
+## 🤝 Contribución
+
+Las contribuciones son bienvenidas. Por favor, abre un issue o un pull request para sugerir cambios o mejoras.
