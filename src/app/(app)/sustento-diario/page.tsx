@@ -41,12 +41,6 @@ export default async function DashboardPage() {
     .single()
 
   return (
-    <>
-      <header className="mb-6">
-        <h1 className="text-3xl font-bold text-foreground">Sustento Diario</h1>
-        <p className="text-muted-foreground">Espacio para crecer y conectar con Dios.</p>
-      </header>
-      <DashboardClient dailyMission={dailyMission} userProgress={userProgress} />
-    </>
+    <DashboardClient dailyMission={dailyMission} userProgress={userProgress} />
   )
 }

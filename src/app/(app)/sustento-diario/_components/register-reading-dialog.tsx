@@ -1,21 +1,10 @@
 'use client'
 
-import { useActionState, useEffect } from 'react'
-import { useFormStatus } from 'react-dom'
+import { useState } from 'react'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { X } from 'lucide-react'
 import { toast } from 'sonner'
 import { registrarProgresoLecturaAction } from '../actions'
-
-// Componentes de UI
-import { Button } from '@/components/ui/button'
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
-
-// Botón de envío para el formulario
-function SubmitButton() {
-  const { pending } = useFormStatus()
-  return <Button type="submit" disabled={pending}>{pending ? 'Guardando...' : 'Guardar Progreso'}</Button>
-}
 
 type RegisterReadingDialogProps = {
   open: boolean
@@ -24,46 +13,92 @@ type RegisterReadingDialogProps = {
   chapterReference: string
 }
 
-export function RegisterReadingDialog({ open, onOpenChange, chapterId, chapterReference }: RegisterReadingDialogProps) {
-  const [state, formAction] = useActionState(registrarProgresoLecturaAction, { errors: {}, message: undefined, error: undefined })
+export function RegisterReadingDialog({
+  open,
+  onOpenChange,
+  chapterId,
+  chapterReference,
+}: RegisterReadingDialogProps) {
+  const [reflection, setReflection] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
-  useEffect(() => {
-    if (state.message) {
-      toast.success('Éxito', { description: state.message })
-      onOpenChange(false) // Cerrar el modal en caso de éxito
-    } else if (state.error) {
-      toast.error('Error', { description: state.error })
+  const handleSubmit = async () => {
+    if (!reflection.trim()) {
+      toast.error('Por favor escribe una reflexión')
+      return
     }
-  }, [state, onOpenChange])
+
+    setIsSubmitting(true)
+    try {
+      const formData = new FormData()
+      formData.append('capituloId', chapterId.toString())
+      formData.append('resumen', reflection)
+      formData.append('capituloReferencia', chapterReference)
+
+      const result = await registrarProgresoLecturaAction({}, formData)
+
+      if (result?.error) {
+        toast.error(result.error)
+      } else if (result?.errors) {
+        // Handle validation errors
+        const errorMessages = Object.values(result.errors).flat().join(', ')
+        toast.error(errorMessages || 'Error de validación')
+      } else {
+        toast.success('Lectura registrada correctamente')
+        onOpenChange(false)
+        setReflection('')
+      }
+    } catch (error) {
+      toast.error('Ocurrió un error al registrar la lectura')
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Resumen de {chapterReference}</DialogTitle>
-          <DialogDescription>
-            Escribe una breve reflexión sobre lo que has leído. Este es un paso importante en tu senda.
-          </DialogDescription>
-        </DialogHeader>
-        <form action={formAction} className="space-y-4">
-          <input type="hidden" name="capituloId" value={chapterId} />
-          {/* NUEVO INPUT OCULTO */}
-          <input type="hidden" name="capituloReferencia" value={chapterReference} />
-          <div>
-            <Label htmlFor="resumen">Tu Resumen</Label>
-            <Textarea
-              id="resumen"
-              name="resumen"
-              placeholder="¿Qué te enseñó este capítulo? ¿Qué versículo te impactó más?"
-              className="mt-2 min-h-[150px]"
-              required
-            />
-            {state.errors?.resumen && <p className="text-sm text-destructive mt-1">{state.errors.resumen[0]}</p>}
+      <DialogContent className="max-w-md rounded-[2rem] border-none bg-white p-0 shadow-2xl sm:max-w-[400px]">
+        {/* Close Button */}
+        <button
+          onClick={() => onOpenChange(false)}
+          className="absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-slate-500 transition-colors hover:bg-slate-200"
+        >
+          <X className="h-4 w-4" />
+        </button>
+
+        <div className="p-8">
+          {/* Header */}
+          <div className="mb-6">
+            <h2 className="font-display text-2xl font-bold text-slate-900">
+              Tu Reflexión
+            </h2>
+            <p className="mt-1 text-xs font-bold uppercase tracking-wider text-slate-400">
+              SOBRE {chapterReference}
+            </p>
           </div>
-          <div className="flex justify-end">
-            <SubmitButton />
-          </div>
-        </form>
+
+          {/* Question */}
+          <p className="mb-6 text-sm font-medium leading-relaxed text-slate-600">
+            ¿Qué te enseñó Dios en este capítulo? Escribe una breve nota para guardar en tu historial.
+          </p>
+
+          {/* Text Area */}
+          <textarea
+            value={reflection}
+            onChange={(e) => setReflection(e.target.value)}
+            placeholder="Escribe aquí..."
+            className="mb-6 h-40 w-full resize-none rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-900 placeholder:text-slate-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+          />
+
+          {/* Save Button */}
+          <button
+            onClick={handleSubmit}
+            disabled={isSubmitting}
+            className="flex h-[50px] w-full items-center justify-center rounded-xl bg-slate-500 font-medium text-white transition-all hover:bg-slate-600 active:scale-95 disabled:opacity-50"
+          >
+            {isSubmitting ? 'Guardando...' : 'Guardar Reflexión'}
+          </button>
+        </div>
       </DialogContent>
     </Dialog>
   )

@@ -1,35 +1,16 @@
 'use client'
 
 import { useState } from 'react'
+import { BookOpen, Flame, Sparkles } from 'lucide-react'
+import { RegisterReadingDialog } from './register-reading-dialog'
+import { Toaster } from '@/components/ui/sonner'
+import { PrayerTimer } from './prayer-timer'
 
 type DailyData = {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   dailyMission: any
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   userProgress: any
-}
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { BookOpen, CheckCircle2, ShieldAlert, Target } from 'lucide-react'
-import { RegisterReadingDialog } from './register-reading-dialog'
-import { Toaster } from '@/components/ui/sonner'
-import { PrayerTimer } from './prayer-timer'
-
-// Componente helper para mostrar el estado completado
-function CompletedState({ timestamp }: { timestamp: string }) {
-  const completionTime = new Date(timestamp).toLocaleTimeString('es-ES', {
-    hour: '2-digit',
-    minute: '2-digit'
-  })
-  return (
-    <div className="flex items-center gap-2 text-green-600">
-      <CheckCircle2 size={20} />
-      <div className="flex flex-col items-start">
-        <span className="font-semibold">Completado</span>
-        <span className="text-xs">a las {completionTime}</span>
-      </div>
-    </div>
-  )
 }
 
 // El componente recibe los datos pre-cargados desde la página del servidor
@@ -40,67 +21,125 @@ export function DashboardClient({ dailyMission, userProgress }: DailyData) {
     ? dailyMission.capitulos_diarios[0]
     : dailyMission?.capitulos_diarios;
 
+  // Calculate missions completed
+  const lecturaCompletada = userProgress?.lectura_completada || false
+  const oracionCompletada = userProgress?.oracion_completada || false
+  const misionesCompletadas = (lecturaCompletada ? 1 : 0) + (oracionCompletada ? 1 : 0)
+  const totalMisiones = chapterInfo ? 2 : 0
+
   return (
     <>
-      <Card className="w-full md:max-w-2xl mx-auto">
-        {/* ... (El CardHeader se mantiene igual) ... */}
-         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Target className="text-primary" />
-            Misión de Hoy: {new Date().toLocaleString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {!chapterInfo ? (
-            <div className="flex flex-col items-center justify-center p-8 text-center bg-muted/50 rounded-lg">
-              <ShieldAlert className="w-12 h-12 mb-4 text-muted-foreground" />
-              <h3 className="font-semibold">Día de Descanso o Preparación</h3>
-              <p className="text-sm text-muted-foreground">No hay una lectura asignada para hoy.</p>
+      {/* Header & Missions Badge */}
+      <div className="mb-6 flex items-start justify-between">
+        <div>
+          <h1 className="font-display text-2xl font-bold text-slate-900">
+            Sustento Diario
+          </h1>
+          <p className="text-sm text-slate-500">
+            {new Date().toLocaleString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}
+          </p>
+        </div>
+        
+        {/* Missions Badge */}
+        {chapterInfo && (
+          <div className="flex items-center gap-1.5 rounded-full bg-indigo-50 px-3 py-1.5">
+            <Flame className="h-4 w-4 text-indigo-600" />
+            <span className="text-xs font-semibold text-indigo-600">
+              {misionesCompletadas}/{totalMisiones} MISIONES
+            </span>
+          </div>
+        )}
+      </div>
+
+      {/* Mission Cards */}
+      <div className="space-y-4">
+        {!chapterInfo ? (
+          <div className="flex flex-col items-center justify-center rounded-3xl bg-white p-8 text-center shadow-sm">
+            <Sparkles className="mb-4 h-12 w-12 text-slate-400" />
+            <h3 className="font-display font-semibold">Día de Descanso</h3>
+            <p className="text-sm text-slate-500">No hay una lectura asignada para hoy.</p>
+          </div>
+        ) : (
+          <>
+            {/* Reading Mission Card */}
+            <div className="rounded-2xl bg-white p-5 shadow-sm">
+              <div className="mb-4 flex items-start gap-3">
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-50">
+                  <BookOpen className="h-6 w-6 text-indigo-600" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                    Lectura Bíblica
+                  </p>
+                  <h3 className="mt-1 font-display text-xl font-bold text-slate-900">
+                    {chapterInfo.referencia_capitulo}
+                  </h3>
+                </div>
+              </div>
+
+              {!lecturaCompletada ? (
+                <button
+                  onClick={() => setIsReadingDialogOpen(true)}
+                  className="flex h-[50px] w-full items-center justify-center rounded-xl bg-slate-900 font-medium text-white transition-all active:scale-95"
+                >
+                  Registrar Lectura
+                </button>
+              ) : (
+                <div className="rounded-xl bg-emerald-50 px-4 py-3 text-center">
+                  <span className="font-medium text-emerald-600">✓ Completado</span>
+                </div>
+              )}
+
+              {/* Facepile */}
+              <div className="mt-4 flex items-center gap-2">
+                <div className="flex -space-x-2">
+                  <div className="h-6 w-6 rounded-full border-2 border-white bg-gradient-to-br from-amber-400 to-orange-500" />
+                  <div className="h-6 w-6 rounded-full border-2 border-white bg-gradient-to-br from-blue-400 to-cyan-500" />
+                </div>
+                <p className="text-xs text-slate-500">
+                  <span className="font-medium text-slate-700">Helimenas</span> y 1 más ya leyeron hoy.
+                </p>
+              </div>
             </div>
-          ) : (
-            <>
-              {/* Sección de Lectura Interactiva */}
-              <div className="flex items-center justify-between p-4 border rounded-lg">
-                <div className="flex items-center gap-4">
-                  <BookOpen className="w-8 h-8 text-secondary" />
-                  <div>
-                    <h3 className="font-semibold">Lectura Bíblica</h3>
-                    <p className="text-lg font-bold text-primary">{chapterInfo.referencia_capitulo}</p>
+
+            {/* Prayer Mission Card */}
+            <div className="rounded-2xl bg-white p-5 shadow-sm">
+              <div className="mb-4 flex items-start gap-3">
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-purple-50">
+                  <Sparkles className="h-6 w-6 text-purple-600" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                    Tiempo de Oración
+                  </p>
+                </div>
+              </div>
+
+              <PrayerTimer
+                minutosRequeridos={dailyMission.minutos_oracion_requeridos}
+                segundosIniciales={userProgress?.segundos_oracion_acumulados || 0}
+                capituloId={chapterInfo.id}
+                oracionCompletada={userProgress?.oracion_completada || false}
+              />
+
+              {/* Facepile */}
+              <div className="mt-4 flex items-center gap-2">
+                <div className="flex -space-x-2">
+                  <div className="h-6 w-6 rounded-full border-2 border-white bg-gradient-to-br from-pink-400 to-rose-500" />
+                  <div className="h-6 w-6 rounded-full border-2 border-white bg-gradient-to-br from-green-400 to-emerald-500" />
+                  <div className="h-6 w-6 rounded-full border-2 border-white bg-gradient-to-br from-violet-400 to-purple-500" />
+                  <div className="flex h-6 w-6 items-center justify-center rounded-full border-2 border-white bg-slate-200 text-[10px] font-semibold text-slate-600">
+                    +1
                   </div>
                 </div>
-                {userProgress?.lectura_completada ? (
-                  <CompletedState timestamp={userProgress.lectura_completada_en} />
-                ) : (
-                  <Button onClick={() => setIsReadingDialogOpen(true)}>Registrar Lectura</Button>
-                )}
+                <p className="text-xs text-slate-500">
+                  <span className="font-medium text-slate-700">Helimenas</span> y 3 más ya oraron hoy.
+                </p>
               </div>
-              {/* Sección de Oración Interactiva */}
-              <div className="flex items-center justify-between p-4 border rounded-lg">
-                <div className="flex items-center gap-4">
-                  <div className="flex flex-col items-center justify-center w-8">
-                    <span className="text-2xl font-bold text-secondary">{dailyMission.minutos_oracion_requeridos}</span>
-                    <span className="text-xs font-semibold tracking-widest uppercase">MIN</span>
-                  </div>
-                  <div>
-                    <h3 className="font-semibold">Tiempo de Oración</h3>
-                    <p className="text-muted-foreground">Conecta y reflexiona.</p>
-                  </div>
-                </div>
-                {userProgress?.oracion_completada ? (
-                  <CompletedState timestamp={userProgress.oracion_completada_en} />
-                ) : (
-                  <PrayerTimer
-                    minutosRequeridos={dailyMission.minutos_oracion_requeridos}
-                    segundosIniciales={userProgress?.segundos_oracion_acumulados || 0}
-                    capituloId={chapterInfo.id}
-                    oracionCompletada={userProgress?.oracion_completada || false}
-                  />
-                )}
-              </div>
-            </>
-          )}
-        </CardContent>
-      </Card>
+            </div>
+          </>
+        )}
+      </div>
       
       {chapterInfo && (
         <RegisterReadingDialog

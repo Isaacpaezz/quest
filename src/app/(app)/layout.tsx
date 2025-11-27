@@ -2,7 +2,6 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { Header } from '@/components/layout/header'
 import { MobileNav } from '@/components/layout/mobile-nav'
-import { DesktopSidebar } from '@/components/layout/desktop-sidebar'
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient()
@@ -10,23 +9,19 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   if (!user) redirect('/login')
 
   return (
-    <div className="flex min-h-screen bg-background">
-      {/* NAVEGACIÓN DE ESCRITORIO: visible solo en md y más grandes */}
-      <DesktopSidebar />
+    <div className="flex min-h-screen flex-col bg-background">
+      {/* HEADER: visible en todas las pantallas */}
+      <Header />
       
-      {/* CONTENEDOR PRINCIPAL */}
-      <div className="flex flex-col flex-1 md:ml-64"> {/* Margen izquierdo en escritorio para dejar espacio al sidebar */}
-        {/* NAVEGACIÓN MÓVIL (HEADER): visible solo en pantallas pequeñas */}
-        <Header />
-        
-        {/* CONTENIDO DE LA PÁGINA */}
-        <main className="flex-1 px-2 py-4 pb-24 md:px-4 md:pb-4"> {/* Padding horizontal reducido en móvil */}
+      {/* CONTENIDO DE LA PÁGINA */}
+      <main className="flex-1 px-2 py-4 pt-16 pb-24 md:px-4">
+        <div className="mx-auto w-full max-w-2xl">
           {children}
-        </main>
-        
-        {/* NAVEGACIÓN MÓVIL (TAB BAR): visible solo en pantallas pequeñas */}
-        <MobileNav />
-      </div>
+        </div>
+      </main>
+      
+      {/* NAVEGACIÓN INFERIOR: visible en todas las pantallas */}
+      <MobileNav />
     </div>
   )
 }

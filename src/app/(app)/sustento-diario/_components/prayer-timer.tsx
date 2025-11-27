@@ -2,8 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { toast } from 'sonner'
-import { Button } from '@/components/ui/button'
-import { CheckCircle2 } from 'lucide-react'
+import { Play } from 'lucide-react'
 import { actualizarProgresoOracionAction } from '../actions'
 
 type PrayerTimerProps = {
@@ -23,18 +22,14 @@ const formatTiempo = (segundos: number) => {
 export function PrayerTimer({ minutosRequeridos, segundosIniciales, capituloId, oracionCompletada }: PrayerTimerProps) {
   const totalSegundosRequeridos = Math.max(0, minutosRequeridos * 60)
 
-  // Segundos acumulados hasta la última pausa (o inicio). Persistimos solo aquí.
   const [segundosBase, setSegundosBase] = useState<number>(segundosIniciales)
   const baseRef = useRef<number>(segundosIniciales)
 
   const [estaActivo, setEstaActivo] = useState<boolean>(false)
   const [estaCompleto, setEstaCompleto] = useState<boolean>(oracionCompletada)
 
-  // Timestamp de inicio de la sesión actual
   const startTimeRef = useRef<number | null>(null)
-  // requestAnimationFrame id
   const rafRef = useRef<number | null>(null)
-  // Estado "tick" para forzar re-render desde RAF sin mutar el progreso base
   const [, setTick] = useState<number>(0)
 
   useEffect(() => {
@@ -71,12 +66,10 @@ export function PrayerTimer({ minutosRequeridos, segundosIniciales, capituloId, 
   }
 
   const animate = useCallback(() => {
-    // Forzamos re-render para refrescar el tiempo mostrado
     setTick(Date.now())
 
     const totalAhora = calcularSegundosActuales()
     if (totalAhora >= totalSegundosRequeridos && !estaCompleto) {
-      // Completar y persistir una sola vez
       stopRaf()
       setEstaActivo(false)
       setEstaCompleto(true)
@@ -87,7 +80,6 @@ export function PrayerTimer({ minutosRequeridos, segundosIniciales, capituloId, 
       return
     }
 
-    // Continuar el bucle si sigue activo
     if (estaActivo && !estaCompleto) {
       rafRef.current = requestAnimationFrame(animate)
     }
@@ -95,11 +87,9 @@ export function PrayerTimer({ minutosRequeridos, segundosIniciales, capituloId, 
 
   useEffect(() => {
     if (estaActivo && !estaCompleto) {
-      // Iniciamos/reanudamos: anclamos el tiempo de referencia ahora
       startTimeRef.current = Date.now()
       rafRef.current = requestAnimationFrame(animate)
     } else {
-      // Pausa o completado: detenemos animación
       stopRaf()
     }
     return () => stopRaf()
@@ -108,11 +98,8 @@ export function PrayerTimer({ minutosRequeridos, segundosIniciales, capituloId, 
   const handleToggle = () => {
     const nuevoEstadoActivo = !estaActivo
     if (nuevoEstadoActivo) {
-      // Pasamos a activo: solo arrancamos el reloj
       setEstaActivo(true)
-      // startTime se define en el efecto superior
     } else {
-      // Pasamos a pausa: consolidamos segundos actuales y guardamos
       const totalAhora = Math.min(calcularSegundosActuales(), totalSegundosRequeridos)
       setSegundosBase(totalAhora)
       baseRef.current = totalAhora
@@ -122,30 +109,29 @@ export function PrayerTimer({ minutosRequeridos, segundosIniciales, capituloId, 
     }
   }
 
-  // UI de completado
-  if (estaCompleto) {
-    return (
-      <div className="flex items-center gap-2 text-green-600">
-        <CheckCircle2 size={20} />
-        <span className="font-semibold">Completado</span>
-      </div>
-    )
-  }
-
-  // Tiempo mostrado (derivado en cada render; preciso incluso tras inactividad)
+  // Tiempo mostrado
   const segundosMostrados = Math.min(calcularSegundosActuales(), totalSegundosRequeridos)
   const tiempoFormateado = formatTiempo(segundosMostrados)
   const tiempoTotalFormateado = formatTiempo(totalSegundosRequeridos)
 
   return (
-    <div className="flex items-center justify-between w-full">
-      <div className="font-mono text-lg font-semibold tracking-wider">
-        <span>{tiempoFormateado}</span>
-        <span className="text-muted-foreground"> / {tiempoTotalFormateado}</span>
+    <div className="space-y-3">
+      {/* Time Display */}
+      <div className="font-display text-2xl font-bold tabular-nums text-slate-900">
+        {tiempoFormateado}
+        <span className="text-base font-normal text-slate-400"> / {tiempoTotalFormateado}</span>
       </div>
-      <Button onClick={handleToggle}>
-        {estaActivo ? 'Pausar Oración' : 'Iniciar Oración'}
-      </Button>
+
+      {/* Control Button */}
+      {!estaCompleto && (
+        <button
+          onClick={handleToggle}
+          className="flex h-[50px] w-full items-center justify-center gap-2 rounded-xl bg-[#5B5FEF] font-medium text-white shadow-sm transition-all active:scale-95"
+        >
+          <Play className="h-5 w-5" fill="white" />
+          {estaActivo ? 'Pausar' : 'Iniciar'}
+        </button>
+      )}
     </div>
   )
 }
