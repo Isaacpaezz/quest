@@ -3,11 +3,13 @@
 import { EmptyState } from '@/components/shared/empty-state'
 import { Newspaper, Crown, Flame } from 'lucide-react'
 import { ActivityCard } from './activity-card'
-import { getTodayInVenezuela } from '@/lib/utils'
 
 // Helper para formatear los encabezados de fecha
 function formatDateHeader(dateString: string) {
-  const dateObj = new Date(dateString);
+  // dateString comes in YYYY-MM-DD (zona Venezuela) from the server grouping.
+  // Crear la fecha usando componentes año/mes/día para evitar interpretaciones UTC
+  const [yearStr, monthStr, dayStr] = dateString.split('-')
+  const dateObj = new Date(Number(yearStr), Number(monthStr) - 1, Number(dayStr))
   const today = new Date();
   const yesterday = new Date();
   yesterday.setDate(yesterday.getDate() - 1);
