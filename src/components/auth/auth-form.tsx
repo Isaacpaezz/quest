@@ -1,10 +1,9 @@
-'use client'
+"use client"
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+import { ArrowRight } from 'lucide-react'
 
 export default function AuthForm() {
   const [isNewUser, setIsNewUser] = useState(false)
@@ -21,7 +20,6 @@ export default function AuthForm() {
       email,
       password,
       options: {
-        // Pasamos los metadatos aquí para que el trigger los pueda usar
         data: {
           nombre_usuario: username,
         },
@@ -30,9 +28,6 @@ export default function AuthForm() {
     if (error) {
       setError(error.message)
     } else {
-      // Supabase envía un correo de confirmación. Informamos al usuario.
-      // Podríamos redirigir o mostrar un mensaje. Por ahora, redirigimos.
-      // En un futuro, aquí irá un mensaje de "Verifica tu email".
       router.push('/')
       router.refresh()
     }
@@ -62,23 +57,13 @@ export default function AuthForm() {
   }
 
   return (
-    <div className="w-full p-8 space-y-6 bg-card rounded-3xl shadow-lg backdrop-blur-2xl border border-border/40">
-      <div className="text-center">
-        <h1 className="text-2xl font-bold text-foreground">
-          {isNewUser ? 'Crea tu Cuenta' : 'Bienvenido a Quest'}
-        </h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          {isNewUser ? 'Únete a la misión.' : 'Inicia sesión para continuar tu senda.'}
-        </p>
-      </div>
-      
-      <form onSubmit={handleSubmit} className="space-y-4">
+    <div className="w-full bg-transparent">
+  <form onSubmit={handleSubmit} className="space-y-6 bg-white rounded-3xl p-6 shadow-lg border border-slate-100">
+        {/* Username */}
         {isNewUser && (
-          <div className="space-y-1.5">
-            <label className="text-sm font-medium" htmlFor="username">
-              Nombre de Usuario
-            </label>
-            <Input
+          <div className="space-y-2">
+            <label htmlFor="username" className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Nombre de Usuario</label>
+            <input
               id="username"
               type="text"
               autoComplete="username"
@@ -86,28 +71,30 @@ export default function AuthForm() {
               onChange={(e) => setUsername(e.target.value)}
               placeholder="Tu nombre en la comunidad"
               required
+              className="w-full bg-white border border-slate-100 rounded-xl px-4 py-4 text-slate-900 placeholder:text-slate-300 transition-all shadow-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
             />
           </div>
         )}
-        <div className="space-y-1.5">
-          <label className="text-sm font-medium" htmlFor="email">
-            Email
-          </label>
-          <Input
+
+        {/* Email */}
+        <div className="space-y-2">
+          <label htmlFor="email" className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Email</label>
+          <input
             id="email"
             type="email"
             autoComplete="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            placeholder="tu@email.com"
+            placeholder="hola@ejemplo.com"
             required
+            className="w-full bg-white border border-slate-100 rounded-xl px-4 py-4 text-slate-900 placeholder:text-slate-300 transition-all shadow-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
           />
         </div>
-        <div className="space-y-1.5">
-          <label className="text-sm font-medium" htmlFor="password">
-            Contraseña
-          </label>
-          <Input
+
+        {/* Password */}
+        <div className="space-y-2">
+          <label htmlFor="password" className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Contraseña</label>
+          <input
             id="password"
             type="password"
             autoComplete={isNewUser ? 'new-password' : 'current-password'}
@@ -115,25 +102,32 @@ export default function AuthForm() {
             onChange={(e) => setPassword(e.target.value)}
             placeholder="••••••••"
             required
+            className="w-full bg-white border border-slate-100 rounded-xl px-4 py-4 text-slate-900 placeholder:text-slate-300 transition-all shadow-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
           />
         </div>
 
-        <Button type="submit" className="w-full mt-2">
-          {isNewUser ? 'Registrarse' : 'Iniciar Sesión'}
-        </Button>
-
-        {error && <p className="text-center text-sm text-destructive">{error}</p>}
-      </form>
-
-      <div className="text-center text-sm">
-        {isNewUser ? '¿Ya tienes una cuenta? ' : '¿No tienes una cuenta? '}
+        {/* CTA */}
         <button
-          onClick={() => setIsNewUser(!isNewUser)}
-          className="font-semibold text-primary hover:underline"
+          type="submit"
+          className="w-full bg-slate-900 text-white rounded-xl py-4 font-bold text-lg shadow-lg shadow-slate-900/20 hover:bg-slate-800 active:scale-[0.98] transition-all flex items-center justify-center gap-2 mt-2"
         >
-          {isNewUser ? 'Inicia Sesión' : 'Regístrate'}
+          {isNewUser ? 'Registrarse' : 'Ingresar'}
+          <ArrowRight className="h-4 w-4" />
         </button>
-      </div>
+
+        {error && <p className="text-center text-sm text-rose-600">{error}</p>}
+
+        <div className="text-center text-sm">
+          {isNewUser ? '¿Ya tienes una cuenta? ' : '¿No tienes una cuenta? '}
+          <button
+            type="button"
+            onClick={() => setIsNewUser(!isNewUser)}
+            className="font-semibold text-indigo-600 hover:underline"
+          >
+            {isNewUser ? 'Inicia Sesión' : 'Regístrate'}
+          </button>
+        </div>
+      </form>
     </div>
   )
 }
