@@ -58,45 +58,45 @@ export function PlanManagementClient({ planes }: { planes: Tables<'planes_lectur
   }
 
   return (
-    <div className="grid gap-8 md:grid-cols-3">
-      <Card className="md:col-span-1">
-        <CardHeader><CardTitle>Crear Nuevo Plan</CardTitle></CardHeader>
-        <CardContent>
-          <form action={formAction} className="space-y-4">
-            <div>
-              <Label>Libro de la Biblia</Label>
-              <Select name="nombre_libro" required>
-                <SelectTrigger><SelectValue placeholder="Selecciona un libro" /></SelectTrigger>
-                <SelectContent>
-                  {LIBROS_BIBLIA.map(libro => (
-                    <SelectItem key={libro.nombre} value={libro.nombre}>{libro.nombre}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label htmlFor="fecha_inicio">Fecha de Inicio</Label>
-              <Input id="fecha_inicio" name="fecha_inicio" type="date" required />
-            </div>
-            <div>
-              <Label htmlFor="minutos_oracion">Minutos de Oración Diarios</Label>
-              <Input id="minutos_oracion" name="minutos_oracion" type="number" defaultValue="15" required />
-            </div>
-            <SubmitButton />
-          </form>
-        </CardContent>
-      </Card>
+    <div className="space-y-6">
+      <div className="mx-4 rounded-3xl border border-slate-100 bg-white p-6 shadow-sm">
+        <h2 className="mb-6 font-display text-lg font-bold text-slate-900">Crear Nuevo Plan</h2>
+        <form action={formAction} className="space-y-4">
+          <div>
+            <Label className="text-sm font-medium text-slate-700">Libro de la Biblia</Label>
+            <Select name="nombre_libro" required>
+              <SelectTrigger className="mt-1.5">
+                <SelectValue placeholder="Selecciona un libro" />
+              </SelectTrigger>
+              <SelectContent>
+                {LIBROS_BIBLIA.map(libro => (
+                  <SelectItem key={libro.nombre} value={libro.nombre}>{libro.nombre}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label htmlFor="fecha_inicio" className="text-sm font-medium text-slate-700">Fecha de Inicio</Label>
+            <Input id="fecha_inicio" name="fecha_inicio" type="date" required className="mt-1.5" />
+          </div>
+          <div>
+            <Label htmlFor="minutos_oracion" className="text-sm font-medium text-slate-700">Minutos de Oración Diarios</Label>
+            <Input id="minutos_oracion" name="minutos_oracion" type="number" defaultValue="15" required className="mt-1.5" />
+          </div>
+          <SubmitButton />
+        </form>
+      </div>
       
-      <Card className="md:col-span-2">
-        <CardHeader><CardTitle>Planes Existentes</CardTitle></CardHeader>
-        <CardContent>
-          {planes.length > 0 ? (
+      <div className="mx-4 rounded-3xl border border-slate-100 bg-white p-6 shadow-sm">
+        <h2 className="mb-6 font-display text-lg font-bold text-slate-900">Planes Existentes</h2>
+        {planes.length > 0 ? (
+          <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Libro</TableHead>
                   <TableHead>Estado</TableHead>
-                  <TableHead>Duración</TableHead>
+                  <TableHead className="hidden sm:table-cell">Duración</TableHead>
                   <TableHead className="text-right">Acciones</TableHead>
                 </TableRow>
               </TableHeader>
@@ -105,7 +105,7 @@ export function PlanManagementClient({ planes }: { planes: Tables<'planes_lectur
                   <TableRow key={plan.id}>
                     <TableCell className="font-medium">{plan.nombre_libro}</TableCell>
                     <TableCell><Badge variant={plan.estado === 'activo' ? 'default' : plan.estado === 'proximo' ? 'secondary' : 'outline'}>{plan.estado}</Badge></TableCell>
-                    <TableCell>{new Date(plan.fecha_inicio).toLocaleDateString()} - {new Date(plan.fecha_fin).toLocaleDateString()}</TableCell>
+                    <TableCell className="hidden text-sm text-slate-600 sm:table-cell">{new Date(plan.fecha_inicio).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' })} - {new Date(plan.fecha_fin).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' })}</TableCell>
                     <TableCell className="text-right">
                       {plan.estado === 'inactivo' && (
                         <Button variant="outline" size="sm" onClick={() => handleScheduleClick(plan)}>
@@ -117,15 +117,15 @@ export function PlanManagementClient({ planes }: { planes: Tables<'planes_lectur
                 ))}
               </TableBody>
             </Table>
-          ) : (
-            <EmptyState
-              Icon={PackageOpen}
-              title="No Hay Planes Creados"
-              description="Parece que aún no has generado ningún plan de lectura. ¡Usa el formulario para crear el primero!"
-            />
-          )}
-        </CardContent>
-      </Card>
+          </div>
+        ) : (
+          <EmptyState
+            Icon={PackageOpen}
+            title="No Hay Planes Creados"
+            description="Parece que aún no has generado ningún plan de lectura. ¡Usa el formulario para crear el primero!"
+          />
+        )}
+      </div>
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent>
           <DialogHeader>

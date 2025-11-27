@@ -140,7 +140,7 @@ export async function registrarProgresoLecturaAction(prevState: ActionState, for
         subs.map((s) =>
           pushService
             .sendNotification(s.subscription as unknown as WebPushSubscription, payload)
-            .catch(async (err: any) => {
+            .catch(async (err: Error & { statusCode?: number }) => {
               console.error('Error sending notification:', err)
               if (err.statusCode === 410 || err.statusCode === 404) {
                 // Subscription expired or gone, remove it

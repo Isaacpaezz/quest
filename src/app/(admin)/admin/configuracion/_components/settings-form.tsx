@@ -21,34 +21,33 @@ toast.success('Éxito', { description: state.message })
 toast.error('Error', { description: state.error })
 }
 }, [state])
-return (
-<>
-<form action={formAction}>
-<Card className="max-w-lg">
-<CardHeader>
-<CardTitle>Parámetros de Penalización</CardTitle>
-<CardDescription>Define el valor de la penalización por incumplimiento diario.</CardDescription>
-</CardHeader>
-<CardContent>
-<div className="space-y-2">
-<Label htmlFor="monto_penalizacion">Monto de Penalización (USD)</Label>
-<Input
-id="monto_penalizacion"
-name="monto_penalizacion"
-type="number"
-step="0.01"
-defaultValue={initialPenaltyAmount}
-required
-/>
-{state.errors?.monto_penalizacion && <p className="text-sm text-destructive">{state.errors.monto_penalizacion[0]}</p>}
-</div>
-</CardContent>
-<CardFooter className="border-t px-6 py-4">
-<SubmitButton />
-</CardFooter>
-</Card>
-</form>
-<Toaster richColors />
-</>
-)
+  return (
+    <>
+      <form action={formAction}>
+        <div className="mx-4 rounded-3xl border border-slate-100 bg-white shadow-sm">
+          <div className="p-6">
+            <h2 className="mb-2 font-display text-lg font-bold text-slate-900">Parámetros de Penalización</h2>
+            <p className="mb-6 text-sm text-slate-500">Define el valor de la penalización por incumplimiento diario.</p>
+            <div className="space-y-2">
+              <Label htmlFor="monto_penalizacion" className="text-sm font-medium text-slate-700">Monto de Penalización (USD)</Label>
+              <Input
+                id="monto_penalizacion"
+                name="monto_penalizacion"
+                type="number"
+                step="0.01"
+                defaultValue={initialPenaltyAmount}
+                required
+                className="mt-1.5"
+              />
+              {state.errors?.monto_penalizacion && <p className="text-sm text-destructive">{state.errors.monto_penalizacion[0]}</p>}
+            </div>
+          </div>
+          <div className="border-t border-slate-100 px-6 py-4">
+            <SubmitButton />
+          </div>
+        </div>
+      </form>
+      <Toaster richColors />
+    </>
+  )
 }

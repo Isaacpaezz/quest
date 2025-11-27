@@ -42,15 +42,15 @@ export function PenaltiesClient({ users: initialUsers }: { users: any[] }) {
 
   return (
     <>
-      <Card>
-        <CardHeader><CardTitle>Penalizaciones Pendientes</CardTitle></CardHeader>
-        <CardContent>
-          {users.length > 0 ? (
+      <div className="mx-4 rounded-3xl border border-slate-100 bg-white p-6 shadow-sm">
+        <h2 className="mb-6 font-display text-lg font-bold text-slate-900">Penalizaciones Pendientes</h2>
+        {users.length > 0 ? (
+          <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Miembro</TableHead>
-                  <TableHead>Días Pendientes</TableHead>
+                  <TableHead className="hidden sm:table-cell">Días Pendientes</TableHead>
                   <TableHead>Deuda Total</TableHead>
                   <TableHead className="text-right">Acciones</TableHead>
                 </TableRow>
@@ -59,24 +59,24 @@ export function PenaltiesClient({ users: initialUsers }: { users: any[] }) {
                 {users.map(user => (
                   <TableRow key={user.usuario_id}>
                     <TableCell className="font-medium">{user.nombre_usuario}</TableCell>
-                    <TableCell>{user.dias_pendientes}</TableCell>
-                    <TableCell className="font-mono">{user.deuda_total.toLocaleString('es-ES', { style: 'currency', currency: 'USD' })}</TableCell>
+                    <TableCell className="hidden sm:table-cell">{user.dias_pendientes}</TableCell>
+                    <TableCell className="font-mono text-sm">{user.deuda_total.toLocaleString('es-ES', { style: 'currency', currency: 'USD' })}</TableCell>
                     <TableCell className="text-right">
-                      <Button size="sm" variant="outline" onClick={() => setSelectedUser(user)}>Gestionar Pago</Button>
+                      <Button size="sm" variant="outline" onClick={() => setSelectedUser(user)}>Gestionar</Button>
                     </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
-          ) : (
-            <EmptyState
-              Icon={ShieldCheck}
-              title="Todo en Orden"
-              description="No hay penalizaciones pendientes en la comunidad. ¡Excelente trabajo!"
-            />
-          )}
-        </CardContent>
-      </Card>
+          </div>
+        ) : (
+          <EmptyState
+            Icon={ShieldCheck}
+            title="Todo en Orden"
+            description="No hay penalizaciones pendientes en la comunidad. ¡Excelente trabajo!"
+          />
+        )}
+      </div>
       
       <Dialog open={!!selectedUser} onOpenChange={(open) => !open && setSelectedUser(null)}>
         <DialogContent>

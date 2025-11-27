@@ -65,9 +65,12 @@ export default async function ProfilePage() {
   
   const currentStreak = calculateStreak(progressHistory);
 
+  const totalPrayerSeconds = progressHistory.reduce((acc, curr) => acc + (curr.segundos_oracion_acumulados || 0), 0);
+
   const stats = {
     streak: currentStreak,
     totalMissions: totalMissions,
+    totalPrayerSeconds: totalPrayerSeconds
   }
 
   return <UserProfile profile={profile} stats={stats} />

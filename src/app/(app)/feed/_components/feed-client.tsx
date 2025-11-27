@@ -1,8 +1,8 @@
 'use client'
 
-import { ActivityCard } from './activity-card'
 import { EmptyState } from '@/components/shared/empty-state'
 import { Newspaper, Crown, Flame } from 'lucide-react'
+import { ActivityCard } from './activity-card'
 import { getTodayInVenezuela } from '@/lib/utils'
 
 // Helper para formatear los encabezados de fecha
@@ -33,6 +33,7 @@ const HEROES = [
   { id: 2, name: 'Isaac', color: 'from-blue-300 to-indigo-500' },
 ]
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function FeedClient({ groupedActivities }: { groupedActivities: Record<string, any[]> }) {
   const activityDates = Object.keys(groupedActivities);
 
