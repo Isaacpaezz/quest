@@ -4,7 +4,7 @@ import { Sparkles } from 'lucide-react'
 
 export const metadata: Metadata = {
   title: 'Iniciar Sesión | Quest',
-  description: 'Inicia sesión o regístrate para comenzar tu senda espiritual diaria',
+  description: 'Inicia sesión o regístrate para comenzar tu camino de crecimiento diario',
 }
 
 export default function LoginPage() {
