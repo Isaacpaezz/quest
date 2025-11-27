@@ -54,6 +54,15 @@ export default async function DashboardPage() {
     .order('creado_en', { ascending: false })
     .limit(500)
 
+  const { data: prayers } = await supabase
+    .from('actividad_comunidad')
+    .select('usuario_id, perfiles ( nombre_usuario ), creado_en')
+    .eq('tipo_actividad', 'oracion_completada')
+    .gte('creado_en', startOfDayIso)
+    .lte('creado_en', endOfDayIso)
+    .order('creado_en', { ascending: false })
+    .limit(500)
+
   const readersArray = Array.isArray(readers) ? (readers as unknown[]) : []
   const readerIds = Array.from(new Set(readersArray.map(r => (r as Record<string, unknown>)['usuario_id'] as string)))
   const readersCount = readerIds.length
@@ -63,11 +72,21 @@ export default async function DashboardPage() {
         : ((readersArray[0] as Record<string, unknown>)['perfiles'] as Record<string, unknown>)?.['nombre_usuario'] as string)
     : null
 
+  const prayersArray = Array.isArray(prayers) ? (prayers as unknown[]) : []
+  const prayerIds = Array.from(new Set(prayersArray.map(r => (r as Record<string, unknown>)['usuario_id'] as string)))
+  const prayersCount = prayerIds.length
+  const firstPrayerName = prayersArray.length > 0
+    ? (Array.isArray((prayersArray[0] as Record<string, unknown>)['perfiles'])
+        ? ((prayersArray[0] as Record<string, unknown>)['perfiles'] as Record<string, unknown>[])[0]?.['nombre_usuario'] as string
+        : ((prayersArray[0] as Record<string, unknown>)['perfiles'] as Record<string, unknown>)?.['nombre_usuario'] as string)
+    : null
+
   return (
     <DashboardClient
       dailyMission={dailyMission}
       userProgress={userProgress}
       readingStats={{ count: readersCount, firstReaderName }}
+      prayerStats={{ count: prayersCount, firstPrayerName }}
     />
   )
 }

@@ -15,10 +15,14 @@ type DailyData = {
     count: number
     firstReaderName?: string | null
   }
+  prayerStats?: {
+    count: number
+    firstPrayerName?: string | null
+  }
 }
 
 // El componente recibe los datos pre-cargados desde la página del servidor
-export function DashboardClient({ dailyMission, userProgress, readingStats }: DailyData) {
+export function DashboardClient({ dailyMission, userProgress, readingStats, prayerStats }: DailyData) {
   const [isReadingDialogOpen, setIsReadingDialogOpen] = useState(false)
   
   const chapterInfo = Array.isArray(dailyMission?.capitulos_diarios)
@@ -154,17 +158,34 @@ export function DashboardClient({ dailyMission, userProgress, readingStats }: Da
               )}
 
               {/* Facepile */}
+              {/* Facepile dinámico para oración */}
               <div className="mt-4 flex items-center gap-2">
                 <div className="flex -space-x-2">
                   <div className="h-6 w-6 rounded-full border-2 border-white bg-gradient-to-br from-pink-400 to-rose-500" />
-                  <div className="h-6 w-6 rounded-full border-2 border-white bg-gradient-to-br from-green-400 to-emerald-500" />
-                  <div className="h-6 w-6 rounded-full border-2 border-white bg-gradient-to-br from-violet-400 to-purple-500" />
-                  <div className="flex h-6 w-6 items-center justify-center rounded-full border-2 border-white bg-slate-200 text-[10px] font-semibold text-slate-600">
-                    +1
-                  </div>
+                  {prayerStats && prayerStats.count > 1 && (
+                    <div className="h-6 w-6 rounded-full border-2 border-white bg-gradient-to-br from-violet-400 to-purple-500" />
+                  )}
+                  {prayerStats && prayerStats.count > 2 && (
+                    <div className="h-6 w-6 rounded-full border-2 border-white bg-gradient-to-br from-fuchsia-400 to-pink-500" />
+                  )}
+                  {prayerStats && prayerStats.count > 3 && (
+                    <div className="flex h-6 w-6 items-center justify-center rounded-full border-2 border-white bg-slate-200 text-[10px] font-semibold text-slate-600">
+                      +{Math.min(prayerStats.count - 3, 99)}
+                    </div>
+                  )}
                 </div>
                 <p className="text-xs text-slate-500">
-                  <span className="font-medium text-slate-700">Helimenas</span> y 3 más ya oraron hoy.
+                  {prayerStats && prayerStats.count > 0 ? (
+                    prayerStats.count === 1 ? (
+                      <span className="font-medium text-slate-700">{prayerStats.firstPrayerName ?? 'Alguien'}</span>
+                    ) : (
+                      <>
+                        <span className="font-medium text-slate-700">{prayerStats.firstPrayerName ?? 'Alguien'}</span> y {prayerStats.count - 1} más ya oraron hoy.
+                      </>
+                    )
+                  ) : (
+                    <span className="text-slate-400">Sé el primero en orar hoy.</span>
+                  )}
                 </p>
               </div>
             </div>
