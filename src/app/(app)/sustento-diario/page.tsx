@@ -40,7 +40,34 @@ export default async function DashboardPage() {
     .eq('fecha_progreso', today)
     .single()
 
+  // 3. Obtener estadísticas de comunidad: quiénes leyeron HOY (zona Venezuela)
+  // Construimos rango ISO para el día en zona Venezuela y filtramos por `creado_en`.
+  const startOfDayIso = new Date(`${today}T00:00:00-04:00`).toISOString()
+  const endOfDayIso = new Date(`${today}T23:59:59.999-04:00`).toISOString()
+
+  const { data: readers } = await supabase
+    .from('actividad_comunidad')
+    .select('usuario_id, perfiles ( nombre_usuario ), creado_en')
+    .eq('tipo_actividad', 'lectura_completada')
+    .gte('creado_en', startOfDayIso)
+    .lte('creado_en', endOfDayIso)
+    .order('creado_en', { ascending: false })
+    .limit(500)
+
+  const readersArray = Array.isArray(readers) ? (readers as unknown[]) : []
+  const readerIds = Array.from(new Set(readersArray.map(r => (r as Record<string, unknown>)['usuario_id'] as string)))
+  const readersCount = readerIds.length
+  const firstReaderName = readersArray.length > 0
+    ? (Array.isArray((readersArray[0] as Record<string, unknown>)['perfiles'])
+        ? ((readersArray[0] as Record<string, unknown>)['perfiles'] as Record<string, unknown>[])[0]?.['nombre_usuario'] as string
+        : ((readersArray[0] as Record<string, unknown>)['perfiles'] as Record<string, unknown>)?.['nombre_usuario'] as string)
+    : null
+
   return (
-    <DashboardClient dailyMission={dailyMission} userProgress={userProgress} />
+    <DashboardClient
+      dailyMission={dailyMission}
+      userProgress={userProgress}
+      readingStats={{ count: readersCount, firstReaderName }}
+    />
   )
 }

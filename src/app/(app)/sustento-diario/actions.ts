@@ -215,6 +215,10 @@ export async function actualizarProgresoOracionAction(datos: { segundosAcumulado
     await supabase.from('actividad_comunidad').insert({
       usuario_id: user.id,
       tipo_actividad: 'oracion_completada',
+      // Añadimos un resumen para que la actividad muestre un texto similar
+      // al de las lecturas cuando se complete la oración.
+      referencia_contenido: 'Tiempo de Oración',
+      resumen_actividad: 'Ha completado su tiempo de oración de hoy.'
     })
 
     // Enviar notificaciones push a otros miembros suscritos (no al emisor)
@@ -276,5 +280,6 @@ export async function actualizarProgresoOracionAction(datos: { segundosAcumulado
   }
 
   revalidatePath('/sustento-diario');
+  revalidatePath('/feed');
   return { message: 'Progreso guardado.' };
 }

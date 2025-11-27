@@ -11,10 +11,14 @@ type DailyData = {
   dailyMission: any
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   userProgress: any
+  readingStats?: {
+    count: number
+    firstReaderName?: string | null
+  }
 }
 
 // El componente recibe los datos pre-cargados desde la página del servidor
-export function DashboardClient({ dailyMission, userProgress }: DailyData) {
+export function DashboardClient({ dailyMission, userProgress, readingStats }: DailyData) {
   const [isReadingDialogOpen, setIsReadingDialogOpen] = useState(false)
   
   const chapterInfo = Array.isArray(dailyMission?.capitulos_diarios)
@@ -90,14 +94,34 @@ export function DashboardClient({ dailyMission, userProgress }: DailyData) {
                 </div>
               )}
 
-              {/* Facepile */}
+              {/* Facepile dinámico: mostrar nombre y cantidad real de lectores hoy */}
               <div className="mt-4 flex items-center gap-2">
                 <div className="flex -space-x-2">
                   <div className="h-6 w-6 rounded-full border-2 border-white bg-gradient-to-br from-amber-400 to-orange-500" />
-                  <div className="h-6 w-6 rounded-full border-2 border-white bg-gradient-to-br from-blue-400 to-cyan-500" />
+                  {readingStats && readingStats.count > 1 && (
+                    <div className="h-6 w-6 rounded-full border-2 border-white bg-gradient-to-br from-blue-400 to-cyan-500" />
+                  )}
+                  {readingStats && readingStats.count > 2 && (
+                    <div className="h-6 w-6 rounded-full border-2 border-white bg-gradient-to-br from-green-400 to-emerald-500" />
+                  )}
+                  {readingStats && readingStats.count > 3 && (
+                    <div className="flex h-6 w-6 items-center justify-center rounded-full border-2 border-white bg-slate-200 text-[10px] font-semibold text-slate-600">
+                      +{Math.min(readingStats.count - 3, 99)}
+                    </div>
+                  )}
                 </div>
                 <p className="text-xs text-slate-500">
-                  <span className="font-medium text-slate-700">Helimenas</span> y 1 más ya leyeron hoy.
+                  {readingStats && readingStats.count > 0 ? (
+                    readingStats.count === 1 ? (
+                      <span className="font-medium text-slate-700">{readingStats.firstReaderName ?? 'Alguien'}</span>
+                    ) : (
+                      <>
+                        <span className="font-medium text-slate-700">{readingStats.firstReaderName ?? 'Alguien'}</span> y {readingStats.count - 1} más ya leyeron hoy.
+                      </>
+                    )
+                  ) : (
+                    <span className="text-slate-400">Sé el primero en leer hoy.</span>
+                  )}
                 </p>
               </div>
             </div>
@@ -121,6 +145,13 @@ export function DashboardClient({ dailyMission, userProgress }: DailyData) {
                 capituloId={chapterInfo.id}
                 oracionCompletada={userProgress?.oracion_completada || false}
               />
+
+              {userProgress?.oracion_completada && (
+                <div className="mt-4 rounded-xl bg-emerald-50 px-4 py-3 text-center">
+                  <span className="font-medium text-emerald-600">✓ Completado</span>
+                  <p className="mt-2 text-sm text-slate-600">Ha completado su tiempo de oración de hoy.</p>
+                </div>
+              )}
 
               {/* Facepile */}
               <div className="mt-4 flex items-center gap-2">
