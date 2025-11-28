@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { FeedClient } from './_components/feed-client'
+import { getTodayInVenezuela } from '@/lib/utils'
 
 export default async function FeedPage() {
   const supabase = await createClient()
@@ -28,11 +29,16 @@ export default async function FeedPage() {
   const likedActivityIds = new Set(userLikes?.map(like => like.actividad_id) || [])
 
   // CALCULAR HÉROES DEL DÍA (usuarios que completaron lectura Y oración hoy)
-  const today = new Date().toLocaleDateString('en-US', { timeZone: 'America/Caracas' })
+  const today = getTodayInVenezuela() // Formato YYYY-MM-DD
   const todayActivities = (activities || []).filter(activity => {
+    // Convertir timestamp UTC a fecha en Venezuela
     const activityDate = new Date(activity.creado_en)
-    const venezuelaDate = new Date(activityDate.toLocaleString('en-US', { timeZone: 'America/Caracas' }))
-    return venezuelaDate.toLocaleDateString('en-US', { timeZone: 'America/Caracas' }) === today
+    const venezuelaTime = new Date(activityDate.toLocaleString('en-US', { timeZone: 'America/Caracas' }))
+    const year = venezuelaTime.getFullYear()
+    const month = String(venezuelaTime.getMonth() + 1).padStart(2, '0')
+    const day = String(venezuelaTime.getDate()).padStart(2, '0')
+    const activityDateStr = `${year}-${month}-${day}`
+    return activityDateStr === today
   })
 
   // Agrupar por usuario y verificar si completaron ambas misiones
