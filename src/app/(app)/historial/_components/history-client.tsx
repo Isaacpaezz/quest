@@ -67,7 +67,7 @@ export function HistoryClient({ planes }: { planes: Tables<'planes_lectura'>[] }
             
             <div className="border-t border-slate-100 bg-slate-50/50 px-6 py-3 text-center">
               <span className="text-sm font-medium text-slate-500">
-                {plan.descripcion || 'Plan de lectura completado con éxito'}
+                Plan de lectura completado con éxito
               </span>
             </div>
           </div>
