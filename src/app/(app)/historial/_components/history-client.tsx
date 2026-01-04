@@ -25,7 +25,7 @@ export function HistoryClient({ planes }: { planes: Tables<'planes_lectura'>[] }
   }
 
   return (
-    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+    <div className="grid gap-6 sm:grid-cols-2">
       {planes.map(plan => {
         const totalDays = getDaysBetween(plan.fecha_inicio, plan.fecha_fin)
         const endDate = new Date(plan.fecha_fin)
