@@ -1,72 +1,52 @@
-# Quest - Comunidad de Crecimiento Espiritual
+# Quest - Crecimiento Espiritual
 
-Quest es una aplicación web diseñada para fomentar la disciplina espiritual y el crecimiento comunitario a través del seguimiento de hábitos diarios (lectura y oración) y la responsabilidad compartida.
+Aplicación para el crecimiento espiritual diario a través de lectura bíblica y oración, potenciada por comunidad y gamificación.
 
-## 🌟 Características Principales
+## Tech Stack
 
-- **Seguimiento Diario:** Registro simple de lectura bíblica y tiempo de oración.
-- **Gamificación:** Sistema de rachas (fuego 🔥) para motivar la consistencia.
-- **Muro de Responsabilidad:** Visualización transparente de las penalizaciones por incumplimiento.
-- **Comunidad:** Feed de actividad para ver el progreso de otros miembros.
-- **Gestión de Planes:** Sistema flexible para crear y seguir planes de lectura.
-- **Penalizaciones:** Cálculo automático de deudas por días fallidos (excluyendo domingos).
+- **Framework:** Next.js 16 (App Router)
+- **Lenguaje:** TypeScript
+- **Estilos:** Tailwind CSS v4 + shadcn/ui
+- **Base de Datos:** Supabase (PostgreSQL 17)
+- **Auth:** Supabase Auth
+- **Deployment:** Vercel
+- **Native:** Capacitor (iOS + Android)
 
-## 🛠️ Tecnologías
+## Requisitos
 
-- **Frontend:** Next.js 14 (App Router), Tailwind CSS, Shadcn UI.
-- **Backend:** Supabase (PostgreSQL, Auth, Realtime).
-- **Base de Datos:** PostgreSQL con funciones RPC y Triggers para lógica de negocio.
-- **PWA:** Soporte para instalación en dispositivos móviles.
+- Node.js 20+
+- pnpm 9+
 
-## 🚀 Comenzando
+## Instalación
 
-### Prerrequisitos
+1. Clonar el repositorio
+2. Instalar dependencias:
+   ```bash
+   pnpm install
+   ```
+3. Configurar variables de entorno:
+   ```bash
+   cp .env.example .env.local
+   # Llenar con tus credenciales de Supabase
+   ```
+4. Iniciar servidor de desarrollo:
+   ```bash
+   pnpm dev
+   ```
 
-- Node.js 18+
-- Cuenta de Supabase
+## Skills (AI Agents)
 
-### Instalación
+Este proyecto utiliza skills definidos en `AGENTS.md` para guiar a los agentes de IA.
 
-1.  Clonar el repositorio:
+- **Fase 1:** Skills de fundación (Quest UI, Frontend Design, Next.js, Tailwind v4)
+- **Fase 2:** Skills de backend (Supabase Auth, Postgres)
+- **Fase 3:** Skills nativos (Capacitor, App Store)
 
-    ```bash
-    git clone https://github.com/tu-usuario/quest.git
-    cd quest
-    ```
+## Estructura del Proyecto
 
-2.  Instalar dependencias:
-
-    ```bash
-    npm install
-    ```
-
-3.  Configurar variables de entorno:
-    Crear un archivo `.env.local` con las credenciales de Supabase:
-
-    ```env
-    NEXT_PUBLIC_SUPABASE_URL=tu_url_de_supabase
-    NEXT_PUBLIC_SUPABASE_ANON_KEY=tu_clave_anonima
-    ```
-
-4.  Iniciar el servidor de desarrollo:
-    ```bash
-    npm run dev
-    ```
-
-## 📚 Documentación
-
-La documentación detallada de los módulos se encuentra en la carpeta `docs/`:
-
-- [01 - Gestión de Planes](docs/01-gestion-de-planes.md)
-- [02 - Historial y Estadísticas](docs/02-historial-y-estadisticas.md)
-- [03 - Gamificación y Comunidad](docs/03-gamificacion-comunidad.md)
-- [04 - Gestión de Penalizaciones](docs/04-gestion-penalizaciones.md)
-- [05 - Muro de Actividad](docs/05-muro-actividad.md)
-- [06 - Configuración de Admin](docs/06-configuracion-admin.md)
-- [07 - Plan de Pulido UX](docs/07-plan-pulido-ux.md)
-- [08 - Gamificación de Perfil](docs/08-gamificacion-perfil.md)
-- [09 - Configuración PWA](docs/09-configuracion-pwa.md)
-
-## 🤝 Contribución
-
-Las contribuciones son bienvenidas. Por favor, abre un issue o un pull request para sugerir cambios o mejoras.
+- `src/app`: Rutas de la aplicación (App Router)
+- `src/components`: Componentes reutilizables (shadcn/ui + custom)
+- `src/lib`: Utilidades y configuración de Supabase
+- `src/types`: Definiciones de tipos TypeScript
+- `supabase`: Migraciones y configuración local
+- `docs`: Documentación detallada del proyecto
