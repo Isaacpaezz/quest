@@ -11,6 +11,7 @@ type PrayerTimerProps = {
   segundosIniciales: number
   capituloId: number
   oracionCompletada: boolean
+  onXpGained?: (data: { xpGanado: number; nuevoNivel?: number; subioNivel?: boolean }) => void
 }
 
 const formatTiempo = (segundos: number) => {
@@ -20,7 +21,7 @@ const formatTiempo = (segundos: number) => {
   return `${mins}:${segs}`
 }
 
-export function PrayerTimer({ minutosRequeridos, segundosIniciales, capituloId, oracionCompletada }: PrayerTimerProps) {
+export function PrayerTimer({ minutosRequeridos, segundosIniciales, capituloId, oracionCompletada, onXpGained }: PrayerTimerProps) {
   const totalSegundosRequeridos = Math.max(0, minutosRequeridos * 60)
   const { resolvedTheme } = useTheme()
   const isDark = resolvedTheme === 'dark'
@@ -55,11 +56,21 @@ export function PrayerTimer({ minutosRequeridos, segundosIniciales, capituloId, 
       oracionCompletada: isCompleted,
     })
     if (isCompleted) {
-      toast.success('¡Oración completada!', { description: 'Has cumplido tu tiempo de oración de hoy.' })
+      const xp = result?.xpGanado ?? 0
+      toast.success('¡Oración completada!', {
+        description: xp > 0 ? `+${xp} XP` : 'Has cumplido tu tiempo de oración de hoy.',
+      })
+      if (xp > 0 && onXpGained) {
+        onXpGained({
+          xpGanado: xp,
+          nuevoNivel: result?.nuevoNivel,
+          subioNivel: result?.subioNivel,
+        })
+      }
     } else if (!result?.error) {
       toast.info('Progreso guardado', { description: 'Tu tiempo de oración ha sido guardado.' })
     }
-  }, [capituloId, totalSegundosRequeridos])
+  }, [capituloId, totalSegundosRequeridos, onXpGained])
 
   const stopRaf = () => {
     if (rafRef.current != null) {

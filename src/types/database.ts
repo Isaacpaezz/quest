@@ -236,6 +236,33 @@ export type Database = {
         }
         Relationships: []
       }
+      historial_xp: {
+        Row: {
+          cantidad: number
+          created_at: string | null
+          id: string
+          motivo: string
+          referencia_id: string | null
+          usuario_id: string
+        }
+        Insert: {
+          cantidad: number
+          created_at?: string | null
+          id?: string
+          motivo: string
+          referencia_id?: string | null
+          usuario_id: string
+        }
+        Update: {
+          cantidad?: number
+          created_at?: string | null
+          id?: string
+          motivo?: string
+          referencia_id?: string | null
+          usuario_id?: string
+        }
+        Relationships: []
+      }
       penalizaciones: {
         Row: {
           estado: Database["public"]["Enums"]["penalizacion_estado"]
@@ -589,6 +616,24 @@ export type Database = {
           },
         ]
       }
+      xp_presets: {
+        Row: {
+          config: Json
+          descripcion: string
+          id: string
+        }
+        Insert: {
+          config: Json
+          descripcion: string
+          id: string
+        }
+        Update: {
+          config?: Json
+          descripcion?: string
+          id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -638,14 +683,32 @@ export type Database = {
           user_id: string
         }[]
       }
-      otorgar_xp: {
-        Args: { p_cantidad: number; p_motivo?: string; p_usuario_id: string }
-        Returns: {
-          nuevo_nivel: number
-          nuevo_xp: number
-          subio_nivel: boolean
-        }[]
-      }
+      otorgar_xp:
+        | {
+            Args: {
+              p_cantidad: number
+              p_motivo?: string
+              p_referencia_id?: string
+              p_usuario_id: string
+            }
+            Returns: {
+              nuevo_nivel: number
+              nuevo_xp: number
+              subio_nivel: boolean
+            }[]
+          }
+        | {
+            Args: {
+              p_cantidad: number
+              p_motivo?: string
+              p_usuario_id: string
+            }
+            Returns: {
+              nuevo_nivel: number
+              nuevo_xp: number
+              subio_nivel: boolean
+            }[]
+          }
       programar_plan_siguiente: {
         Args: { plan_id_a_programar: number }
         Returns: undefined

@@ -12,9 +12,10 @@ type Props = {
   onOpenChange: (open: boolean) => void
   chapterId: number
   chapterReference: string
+  onXpGained?: (data: { xpGanado: number; nuevoNivel?: number; subioNivel?: boolean }) => void
 }
 
-export function RegisterReadingDialog({ open, onOpenChange, chapterId, chapterReference }: Props) {
+export function RegisterReadingDialog({ open, onOpenChange, chapterId, chapterReference, onXpGained }: Props) {
   const [reflection, setReflection] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const { resolvedTheme } = useTheme()
@@ -41,7 +42,15 @@ export function RegisterReadingDialog({ open, onOpenChange, chapterId, chapterRe
         const errorMessages = Object.values(result.errors).flat().join(', ')
         toast.error(errorMessages || 'Error de validación')
       } else {
-        toast.success('¡Lectura registrada! 📖', { description: '+30 XP' })
+        const xp = result?.xpGanado ?? 0
+        toast.success('¡Lectura registrada! 📖', { description: xp > 0 ? `+${xp} XP` : undefined })
+        if (xp > 0 && onXpGained) {
+          onXpGained({
+            xpGanado: xp,
+            nuevoNivel: result?.nuevoNivel,
+            subioNivel: result?.subioNivel,
+          })
+        }
         onOpenChange(false)
         setReflection('')
       }

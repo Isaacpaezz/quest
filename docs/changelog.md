@@ -4,6 +4,24 @@ Todas las versiones y cambios notables del proyecto.
 
 ---
 
+## [0.10.0] - 2026-02-19
+
+### ✨ Nuevo
+- **Sistema XP completo** — Notificaciones animadas al ganar XP y subir de nivel
+- **Historial XP** (`/perfil/xp`) — Página dedicada con desglose por día, motivo y hora
+- **Nombres de nivel** — Semilla, Aprendiz, Peregrino, Explorador... hasta Apóstol
+- **XP configurables** — Bonus por racha (+10), devocional completo (+15), oración 10min (+20)
+- **Tarjetas XP clickeables** — En perfil y badges, enlazando al historial
+
+### 🐛 Corregido
+- Corregido nombre de columna `created_at` en consultas a `historial_xp`
+
+### 🔧 Cambios
+- Sección inline de historial XP removida del perfil (ahora en página dedicada)
+- Documentación actualizada con sistema XP, niveles y historial
+
+---
+
 ## [0.9.0] - 2026-02-19
 
 ### ✨ Nuevo

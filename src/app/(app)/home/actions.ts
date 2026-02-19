@@ -7,6 +7,7 @@ import { ActionState } from '@/types/definitions'
 import { getTodayInVenezuela } from '@/lib/utils'
 import { pushService } from '@/lib/web-push'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { getXpConfig, grantXp, calculateStreakBonus } from '@/lib/xp-helpers'
 import type { PushSubscription as WebPushSubscription } from 'web-push'
 
 const ReadingProgressSchema = z.object({
@@ -140,21 +141,45 @@ export async function registrarProgresoLecturaAction(prevState: ActionState, for
     console.error('Error preparando o enviando notificaciones de lectura:', err)
   }
 
-  // Otorgar XP por completar lectura
-  try {
-    await supabase.rpc('otorgar_xp', {
-      p_usuario_id: user.id,
-      p_cantidad: 50,
-      p_motivo: 'lectura_completada',
-    })
-  } catch (xpErr) {
-    console.error('Error otorgando XP por lectura:', xpErr)
+  // ─── XP System ─────────────────────────────────────────────────────────────
+  const config = await getXpConfig(supabase, user.id)
+  let totalXp = 0
+  let lastResult: { nuevo_xp: number; nuevo_nivel: number; subio_nivel: boolean } | null = null
+
+  // 1. XP por lectura completada
+  lastResult = await grantXp(supabase, user.id, config.lectura_completada, 'lectura_completada', String(capituloId))
+  totalXp += config.lectura_completada
+
+  // 2. Streak bonus
+  const { data: streakData } = await supabase.rpc('get_all_user_streaks')
+  const userStreak = streakData?.find((s: { user_id: string; streak_count: number }) => s.user_id === user.id)?.streak_count ?? 0
+  const streakBonus = calculateStreakBonus(userStreak, config)
+  if (streakBonus > 0) {
+    lastResult = await grantXp(supabase, user.id, streakBonus, 'racha_bonus', `streak_${userStreak}`)
+    totalXp += streakBonus
+  }
+
+  // 3. Devocional completo bonus (lectura + oración same day)
+  const { data: progressToday } = await supabase
+    .from('progreso_usuario')
+    .select('oracion_completada')
+    .eq('usuario_id', user.id)
+    .eq('fecha_progreso', fechaHoy)
+    .single()
+  if (progressToday?.oracion_completada) {
+    lastResult = await grantXp(supabase, user.id, config.devocional_completo, 'devocional_completo')
+    totalXp += config.devocional_completo
   }
 
   revalidatePath('/home')
-  revalidatePath('/feed') // Revalidar también el feed
+  revalidatePath('/feed')
   revalidatePath('/challenges')
-  return { message: '¡Tu resumen ha sido guardado exitosamente! +50 XP' }
+  return {
+    message: `¡Tu resumen ha sido guardado exitosamente! +${totalXp} XP`,
+    xpGanado: totalXp,
+    nuevoNivel: lastResult?.nuevo_nivel,
+    subioNivel: lastResult?.subio_nivel,
+  }
 }
 
 export async function actualizarProgresoOracionAction(datos: { segundosAcumulados: number, capituloId: number, oracionCompletada: boolean }): Promise<ActionState> {
@@ -253,21 +278,47 @@ export async function actualizarProgresoOracionAction(datos: { segundosAcumulado
     }
   }
 
-  // Otorgar XP por completar oración
+  // ─── XP System ─────────────────────────────────────────────────────────────
+  let totalXp = 0
+  let lastResult: { nuevo_xp: number; nuevo_nivel: number; subio_nivel: boolean } | null = null
+
   if (oracionCompletada) {
-    try {
-      await supabase.rpc('otorgar_xp', {
-        p_usuario_id: user.id,
-        p_cantidad: 50,
-        p_motivo: 'oracion_completada',
-      })
-    } catch (xpErr) {
-      console.error('Error otorgando XP por oración:', xpErr)
+    const config = await getXpConfig(supabase, user.id)
+
+    // 1. XP por oración completada
+    lastResult = await grantXp(supabase, user.id, config.oracion_completada, 'oracion_completada', String(capituloId))
+    totalXp += config.oracion_completada
+
+    // 2. Bonus si oración > 10 minutos (600 segundos)
+    if (segundosAcumulados >= 600) {
+      lastResult = await grantXp(supabase, user.id, config.oracion_bonus_10min, 'oracion_bonus_10min')
+      totalXp += config.oracion_bonus_10min
+    }
+
+    // 3. Devocional completo bonus (lectura + oración same day)
+    const { data: progressToday } = await supabase
+      .from('progreso_usuario')
+      .select('lectura_completada')
+      .eq('usuario_id', user.id)
+      .eq('fecha_progreso', fechaHoy)
+      .single()
+    if (progressToday?.lectura_completada) {
+      lastResult = await grantXp(supabase, user.id, config.devocional_completo, 'devocional_completo')
+      totalXp += config.devocional_completo
     }
   }
 
   revalidatePath('/home');
   revalidatePath('/feed');
   revalidatePath('/challenges');
-  return { message: oracionCompletada ? 'Progreso guardado. +50 XP' : 'Progreso guardado.' };
+
+  if (totalXp > 0) {
+    return {
+      message: `Progreso guardado. +${totalXp} XP`,
+      xpGanado: totalXp,
+      nuevoNivel: lastResult?.nuevo_nivel,
+      subioNivel: lastResult?.subio_nivel,
+    }
+  }
+  return { message: 'Progreso guardado.' };
 }

@@ -2,12 +2,13 @@
 
 import { useState, useEffect } from 'react'
 import { useTheme } from 'next-themes'
-import { Moon, Sun, Bell, Crown, LogOut, ChevronRight, ListChecks, ShieldX, Settings } from 'lucide-react'
+import { Moon, Sun, Bell, Crown, LogOut, ChevronRight, ListChecks, ShieldX, Settings, TrendingUp } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { enviarNotificacionPruebaAction, guardarSuscripcionPushAction } from '@/app/(app)/perfil/actions'
 import type { Json } from '@/types/database'
+import { getXpProgress } from '@/lib/xp-helpers'
 
 // --- NOTIFICATION LOGIC HELPERS ---
 function urlBase64ToUint8Array(base64String: string) {
@@ -62,8 +63,15 @@ function MenuItem({
   return <button onClick={onClick} className="block w-full text-left cursor-pointer">{content}</button>
 }
 
+const LEVEL_NAMES: Record<number, string> = {
+  1: 'Semilla', 2: 'Aprendiz', 3: 'Peregrino', 4: 'Explorador', 5: 'Valiente',
+  6: 'Guerrero', 7: 'Campeón', 8: 'Leyenda', 9: 'Profeta', 10: 'Apóstol',
+}
+
+type XpEntry = { id: string; cantidad: number; motivo: string; created_at: string }
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function UserProfile({ profile, stats }: { profile: any; stats: { streak: number; totalMissions: number; totalPrayerSeconds: number } }) {
+export function UserProfile({ profile, stats, xpHistory = [] }: { profile: any; stats: { streak: number; totalMissions: number; totalPrayerSeconds: number }; xpHistory?: XpEntry[] }) {
   const isAdmin = profile?.rol === 'admin'
   const { resolvedTheme, setTheme } = useTheme()
   const router = useRouter()
@@ -227,6 +235,55 @@ export function UserProfile({ profile, stats }: { profile: any; stats: { streak:
           </div>
         </div>
       </div>
+
+      {/* ─── XP LEVEL PROGRESS ─── */}
+      {profile?.xp != null && profile?.nivel != null && (() => {
+        const xpProgress = getXpProgress(profile.xp, profile.nivel)
+        return (
+          <Link href="/perfil/xp">
+            <div
+              className="flex flex-col gap-3 p-5 rounded-3xl transition-all active:scale-[0.98]"
+              style={{
+                backgroundColor: cardBg,
+                border: `1px solid ${cardBorder}`,
+                boxShadow: isDark ? '0 2px 16px rgba(0,0,0,0.20)' : '0 4px 40px rgba(17,19,24,0.063)',
+              }}
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <TrendingUp className="size-4" style={{ color: isDark ? '#8B5CF6' : '#7C3AED' }} />
+                  <span className="text-[13px] font-semibold font-sans" style={{ color: isDark ? '#FFFFFF' : '#111318' }}>
+                    Nivel {profile.nivel} — {LEVEL_NAMES[profile.nivel] || 'Maestro'}
+                  </span>
+                </div>
+                <span className="text-[12px] font-sans" style={{ color: isDark ? '#5A6075' : '#8C9099' }}>
+                  {profile.xp.toLocaleString()} XP
+                </span>
+              </div>
+              {/* Progress bar */}
+              <div className="h-2 w-full overflow-hidden rounded-full" style={{ background: isDark ? '#1E2330' : '#E8EBF0' }}>
+                <div
+                  className="h-full rounded-full transition-all duration-700"
+                  style={{
+                    width: `${xpProgress.percentage}%`,
+                    background: 'linear-gradient(90deg, #8B5CF6, #A78BFA)',
+                  }}
+                />
+              </div>
+              <div className="flex justify-between">
+                <span className="text-[11px] font-sans" style={{ color: isDark ? '#5A6075' : '#8C9099' }}>
+                  {xpProgress.current.toLocaleString()} / {xpProgress.needed.toLocaleString()}
+                </span>
+                <span className="text-[11px] font-sans font-medium" style={{ color: isDark ? '#8B5CF6' : '#7C3AED' }}>
+                  Ver historial →
+                </span>
+              </div>
+            </div>
+          </Link>
+        )
+      })()}
+
+
 
       {/* ─── SETTINGS SECTION ─── */}
       <div className="flex flex-col gap-2">

@@ -18,6 +18,8 @@ Este documento describe todas las features implementadas en Quest hasta la fecha
 - Muestra la lectura bíblica del día (capítulo actual del plan activo)
 - Botones de check-in: **Lectura ✅** y **Oración ✅**
 - Al completar cada check-in → +50 XP via `otorgar_xp()` RPC
+- **Notificaciones XP:** Toast animado al ganar XP, animación fullscreen al subir de nivel
+- XP configurable en `src/lib/xp-helpers.ts`: bonus racha (+10), devocional completo (+15), oración 10min (+20)
 - Muestra racha actual (días consecutivos)
 - Progreso del plan (ej: "Semana 15 de 52")
 - Mini-cards de retos con invitaciones pendientes
@@ -131,10 +133,12 @@ for (const prog of recentProgress) {
 **Ruta:** `/badges`  
 **Archivos clave:**
 - `src/app/(app)/badges/page.tsx`
+- `src/app/(app)/badges/_components/badges-client.tsx`
 
 ### Funcionalidad
 - Grid de 10 badges con estado (locked/unlocked)
-- XP bar con nivel actual y progreso al siguiente
+- **Tarjeta XP clickeable** → enlaza a `/perfil/xp` ("Ver historial →")
+- XP bar con nivel actual, nombre del nivel, y progreso al siguiente
 - Efecto visual diferenciado para badges desbloqueados vs bloqueados
 
 ### Badges Disponibles
@@ -176,16 +180,55 @@ for (const prog of recentProgress) {
 **Ruta:** `/perfil`  
 **Archivos clave:**
 - `src/app/(app)/perfil/page.tsx`
+- `src/app/(app)/perfil/_components/user-profile.tsx`
 
 ### Funcionalidad
 - Avatar con iniciales
-- Nombre de usuario
-- Nivel y XP
-- Estadísticas personales
+- Nombre de usuario y email
+- Estadísticas: racha, lecturas, horas de oración
+- **Tarjeta de nivel** con nombre ("Nivel 1 — Semilla"), barra de progreso, y enlace a historial XP
+- Ajustes: tema, notificaciones, acerca de, soporte, cerrar sesión
 
 ---
 
-## 10. Layout y Navegación
+## 10. Historial XP
+
+**Ruta:** `/perfil/xp`  
+**Archivos clave:**
+- `src/app/(app)/perfil/xp/page.tsx` — Server component, fetch de datos
+- `src/app/(app)/perfil/xp/_components/xp-history-client.tsx` — Client component
+
+### Funcionalidad
+- Tarjeta de resumen: nivel actual con nombre, XP total, barra de progreso con porcentaje
+- Historial agrupado por día con fecha completa
+- Cada entrada: emoji del motivo, nombre legible, hora exacta, y `+N XP`
+- Total diario consolidado por grupo
+- Datos vienen de tabla `historial_xp` (últimos 100 registros)
+- Navegable desde perfil y badges (tarjeta XP clickeable)
+
+### Niveles
+| Nivel | Nombre |
+|-------|--------|
+| 1 | Semilla | 2 | Aprendiz | 3 | Peregrino |
+| 4 | Explorador | 5 | Valiente | 6 | Guerrero |
+| 7 | Campeón | 8 | Leyenda | 9 | Profeta | 10 | Apóstol |
+
+---
+
+## 11. Notificaciones XP
+
+**Archivos clave:**
+- `src/components/shared/xp-toast.tsx` — Componentes `XpGainToast` y `LevelUpNotification`
+- `src/app/(app)/home/_components/dashboard-client.tsx` — State management
+
+### Funcionalidad
+- **XpGainToast:** Toast animado con `+N XP` al completar cualquier actividad
+- **LevelUpNotification:** Overlay fullscreen con animación al subir de nivel
+- Se dispara automáticamente vía callbacks `onXpGained` desde diálogos y timers
+
+---
+
+## 12. Layout y Navegación
 
 ### Mobile
 - **PillNav:** Navegación inferior pill-shaped con 4 tabs (Home, Feed, Community, More)

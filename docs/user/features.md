@@ -13,6 +13,9 @@ Tu lectura bíblica y oración de cada día.
 ### Recompensas
 - **Lectura completada:** +50 XP
 - **Oración completada:** +50 XP
+- **Bonus devocional completo** (lectura + oración en un día): +15 XP
+- **Bonus racha** (3+ días seguidos): +10 XP
+- **Bonus oración 10+ min:** +20 XP
 
 ---
 
@@ -110,6 +113,36 @@ Puedes usar tus puntos XP para reducir tu deuda:
 
 ---
 
+## 📊 Historial XP
+
+Desde `/perfil/xp` puedes ver un desglose detallado de todo el XP que has ganado.
+
+### ¿Cómo acceder?
+- Desde **Perfil** → Toca la tarjeta de nivel → "Ver historial →"
+- Desde **Badges** → Toca la tarjeta de nivel → "Ver historial →"
+
+### ¿Qué muestra?
+- Tu **nivel actual** con nombre (ej: Nivel 1 — Semilla) y porcentaje de progreso
+- **Entradas agrupadas por día** con fecha completa
+- Cada entrada muestra: emoji del motivo, nombre, hora exacta, y XP ganado
+- **Total diario** de XP por grupo
+
+### Niveles
+| Nivel | Nombre |
+|-------|--------|
+| 1 | 🌱 Semilla |
+| 2 | 📚 Aprendiz |
+| 3 | 🚶 Peregrino |
+| 4 | 🧭 Explorador |
+| 5 | ⚔️ Valiente |
+| 6 | 🛡️ Guerrero |
+| 7 | 🏆 Campeón |
+| 8 | 🌟 Leyenda |
+| 9 | 📜 Profeta |
+| 10 | ✝️ Apóstol |
+
+---
+
 ## ❓ Preguntas Frecuentes
 
 ### ¿Qué pasa si pierdo mi racha?
@@ -119,7 +152,10 @@ Tu racha se resetea a 0, pero puedes recuperarla gastando 200 XP en la sección 
 Sí, puedes participar en múltiples retos personales y grupales simultáneamente.
 
 ### ¿Cómo subo de nivel?
-Ganas XP completando actividades, retos, y manteniendo rachas. Al acumular suficiente XP, subes de nivel automáticamente.
+Ganas XP completando actividades, retos, y manteniendo rachas. Al acumular suficiente XP, subes de nivel automáticamente. Recibes una notificación animada al subir de nivel.
+
+### ¿Dónde veo cuánto XP he ganado?
+Toca la tarjeta de nivel en tu perfil o en badges → se abre el **Historial XP** con el desglose completo.
 
 ### ¿Quién configura las penalizaciones?
 El admin de tu grupo configura el modo de penalización (dinero o puntos) y los montos.

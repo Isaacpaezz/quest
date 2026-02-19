@@ -8,6 +8,10 @@ export type ActionState = {
   };
   message?: string;
   error?: string;
+  // XP result fields (for level-up notifications)
+  xpGanado?: number;
+  nuevoNivel?: number;
+  subioNivel?: boolean;
 };
 
 // Tipo enriquecido para los datos de la página de comunidad

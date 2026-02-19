@@ -2,6 +2,7 @@
 
 import { useTheme } from 'next-themes'
 import { Lock, Flame } from 'lucide-react'
+import Link from 'next/link'
 
 type Badge = {
     id: string
@@ -60,42 +61,44 @@ export function BadgesClient({ badges, perfil, maxStreak = 0, currentStreak = 0 
         <div className="flex flex-col gap-6">
 
             {/* XP / Level card */}
-            <div
-                className="rounded-[24px] p-5"
-                style={{ backgroundColor: cardBg, border: `1px solid ${border}` }}
-            >
-                <div className="flex items-center justify-between mb-4">
-                    <div>
-                        <p className="text-[12px] font-sans uppercase tracking-[1.5px] font-bold" style={{ color: subClr }}>Nivel actual</p>
-                        <h2 className="font-display text-[22px] font-bold" style={{ color: textClr }}>
-                            Nivel {nivel} — {LEVEL_NAMES[nivel] || 'Maestro'}
-                        </h2>
+            <Link href="/perfil/xp">
+                <div
+                    className="rounded-[24px] p-5 transition-all active:scale-[0.98] cursor-pointer"
+                    style={{ backgroundColor: cardBg, border: `1px solid ${border}` }}
+                >
+                    <div className="flex items-center justify-between mb-4">
+                        <div>
+                            <p className="text-[12px] font-sans uppercase tracking-[1.5px] font-bold" style={{ color: subClr }}>Nivel actual</p>
+                            <h2 className="font-display text-[22px] font-bold" style={{ color: textClr }}>
+                                Nivel {nivel} — {LEVEL_NAMES[nivel] || 'Maestro'}
+                            </h2>
+                        </div>
+                        <div className="text-right">
+                            <p className="font-display text-[22px] font-bold" style={{ color: accentClr }}>
+                                {xp.toLocaleString()}
+                            </p>
+                            <p className="text-[11px] font-sans" style={{ color: subClr }}>XP Total</p>
+                        </div>
                     </div>
-                    <div className="text-right">
-                        <p className="font-display text-[22px] font-bold" style={{ color: accentClr }}>
-                            {xp.toLocaleString()}
-                        </p>
-                        <p className="text-[11px] font-sans" style={{ color: subClr }}>XP Total</p>
-                    </div>
-                </div>
 
-                {/* Progress bar */}
-                <div className="relative h-2 rounded-full overflow-hidden" style={{ backgroundColor: barTrack }}>
-                    <div
-                        className="absolute left-0 top-0 h-full rounded-full transition-all"
-                        style={{
-                            width: `${Math.min(100, progress)}%`,
-                            backgroundColor: accentClr,
-                        }}
-                    />
+                    {/* Progress bar */}
+                    <div className="relative h-2 rounded-full overflow-hidden" style={{ backgroundColor: barTrack }}>
+                        <div
+                            className="absolute left-0 top-0 h-full rounded-full transition-all"
+                            style={{
+                                width: `${Math.min(100, progress)}%`,
+                                backgroundColor: accentClr,
+                            }}
+                        />
+                    </div>
+                    <div className="flex justify-between mt-1.5">
+                        <span className="text-[11px] font-sans" style={{ color: subClr }}>Nivel {nivel}</span>
+                        <span className="text-[11px] font-sans font-medium" style={{ color: accentClr }}>
+                            {nivel >= 10 ? 'MÁXIMO' : 'Ver historial →'}
+                        </span>
+                    </div>
                 </div>
-                <div className="flex justify-between mt-1.5">
-                    <span className="text-[11px] font-sans" style={{ color: subClr }}>Nivel {nivel}</span>
-                    <span className="text-[11px] font-sans" style={{ color: subClr }}>
-                        {nivel >= 10 ? 'MÁXIMO' : `${xp - currentThreshold} / ${nextThreshold - currentThreshold} XP`}
-                    </span>
-                </div>
-            </div>
+            </Link>
 
             {/* Streak record card */}
             <div

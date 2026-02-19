@@ -72,11 +72,26 @@ Configuraciones globales del sistema.
 - `clave` (text, PK): Nombre de la configuración (ej. 'monto_penalizacion').
 - `valor` (text): Valor de la configuración.
 
+### `historial_xp`
+
+Registro detallado de cada ganancia de XP.
+
+- `id` (uuid, PK): Identificador único.
+- `usuario_id` (uuid, FK): Referencia a `perfiles`.
+- `cantidad` (int): Cantidad de XP ganado.
+- `motivo` (text): Tipo de actividad (lectura_completada, oracion_completada, racha_bonus, devocional_completo, oracion_bonus_10min, reto_personal_completado, reto_grupal_completado).
+- `referencia_id` (text): ID opcional del recurso relacionado.
+- `created_at` (timestamptz): Fecha y hora del evento.
+
+**RLS:** Los usuarios solo pueden ver su propio historial (`usuario_id = auth.uid()`).
+
 ## Funciones Importantes (RPC)
 
+- **`otorgar_xp(usuario_id, cantidad)`**: Otorga XP al usuario y auto-sube de nivel si corresponde. Inserta automáticamente un registro en `historial_xp`.
 - **`registrar_penalizaciones_diarias()`**: Se ejecuta diariamente (cron). Verifica el cumplimiento del día anterior (excluyendo domingos) y genera penalizaciones si es necesario.
 - **`get_all_user_streaks()`**: Calcula la racha actual de días consecutivos para todos los usuarios, permitiendo saltos de fin de semana (sábado a lunes).
 - **`marcar_penalizacion_pagada(penalizacion_id)`**: Actualiza el estado de una penalización a 'pagado'.
+- **`canjear_puntos(usuario_id, cantidad)`**: Canjea XP por reducción de deuda.
 
 ## Notas de Implementación
 

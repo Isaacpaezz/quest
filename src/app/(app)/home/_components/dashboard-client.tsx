@@ -1,12 +1,13 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import { useTheme } from 'next-themes'
 import { useRouter } from 'next/navigation'
 import { BookOpen, Sparkles, CheckCircle } from 'lucide-react'
 import { RegisterReadingDialog } from './register-reading-dialog'
 import { RetosHomeSection } from './retos-home-section'
 import { Toaster } from '@/components/ui/sonner'
+import { XpGainToast, LevelUpNotification } from '@/components/shared/xp-toast'
 
 type DailyData = {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -38,9 +39,23 @@ const DAYS_SHORT = ['L', 'M', 'M', 'J', 'V', 'S', 'D']
 
 export function DashboardClient({ dailyMission, userProgress, readingStats, prayerStats, streak = 0, weeklyProgress, totalChapters = 0, completedChapters = 0, userId, pendientesRetos = [], activosRetos = [], proximosRetos = [] }: DailyData) {
   const [isReadingDialogOpen, setIsReadingDialogOpen] = useState(false)
+  const [xpToast, setXpToast] = useState<{ amount: number; show: boolean }>({ amount: 0, show: false })
+  const [levelUp, setLevelUp] = useState<{ level: number; show: boolean }>({ level: 0, show: false })
   const router = useRouter()
   const { resolvedTheme } = useTheme()
   const isDark = resolvedTheme === 'dark'
+
+  const handleXpGained = useCallback((data: { xpGanado: number; nuevoNivel?: number; subioNivel?: boolean }) => {
+    // Show XP toast
+    setXpToast({ amount: data.xpGanado, show: true })
+    // Reset after animation
+    setTimeout(() => setXpToast(prev => ({ ...prev, show: false })), 3000)
+
+    // Show level-up if applicable
+    if (data.subioNivel && data.nuevoNivel) {
+      setTimeout(() => setLevelUp({ level: data.nuevoNivel!, show: true }), 800)
+    }
+  }, [])
 
   const chapterInfo = Array.isArray(dailyMission?.capitulos_diarios)
     ? dailyMission.capitulos_diarios[0]
@@ -255,8 +270,18 @@ export function DashboardClient({ dailyMission, userProgress, readingStats, pray
           onOpenChange={setIsReadingDialogOpen}
           chapterId={chapterInfo.id}
           chapterReference={chapterInfo.referencia_capitulo}
+          onXpGained={handleXpGained}
         />
       )}
+
+      {/* XP Notifications */}
+      <XpGainToast amount={xpToast.amount} show={xpToast.show} />
+      <LevelUpNotification
+        level={levelUp.level}
+        show={levelUp.show}
+        onClose={() => setLevelUp(prev => ({ ...prev, show: false }))}
+      />
+
       <Toaster richColors />
     </>
   )

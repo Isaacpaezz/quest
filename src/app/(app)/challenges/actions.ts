@@ -6,6 +6,7 @@ import { z } from 'zod'
 import { ActionState } from '@/types/definitions'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { pushService } from '@/lib/web-push'
+import { getXpConfig, grantXp } from '@/lib/xp-helpers'
 import type { PushSubscription as WebPushSubscription } from 'web-push'
 
 const CrearRetoSchema = z.object({
@@ -253,4 +254,64 @@ export async function eliminarRetoAction(retoId: string): Promise<ActionState> {
   return { message: 'Reto eliminado exitosamente.' }
 }
 
+// ─── Completar Reto (otorga XP) ──────────────────────────────────────────────
+export async function completarRetoAction(retoId: string): Promise<ActionState> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'No autenticado' }
 
+  // Check participation
+  const { data: participacion } = await supabase
+    .from('reto_participantes')
+    .select('completado, estado')
+    .eq('reto_id', retoId)
+    .eq('usuario_id', user.id)
+    .single()
+
+  if (!participacion) return { error: 'No estás participando en este reto' }
+  if (participacion.completado) return { error: 'Ya completaste este reto' }
+  if (participacion.estado !== 'aceptado') return { error: 'Debes aceptar el reto primero' }
+
+  // Get reto info
+  const { data: reto } = await supabase
+    .from('retos')
+    .select('tipo, recompensa_xp')
+    .eq('id', retoId)
+    .single()
+
+  if (!reto) return { error: 'Reto no encontrado' }
+
+  // Mark as completed
+  const { error } = await supabase
+    .from('reto_participantes')
+    .update({ completado: true, completado_en: new Date().toISOString() })
+    .eq('reto_id', retoId)
+    .eq('usuario_id', user.id)
+
+  if (error) return { error: `Error: ${error.message}` }
+
+  // ─── Grant XP ────────────────────────────────────────────────────────────
+  const config = await getXpConfig(supabase, user.id)
+  let xpAmount: number
+
+  if (reto.tipo === 'grupal' && reto.recompensa_xp) {
+    // Grupal: use negotiated XP
+    xpAmount = reto.recompensa_xp
+  } else {
+    // Personal: use config
+    xpAmount = config.reto_personal
+  }
+
+  const motivo = reto.tipo === 'grupal' ? 'reto_grupal_completado' : 'reto_personal_completado'
+  const result = await grantXp(supabase, user.id, xpAmount, motivo, retoId)
+
+  revalidatePath('/challenges')
+  revalidatePath(`/challenges/${retoId}`)
+  revalidatePath('/home')
+  return {
+    message: `¡Reto completado! +${xpAmount} XP`,
+    xpGanado: xpAmount,
+    nuevoNivel: result?.nuevo_nivel,
+    subioNivel: result?.subio_nivel,
+  }
+}

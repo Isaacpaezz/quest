@@ -45,7 +45,7 @@ export default async function ProfilePage() {
   if (!user) redirect('/login')
 
   // Obtener todos los datos necesarios en paralelo
-  const [profileRes, progressHistoryRes, totalMissionsRes] = await Promise.all([
+  const [profileRes, progressHistoryRes, totalMissionsRes, xpHistoryRes] = await Promise.all([
     supabase.from('perfiles').select('id, nombre_usuario, xp, nivel, max_streak, rol, creado_en').eq('id', user.id).single(),
     supabase.from('progreso_usuario').select('fecha_progreso, segundos_oracion_acumulados')
       .eq('usuario_id', user.id)
@@ -55,12 +55,18 @@ export default async function ProfilePage() {
     supabase.from('progreso_usuario').select('fecha_progreso', { count: 'exact', head: true })
       .eq('usuario_id', user.id)
       .eq('lectura_completada', true)
-      .eq('oracion_completada', true)
+      .eq('oracion_completada', true),
+    supabase.from('historial_xp')
+      .select('id, cantidad, motivo, created_at')
+      .eq('usuario_id', user.id)
+      .order('created_at', { ascending: false })
+      .limit(20),
   ]);
 
   const profile = profileRes.data;
   const progressHistory = progressHistoryRes.data || [];
   const totalMissions = totalMissionsRes.count || 0;
+  const xpHistory = xpHistoryRes.data || [];
 
   const currentStreak = calculateStreak(progressHistory);
 
@@ -72,5 +78,5 @@ export default async function ProfilePage() {
     totalPrayerSeconds: totalPrayerSeconds
   }
 
-  return <UserProfile profile={profile} stats={stats} />
+  return <UserProfile profile={profile} stats={stats} xpHistory={xpHistory} />
 }
