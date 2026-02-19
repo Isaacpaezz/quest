@@ -179,6 +179,25 @@ Quest permite tener múltiples grupos. Cada grupo tiene sus propios rankings, fe
 
 ---
 
+## 📰 Feed
+
+El feed muestra la actividad de tu grupo **en tiempo real**. Cuando un miembro completa una lectura u oración, aparece al instante.
+
+### Reacciones
+- **Toque rápido** → ❤️ me gusta
+- **Mantener presionado** → opciones: ❤️ 🙏 🔥 ⚡
+- Puedes dar múltiples tipos de reacción a la misma actividad
+
+### Comentarios
+- Toca el ícono de comentario para expandir la sección
+- Escribe y envía un comentario
+- Puedes eliminar tus propios comentarios
+
+### Victorias 🏆
+Cuando subes de nivel, se comparte automáticamente en el feed con un diseño dorado especial. ¡Tu grupo celebra contigo!
+
+---
+
 ## ❓ Preguntas Frecuentes
 
 ### ¿Qué pasa si pierdo mi racha?

@@ -78,7 +78,24 @@ export async function grantXp(
     }
 
     const result = Array.isArray(data) ? data[0] : data
-    return result as XpResult
+    const xpResult = result as XpResult
+
+    // Auto-post victory to feed when user levels up
+    if (xpResult?.subio_nivel) {
+      try {
+        await supabase.from('actividad_comunidad').insert({
+          usuario_id: userId,
+          tipo_actividad: 'victoria' as Database['public']['Enums']['tipo_actividad'],
+          referencia_contenido: `Nivel ${xpResult.nuevo_nivel}`,
+          resumen_actividad: `¡Ha alcanzado el nivel ${xpResult.nuevo_nivel}! 🎉`,
+        })
+      } catch (victoryErr) {
+        // Don't fail the XP grant if victory post fails
+        console.error('Error posting victory:', victoryErr)
+      }
+    }
+
+    return xpResult
   } catch (err) {
     console.error(`Error otorgando ${cantidad} XP (${motivo}):`, err)
     return null

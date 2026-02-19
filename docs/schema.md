@@ -58,13 +58,26 @@ Registra las deudas por incumplimiento de tareas.
 
 ### `actividad_comunidad`
 
-Feed de eventos sociales.
+Feed de eventos sociales. **Realtime habilitado** (REPLICA IDENTITY FULL).
 
 - `id` (int8, PK): Identificador único.
 - `usuario_id` (uuid, FK): Referencia a `perfiles`.
-- `tipo_actividad` (enum): 'lectura_completada', 'oracion_completada', etc.
-- `referencia_contenido` (text): Contexto (ej. "Mateo 5").
+- `tipo_actividad` (enum): 'lectura_completada', 'oracion_completada', 'victoria'.
+- `referencia_contenido` (text): Contexto (ej. "Mateo 5", "Nivel 3").
+- `resumen_actividad` (text): Descripción de la actividad.
+- `likes_count` (int): Contador de reacciones (actualizado por trigger).
+- `comentarios_count` (int): Contador de comentarios.
 - `creado_en` (timestamptz): Fecha del evento.
+
+### `comunidad_likes`
+
+Reacciones en actividades del feed.
+
+- `id` (uuid, PK): Identificador único.
+- `actividad_id` (int8, FK): Referencia a `actividad_comunidad`.
+- `user_id` (uuid, FK): Referencia a `perfiles`.
+- `tipo_reaccion` (text): 'like', 'prayer', 'fire', 'lightning'. Default: 'like'.
+- Constraint: `unique_reaction_per_user (actividad_id, user_id, tipo_reaccion)`.
 
 ### `grupos`
 

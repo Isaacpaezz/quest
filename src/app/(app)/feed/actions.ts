@@ -4,14 +4,18 @@ import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 
 /**
- * Toggle Like Action
- * Agrega o elimina un like de una actividad
+ * Toggle Reaction Action
+ * Agrega o elimina una reacción de una actividad.
+ * Tipos: 'like' (❤️), 'prayer' (🙏), 'fire' (🔥), 'lightning' (⚡)
  */
-export async function toggleLikeAction(activityId: number, currentStatus: boolean) {
+export async function toggleReactionAction(
+  activityId: number,
+  reactionType: 'like' | 'prayer' | 'fire' | 'lightning',
+  currentStatus: boolean
+) {
   try {
     const supabase = await createClient()
     
-    // Obtener usuario autenticado
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     
     if (authError || !user) {
@@ -19,40 +23,48 @@ export async function toggleLikeAction(activityId: number, currentStatus: boolea
     }
 
     if (currentStatus) {
-      // Usuario ya tiene like -> ELIMINAR
+      // Already has this reaction → REMOVE
       const { error } = await supabase
         .from('comunidad_likes')
         .delete()
         .eq('actividad_id', activityId)
         .eq('user_id', user.id)
+        .eq('tipo_reaccion', reactionType)
 
       if (error) {
-        console.error('Error eliminando like:', error)
-        return { success: false, error: 'Error al eliminar like' }
+        console.error('Error eliminando reacción:', error)
+        return { success: false, error: 'Error al eliminar reacción' }
       }
     } else {
-      // Usuario no tiene like -> AGREGAR
+      // Doesn't have this reaction → ADD
       const { error } = await supabase
         .from('comunidad_likes')
         .insert({
           actividad_id: activityId,
-          user_id: user.id
+          user_id: user.id,
+          tipo_reaccion: reactionType
         })
 
       if (error) {
-        console.error('Error agregando like:', error)
-        return { success: false, error: 'Error al agregar like' }
+        console.error('Error agregando reacción:', error)
+        return { success: false, error: 'Error al agregar reacción' }
       }
     }
 
-    // Revalidar el feed para mostrar los cambios
     revalidatePath('/feed')
     
     return { success: true }
   } catch (error) {
-    console.error('Error en toggleLikeAction:', error)
+    console.error('Error en toggleReactionAction:', error)
     return { success: false, error: 'Error inesperado' }
   }
+}
+
+/**
+ * @deprecated Use toggleReactionAction instead. Kept for backward compat.
+ */
+export async function toggleLikeAction(activityId: number, currentStatus: boolean) {
+  return toggleReactionAction(activityId, 'like', currentStatus)
 }
 
 /**

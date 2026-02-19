@@ -4,6 +4,24 @@ Todas las versiones y cambios notables del proyecto.
 
 ---
 
+## [0.13.0] - 2026-02-19
+
+### ✨ Nuevo
+- **Supabase Realtime en feed** — Nuevas actividades aparecen al instante sin recargar (hook `useRealtimeFeed`)
+- **Reacciones múltiples** — ❤️ 🙏 🔥 ⚡ con picker (tap rápido = ❤️, long-press = picker completo)
+- **Comentarios en feed** — Sección expandible con formulario, lista y eliminación (carga lazy)
+- **Victorias auto-compartidas** — Al subir de nivel se publica automáticamente al feed con diseño dorado 🏆
+- **Likes en tiempo real** — Contadores de likes y comentarios se sincronizan via Realtime UPDATE
+
+### 🔧 Cambios
+- `comunidad_likes`: nueva columna `tipo_reaccion` (like/prayer/fire/lightning) + constraint `unique_reaction_per_user`
+- `actividad_comunidad`: habilitado Supabase Realtime + `REPLICA IDENTITY FULL`
+- `tipo_actividad`: nuevo valor `victoria` para logros auto-compartidos
+- `grantXp()`: auto-publica victoria al feed cuando `subio_nivel = true`
+- `toggleLikeAction` → `toggleReactionAction` (backward compatible)
+
+---
+
 ## [0.12.0] - 2026-02-19
 
 ### ✨ Nuevo

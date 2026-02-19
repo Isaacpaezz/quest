@@ -25,14 +25,27 @@ export default async function FeedPage() {
     .order('creado_en', { ascending: false })
     .limit(100)
 
-  // Obtener los likes del usuario actual
-  const { data: userLikes } = await supabase
+  // Obtener las reacciones del usuario actual
+  const { data: userReactions } = await supabase
     .from('comunidad_likes')
-    .select('actividad_id')
+    .select('actividad_id, tipo_reaccion')
     .eq('user_id', user.id)
 
-  // Crear un Set con los IDs de actividades que el usuario ha dado like
-  const likedActivityIds = new Set(userLikes?.map(like => like.actividad_id) || [])
+  // Create a map: activityId -> Set of reaction types the user has given
+  const userReactionsMap: Record<number, string[]> = {}
+  for (const reaction of userReactions || []) {
+    if (!userReactionsMap[reaction.actividad_id]) {
+      userReactionsMap[reaction.actividad_id] = []
+    }
+    userReactionsMap[reaction.actividad_id].push(reaction.tipo_reaccion)
+  }
+
+  // Backward-compatible Set for likes
+  const likedActivityIds = new Set(
+    (userReactions || [])
+      .filter(r => r.tipo_reaccion === 'like')
+      .map(r => r.actividad_id)
+  )
 
   // CALCULAR HÉROES DEL DÍA (usuarios que completaron lectura Y oración hoy)
   const tz = await getTimezone(supabase)
@@ -94,8 +107,11 @@ export default async function FeedPage() {
       <FeedClient
         groupedActivities={groupedActivities}
         likedActivityIds={likedActivityIds}
+        userReactionsMap={userReactionsMap}
         currentUserId={user.id}
         todaysHeroes={todaysHeroes}
+        memberIds={miembros}
+        timezone={tz}
       />
     </div>
   )

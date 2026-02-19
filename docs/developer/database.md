@@ -228,8 +228,8 @@ Configuración clave-valor para el sistema, ahora scoped por grupo.
 
 | Tabla | PK | Descripción |
 |-------|----|-------------|
-| `actividad_comunidad` | `id` (serial) | Feed de actividad (lectura/oración completada) |
-| `comunidad_likes` | `id` (UUID) | Likes en actividades del feed |
+| `actividad_comunidad` | `id` (serial) | Feed de actividad. `tipo_actividad`: `lectura_completada`, `oracion_completada`, `victoria`. Realtime habilitado (REPLICA IDENTITY FULL) |
+| `comunidad_likes` | `id` (UUID) | Reacciones en actividades. Columna `tipo_reaccion` (like/prayer/fire/lightning). Unique constraint: `(actividad_id, user_id, tipo_reaccion)` |
 | `comunidad_comentarios` | `id` (UUID) | Comentarios en actividades del feed |
 | `suscripciones_push` | `id` (UUID) | Tokens de push notification (1:1 con usuario) |
 

@@ -55,13 +55,31 @@ for (const prog of recentProgress) {
 
 **Ruta:** `/feed`  
 **Archivos clave:**
-- `src/app/(app)/feed/page.tsx`
-- `src/app/(app)/feed/_components/`
+- `src/app/(app)/feed/page.tsx` — Server component, fetch de datos
+- `src/app/(app)/feed/_components/feed-client.tsx` — Client component principal (ActivityItem, ReactionPicker)
+- `src/app/(app)/feed/_components/use-realtime-feed.ts` — Hook de Supabase Realtime
+- `src/app/(app)/feed/actions.ts` — Server actions (reacciones, comentarios)
+- `src/app/(app)/feed/types.ts` — Tipos compartidos
 
 ### Funcionalidad
-- Lista de actividades de la comunidad (lecturas y oraciones completadas)
-- Likes (❤️) y comentarios en cada actividad
+- Lista de actividades de la comunidad (lecturas, oraciones completadas, **victorias**)
+- **Realtime:** nuevas actividades aparecen instantáneamente via Supabase Realtime (INSERT + UPDATE)
+- **Reacciones múltiples:** ❤️ 🙏 🔥 ⚡ (tap rápido = ❤️, long-press = picker completo)
+- **Comentarios:** sección expandible con form, lista y delete (carga lazy)
+- **Victorias auto-compartidas:** al subir de nivel, se publica con diseño dorado 🏆
 - Timestamps relativos ("hace 2h", "ayer")
+- Optimistic UI para reacciones y comentarios
+
+### Supabase Realtime
+- Canal `feed-realtime` suscribe a `actividad_comunidad` (INSERT + UPDATE)
+- INSERT: agrega nueva actividad al grupo correspondiente con fecha y perfil
+- UPDATE: sincroniza `likes_count` y `comentarios_count` en tiempo real
+- Requiere `REPLICA IDENTITY FULL` en la tabla
+
+### Reacciones
+- Tabla `comunidad_likes` con columna `tipo_reaccion` (like, prayer, fire, lightning)
+- Constraint unique: `(actividad_id, user_id, tipo_reaccion)` — permite múltiples tipos por usuario
+- Server action `toggleReactionAction` maneja add/remove por tipo
 
 ---
 

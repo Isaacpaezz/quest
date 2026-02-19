@@ -1,11 +1,21 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useTransition, useRef, useEffect } from 'react'
 import { useTheme } from 'next-themes'
-import { Newspaper, Heart, MessageCircle, BookOpen, Timer, Flame, ChevronDown } from 'lucide-react'
+import { Newspaper, Heart, MessageCircle, BookOpen, Timer, Flame, ChevronDown, Send, Trash2, Trophy } from 'lucide-react'
 import { EmptyState } from '@/components/shared/empty-state'
-import { toggleLikeAction } from '../actions'
+import { toggleReactionAction, postCommentAction, getCommentsAction, deleteCommentAction } from '../actions'
 import type { FeedActivity } from '../types'
+import { toast } from 'sonner'
+import { useRealtimeFeed } from './use-realtime-feed'
+
+// ─── Constants ───────────────────────────────────────────────────────────────
+const REACTION_TYPES = [
+  { type: 'like' as const, emoji: '❤️', label: 'Me gusta' },
+  { type: 'prayer' as const, emoji: '🙏', label: 'Oración' },
+  { type: 'fire' as const, emoji: '🔥', label: 'En fuego' },
+  { type: 'lightning' as const, emoji: '⚡', label: 'Increíble' },
+]
 
 // ─── Date helpers ────────────────────────────────────────────────────────────
 function formatDateHeader(dateString: string) {
@@ -31,23 +41,169 @@ function formatRelativeTime(ts: string) {
   return `hace ${Math.floor(diff / 86400)}d`
 }
 
+// ─── Types ───────────────────────────────────────────────────────────────────
 interface Hero {
   id: string
   nombre_usuario: string
 }
 
-function ActivityItem({ act, currentUserLiked, currentUserId, isDark }: { act: FeedActivity; currentUserLiked: boolean; currentUserId: string; isDark: boolean }) {
-  const [liked, setLiked] = useState(currentUserLiked)
+interface Comment {
+  id: string
+  contenido: string
+  created_at: string
+  user: { id: string; nombre_usuario: string }
+}
+
+type ReactionType = 'like' | 'prayer' | 'fire' | 'lightning'
+
+// ─── ReactionPicker ──────────────────────────────────────────────────────────
+function ReactionPicker({
+  userReactions,
+  totalLikes,
+  onReact,
+  isPending,
+  isDark,
+}: {
+  userReactions: Set<ReactionType>
+  totalLikes: number
+  onReact: (type: ReactionType) => void
+  isPending: boolean
+  isDark: boolean
+}) {
+  const [showPicker, setShowPicker] = useState(false)
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const pickerRef = useRef<HTMLDivElement>(null)
+
+  // Close picker on outside click
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (pickerRef.current && !pickerRef.current.contains(e.target as Node)) {
+        setShowPicker(false)
+      }
+    }
+    if (showPicker) {
+      document.addEventListener('mousedown', handleClickOutside)
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [showPicker])
+
+  const hasAnyReaction = userReactions.size > 0
+  const subClr = isDark ? '#5A6075' : '#8C9099'
+
+  const handleLongPressStart = () => {
+    timerRef.current = setTimeout(() => {
+      setShowPicker(true)
+    }, 400)
+  }
+
+  const handleLongPressEnd = () => {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current)
+      timerRef.current = null
+    }
+  }
+
+  const handleQuickTap = () => {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current)
+      timerRef.current = null
+    }
+    if (!showPicker) {
+      onReact('like')
+    }
+  }
+
+  return (
+    <div className="relative" ref={pickerRef}>
+      {/* Main button */}
+      <button
+        onMouseDown={handleLongPressStart}
+        onMouseUp={handleLongPressEnd}
+        onMouseLeave={handleLongPressEnd}
+        onTouchStart={handleLongPressStart}
+        onTouchEnd={handleLongPressEnd}
+        onClick={handleQuickTap}
+        disabled={isPending}
+        className="flex items-center gap-1.5 transition-opacity active:scale-95 disabled:opacity-50"
+      >
+        <Heart
+          className="size-4"
+          style={{
+            color: hasAnyReaction ? '#FF6B6B' : subClr,
+            fill: hasAnyReaction ? '#FF6B6B' : 'transparent',
+          }}
+        />
+        <span className="text-[12px] font-sans" style={{ color: hasAnyReaction ? '#FF6B6B' : subClr }}>
+          {totalLikes}
+        </span>
+      </button>
+
+      {/* Emoji picker popup */}
+      {showPicker && (
+        <div
+          className="absolute -top-12 left-0 z-50 flex items-center gap-1 rounded-full px-2 py-1.5 shadow-lg"
+          style={{
+            backgroundColor: isDark ? '#1E2330' : '#FFFFFF',
+            border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)'}`,
+          }}
+        >
+          {REACTION_TYPES.map(({ type, emoji }) => (
+            <button
+              key={type}
+              onClick={() => {
+                onReact(type)
+                setShowPicker(false)
+              }}
+              className="flex size-8 items-center justify-center rounded-full transition-transform hover:scale-125 active:scale-90"
+              style={{
+                backgroundColor: userReactions.has(type)
+                  ? (isDark ? 'rgba(123,143,255,0.2)' : 'rgba(84,104,255,0.1)')
+                  : 'transparent',
+              }}
+              title={REACTION_TYPES.find(r => r.type === type)?.label}
+            >
+              <span className="text-[18px]">{emoji}</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ─── ActivityItem ────────────────────────────────────────────────────────────
+function ActivityItem({ act, userReactions: initialReactions, currentUserId, isDark }: {
+  act: FeedActivity
+  userReactions: Set<ReactionType>
+  currentUserId: string
+  isDark: boolean
+}) {
+  const [userReactions, setUserReactions] = useState<Set<ReactionType>>(initialReactions)
   const [likeCount, setLikeCount] = useState(Number(act.likes_count) || 0)
   const [expanded, setExpanded] = useState(false)
+  const [isPending, startTransition] = useTransition()
+
+  // Comments state
+  const [showComments, setShowComments] = useState(false)
+  const [comments, setComments] = useState<Comment[]>([])
+  const [commentsLoaded, setCommentsLoaded] = useState(false)
+  const [commentText, setCommentText] = useState('')
+  const [isSubmittingComment, setIsSubmittingComment] = useState(false)
+  const [commentCount, setCommentCount] = useState(Number(act.comentarios_count) || 0)
+
+  // Sync counts from Realtime updates (prop changes)
+  useEffect(() => { setLikeCount(Number(act.likes_count) || 0) }, [act.likes_count])
+  useEffect(() => { setCommentCount(Number(act.comentarios_count) || 0) }, [act.comentarios_count])
 
   const cardBg = isDark ? 'rgba(21,25,37,0.60)' : 'rgba(255,255,255,0.88)'
   const border = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)'
   const textClr = isDark ? '#FFFFFF' : '#111318'
   const subClr = isDark ? '#5A6075' : '#8C9099'
   const dotClr = isDark ? '#2B3045' : '#E8EBF0'
+  const accentBlue = isDark ? '#7B8FFF' : '#5468FF'
+  const accentPurple = isDark ? '#B97BFF' : '#8A4FFF'
 
-  // Extract name from perfiles join (can be object or array)
+  // Extract name
   const perfiles = act.perfiles
   let nombre = 'Usuario'
   if (perfiles) {
@@ -59,124 +215,306 @@ function ActivityItem({ act, currentUserLiked, currentUserId, isDark }: { act: F
   }
   const tipo = String(act.tipo_actividad || '')
   const isLectura = tipo === 'lectura_completada'
+  const isVictoria = tipo === 'victoria'
+  const accentGold = isDark ? '#FFD700' : '#DAA520'
 
-  async function handleLike() {
-    const newLiked = !liked
-    setLiked(newLiked)
-    setLikeCount(c => newLiked ? c + 1 : Math.max(0, c - 1))
-    await toggleLikeAction(Number(act.id), liked)
+  // Reaction handler
+  function handleReaction(type: ReactionType) {
+    const wasActive = userReactions.has(type)
+
+    // Optimistic update
+    setUserReactions(prev => {
+      const next = new Set(prev)
+      if (wasActive) {
+        next.delete(type)
+      } else {
+        next.add(type)
+      }
+      return next
+    })
+    setLikeCount(c => wasActive ? Math.max(0, c - 1) : c + 1)
+
+    startTransition(async () => {
+      const result = await toggleReactionAction(Number(act.id), type, wasActive)
+      if (!result.success) {
+        // Revert
+        setUserReactions(prev => {
+          const next = new Set(prev)
+          if (wasActive) next.add(type)
+          else next.delete(type)
+          return next
+        })
+        setLikeCount(c => wasActive ? c + 1 : c - 1)
+        toast.error('Error', { description: result.error })
+      }
+    })
+  }
+
+  // Comments handlers
+  async function loadComments() {
+    if (commentsLoaded) return
+    const result = await getCommentsAction(Number(act.id))
+    if (result.success) {
+      setComments(result.comments)
+      setCommentsLoaded(true)
+    } else {
+      toast.error('No se pudieron cargar los comentarios')
+    }
+  }
+
+  function handleCommentsClick() {
+    setShowComments(!showComments)
+    if (!showComments && !commentsLoaded) {
+      loadComments()
+    }
+  }
+
+  async function handleSubmitComment(e: React.FormEvent) {
+    e.preventDefault()
+    if (!commentText.trim()) return
+    setIsSubmittingComment(true)
+
+    const result = await postCommentAction(Number(act.id), commentText)
+    if (result.success && result.comment) {
+      setComments([result.comment, ...comments])
+      setCommentText('')
+      setCommentCount(c => c + 1)
+      toast.success('Comentario publicado')
+    } else {
+      toast.error('Error', { description: result.error })
+    }
+    setIsSubmittingComment(false)
+  }
+
+  async function handleDeleteComment(commentId: string) {
+    const result = await deleteCommentAction(commentId)
+    if (result.success) {
+      setComments(comments.filter(c => c.id !== commentId))
+      setCommentCount(c => Math.max(0, c - 1))
+      toast.success('Comentario eliminado')
+    } else {
+      toast.error('Error', { description: result.error })
+    }
   }
 
   return (
     <div
-      className="flex items-start gap-3 rounded-[20px] p-4"
-      style={{ backgroundColor: cardBg, border: `1px solid ${border}` }}
+      className="flex flex-col rounded-[20px] p-4 transition-all duration-300"
+      style={{
+        backgroundColor: isVictoria
+          ? (isDark ? 'rgba(255,215,0,0.06)' : 'rgba(255,215,0,0.08)')
+          : cardBg,
+        border: `1px solid ${isVictoria ? (isDark ? 'rgba(255,215,0,0.2)' : 'rgba(218,165,32,0.25)') : border}`,
+      }}
     >
-      {/* Avatar */}
-      <div
-        className="size-10 rounded-full flex items-center justify-center shrink-0 text-[15px] font-bold font-display"
-        style={{ backgroundColor: dotClr, color: subClr }}
-      >
-        {nombre[0]?.toUpperCase() || '?'}
-      </div>
-
-      <div className="flex-1 min-w-0">
-        {/* Name + time */}
-        <div className="flex items-center justify-between gap-2 mb-1">
-          <span className="text-[14px] font-[600] font-sans truncate" style={{ color: textClr }}>
-            {nombre}
-          </span>
-          <span className="text-[12px] font-sans shrink-0" style={{ color: subClr }}>
-            {act.creado_en ? formatRelativeTime(String(act.creado_en)) : ''}
-          </span>
+      {/* Main row */}
+      <div className="flex items-start gap-3">
+        {/* Avatar */}
+        <div
+          className="size-10 rounded-full flex items-center justify-center shrink-0 text-[15px] font-bold font-display"
+          style={{ backgroundColor: dotClr, color: subClr }}
+        >
+          {nombre[0]?.toUpperCase() || '?'}
         </div>
 
-        {/* Activity label */}
-        <div className="flex items-center gap-1.5 mb-3">
-          {isLectura
-            ? <BookOpen className="size-3.5 shrink-0" style={{ color: isDark ? '#7B8FFF' : '#5468FF' }} />
-            : <Timer className="size-3.5 shrink-0" style={{ color: isDark ? '#B97BFF' : '#8A4FFF' }} />
-          }
-          <span className="text-[12px] font-sans" style={{ color: subClr }}>
-            {isLectura
-              ? `Leyó ${act.referencia_contenido || 'la lectura de hoy'}`
-              : `Oró · ${act.referencia_contenido || 'Tiempo de Oración'}`
-            }
-          </span>
-        </div>
+        <div className="flex-1 min-w-0">
+          {/* Name + time */}
+          <div className="flex items-center justify-between gap-2 mb-1">
+            <span className="text-[14px] font-[600] font-sans truncate" style={{ color: textClr }}>
+              {nombre}
+            </span>
+            <span className="text-[12px] font-sans shrink-0" style={{ color: subClr }}>
+              {act.creado_en ? formatRelativeTime(String(act.creado_en)) : ''}
+            </span>
+          </div>
 
-        {/* Expandable reflection for reading activities */}
-        {isLectura && act.resumen_actividad && (
-          <div className="mb-2">
-            <button
-              onClick={() => setExpanded(!expanded)}
-              className="flex items-center gap-1 text-[11px] font-medium transition-colors"
-              style={{ color: isDark ? '#7B8FFF' : '#5468FF' }}
-            >
-              <ChevronDown
-                className="size-3 transition-transform duration-200"
-                style={{ transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)' }}
-              />
-              Reflexión
-            </button>
-            {expanded && (
-              <div
-                className="mt-2 rounded-xl px-3 py-2.5 text-[12px] leading-relaxed font-sans"
-                style={{
-                  backgroundColor: isDark ? 'rgba(123,143,255,0.08)' : 'rgba(84,104,255,0.06)',
-                  borderLeft: `2px solid ${isDark ? '#7B8FFF' : '#5468FF'}`,
-                  color: isDark ? '#A0ACD0' : '#5A6070',
-                }}
-              >
-                {act.resumen_actividad}
-              </div>
+          {/* Activity label */}
+          <div className="flex items-center gap-1.5 mb-3">
+            {isVictoria ? (
+              <Trophy className="size-3.5 shrink-0" style={{ color: accentGold }} />
+            ) : isLectura ? (
+              <BookOpen className="size-3.5 shrink-0" style={{ color: accentBlue }} />
+            ) : (
+              <Timer className="size-3.5 shrink-0" style={{ color: accentPurple }} />
             )}
+            <span className="text-[12px] font-sans" style={{ color: isVictoria ? accentGold : subClr }}>
+              {isVictoria
+                ? `🏆 ${act.resumen_actividad || `¡${act.referencia_contenido}!`}`
+                : isLectura
+                  ? `Leyó ${act.referencia_contenido || 'la lectura de hoy'}`
+                  : `Oró · ${act.referencia_contenido || 'Tiempo de Oración'}`
+              }
+            </span>
           </div>
-        )}
 
-        {/* Actions */}
-        <div className="flex items-center gap-4">
-          <button
-            onClick={handleLike}
-            className="flex items-center gap-1.5 transition-opacity active:scale-95"
-          >
-            <Heart
-              className="size-4"
-              style={{
-                color: liked ? '#FF6B6B' : subClr,
-                fill: liked ? '#FF6B6B' : 'transparent',
-              }}
+          {/* Expandable reflection */}
+          {isLectura && act.resumen_actividad && (
+            <div className="mb-2">
+              <button
+                onClick={() => setExpanded(!expanded)}
+                className="flex items-center gap-1 text-[11px] font-medium transition-colors"
+                style={{ color: accentBlue }}
+              >
+                <ChevronDown
+                  className="size-3 transition-transform duration-200"
+                  style={{ transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)' }}
+                />
+                Reflexión
+              </button>
+              {expanded && (
+                <div
+                  className="mt-2 rounded-xl px-3 py-2.5 text-[12px] leading-relaxed font-sans"
+                  style={{
+                    backgroundColor: isDark ? 'rgba(123,143,255,0.08)' : 'rgba(84,104,255,0.06)',
+                    borderLeft: `2px solid ${accentBlue}`,
+                    color: isDark ? '#A0ACD0' : '#5A6070',
+                  }}
+                >
+                  {act.resumen_actividad}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Actions row: Reactions + Comments */}
+          <div className="flex items-center gap-4">
+            <ReactionPicker
+              userReactions={userReactions}
+              totalLikes={likeCount}
+              onReact={handleReaction}
+              isPending={isPending}
+              isDark={isDark}
             />
-            <span className="text-[12px] font-sans" style={{ color: liked ? '#FF6B6B' : subClr }}>
-              {likeCount}
-            </span>
-          </button>
 
-          <div className="flex items-center gap-1.5">
-            <MessageCircle className="size-4" style={{ color: subClr }} />
-            <span className="text-[12px] font-sans" style={{ color: subClr }}>
-              {Number(act.comentarios_count) || 0}
-            </span>
+            <button
+              onClick={handleCommentsClick}
+              className="flex items-center gap-1.5 transition-colors"
+              style={{ color: showComments ? accentBlue : subClr }}
+            >
+              <MessageCircle className="size-4" />
+              <span className="text-[12px] font-sans">
+                {commentCount}
+              </span>
+            </button>
           </div>
-
         </div>
       </div>
+
+      {/* Comments section */}
+      {showComments && (
+        <div
+          className="mt-3 pt-3 flex flex-col gap-3"
+          style={{ borderTop: `1px solid ${border}` }}
+        >
+          {/* Comment form */}
+          <form onSubmit={handleSubmitComment} className="flex gap-2">
+            <input
+              type="text"
+              value={commentText}
+              onChange={(e) => setCommentText(e.target.value)}
+              placeholder="Escribe un comentario..."
+              className="flex-1 rounded-full px-4 py-2 text-[13px] font-sans outline-none transition-colors"
+              style={{
+                backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
+                color: textClr,
+                border: `1px solid ${border}`,
+              }}
+              disabled={isSubmittingComment}
+            />
+            <button
+              type="submit"
+              disabled={isSubmittingComment || !commentText.trim()}
+              className="flex size-9 items-center justify-center rounded-full transition-opacity disabled:opacity-30"
+              style={{ backgroundColor: accentBlue, color: '#FFFFFF' }}
+            >
+              <Send className="size-3.5" />
+            </button>
+          </form>
+
+          {!commentsLoaded && (
+            <p className="text-center text-[12px] font-sans" style={{ color: subClr }}>
+              Cargando comentarios...
+            </p>
+          )}
+
+          {commentsLoaded && comments.length === 0 && (
+            <p className="text-center text-[12px] font-sans" style={{ color: subClr }}>
+              Sé el primero en comentar
+            </p>
+          )}
+
+          {comments.map((comment) => (
+            <div key={comment.id} className="flex gap-2">
+              <div
+                className="size-7 rounded-full flex items-center justify-center shrink-0 text-[11px] font-bold font-display"
+                style={{ backgroundColor: dotClr, color: subClr }}
+              >
+                {comment.user.nombre_usuario?.[0]?.toUpperCase() || '?'}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-[12px] font-[600] font-sans truncate" style={{ color: textClr }}>
+                    {comment.user.nombre_usuario}
+                  </span>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="text-[10px] font-sans" style={{ color: subClr }}>
+                      {formatRelativeTime(comment.created_at)}
+                    </span>
+                    {comment.user.id === currentUserId && (
+                      <button
+                        onClick={() => handleDeleteComment(comment.id)}
+                        className="opacity-40 hover:opacity-100 transition-opacity"
+                      >
+                        <Trash2 className="size-3" style={{ color: '#FF6B6B' }} />
+                      </button>
+                    )}
+                  </div>
+                </div>
+                <p className="text-[12px] font-sans leading-relaxed mt-0.5" style={{ color: isDark ? '#A0ACD0' : '#5A6070' }}>
+                  {comment.contenido}
+                </p>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
 
-export function FeedClient({ groupedActivities, likedActivityIds, currentUserId, todaysHeroes }: {
+// ─── FeedClient ──────────────────────────────────────────────────────────────
+export function FeedClient({
+  groupedActivities: initialGroupedActivities,
+  likedActivityIds,
+  userReactionsMap,
+  currentUserId,
+  todaysHeroes,
+  memberIds,
+  timezone,
+}: {
   groupedActivities: Record<string, FeedActivity[]>
   likedActivityIds: Set<number>
+  userReactionsMap: Record<number, string[]>
   currentUserId: string
   todaysHeroes: Hero[]
+  memberIds: string[]
+  timezone: string
 }) {
   const { resolvedTheme } = useTheme()
   const isDark = resolvedTheme !== 'light'
+
+  // Realtime feed updates
+  const { groupedActivities } = useRealtimeFeed(initialGroupedActivities, { memberIds, timezone })
   const activityDates = Object.keys(groupedActivities)
 
   const sectionLbl = isDark ? '#7A8090' : '#6B7080'
   const dateClr = isDark ? '#5A6075' : '#8C9099'
+
+  // Build per-activity reaction sets
+  function getUserReactions(activityId: number): Set<ReactionType> {
+    const reactions = userReactionsMap[activityId] || []
+    return new Set(reactions as ReactionType[])
+  }
 
   return (
     <div className="flex flex-col gap-6">
@@ -223,7 +561,6 @@ export function FeedClient({ groupedActivities, likedActivityIds, currentUserId,
       ) : (
         activityDates.map(date => (
           <div key={date} className="flex flex-col gap-3">
-            {/* Date separator */}
             <span
               className="text-[11px] font-bold tracking-[1.5px] font-sans uppercase"
               style={{ color: dateClr }}
@@ -235,7 +572,7 @@ export function FeedClient({ groupedActivities, likedActivityIds, currentUserId,
                 key={act.id}
                 act={act}
                 isDark={isDark}
-                currentUserLiked={likedActivityIds.has(act.id)}
+                userReactions={getUserReactions(act.id)}
                 currentUserId={currentUserId}
               />
             ))}
