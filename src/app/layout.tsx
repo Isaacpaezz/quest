@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter, Sora } from "next/font/google";
 import { ThemeProvider } from "@/components/theme-provider";
 import "./globals.css";
@@ -16,6 +16,13 @@ const sora = Sora({
 });
 
 export const runtime = 'nodejs'
+
+export const viewport: Viewport = {
+  themeColor: [
+    { media: '(prefers-color-scheme: dark)', color: '#080A10' },
+    { media: '(prefers-color-scheme: light)', color: '#ECEEF2' },
+  ],
+}
 
 export const metadata: Metadata = {
   title: "Quest",
