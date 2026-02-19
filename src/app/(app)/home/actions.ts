@@ -161,9 +161,21 @@ export async function registrarProgresoLecturaAction(prevState: ActionState, for
     console.error('Error preparando o enviando notificaciones de lectura:', err)
   }
 
-  revalidatePath('/sustento-diario')
+  // Otorgar XP por completar lectura
+  try {
+    await supabase.rpc('otorgar_xp', {
+      p_usuario_id: user.id,
+      p_cantidad: 50,
+      p_motivo: 'lectura_completada',
+    })
+  } catch (xpErr) {
+    console.error('Error otorgando XP por lectura:', xpErr)
+  }
+
+  revalidatePath('/home')
   revalidatePath('/feed') // Revalidar también el feed
-  return { message: '¡Tu resumen ha sido guardado exitosamente!' }
+  revalidatePath('/challenges')
+  return { message: '¡Tu resumen ha sido guardado exitosamente! +50 XP' }
 }
 
 export async function actualizarProgresoOracionAction(datos: { segundosAcumulados: number, capituloId: number, oracionCompletada: boolean }): Promise<ActionState> {
@@ -279,7 +291,21 @@ export async function actualizarProgresoOracionAction(datos: { segundosAcumulado
     }
   }
 
-  revalidatePath('/sustento-diario');
+  // Otorgar XP por completar oración
+  if (oracionCompletada) {
+    try {
+      await supabase.rpc('otorgar_xp', {
+        p_usuario_id: user.id,
+        p_cantidad: 50,
+        p_motivo: 'oracion_completada',
+      })
+    } catch (xpErr) {
+      console.error('Error otorgando XP por oración:', xpErr)
+    }
+  }
+
+  revalidatePath('/home');
   revalidatePath('/feed');
-  return { message: 'Progreso guardado.' };
+  revalidatePath('/challenges');
+  return { message: oracionCompletada ? 'Progreso guardado. +50 XP' : 'Progreso guardado.' };
 }

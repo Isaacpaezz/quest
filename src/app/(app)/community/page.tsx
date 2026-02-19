@@ -22,10 +22,10 @@ export default async function CommunityPage() {
 
   const pendingPenalties = penaltiesRes.data as Tables<'penalizaciones'>[] || []
   const streaksData = streaksRes.data || []
-  
+
   const penaltyDates = pendingPenalties.map(p => p.fecha_incumplimiento);
   const penaltyUserIds = pendingPenalties.map(p => p.usuario_id);
-  
+
   const { data: historicProgressData } = await supabase
     .from('progreso_usuario')
     .select('*')
@@ -38,10 +38,10 @@ export default async function CommunityPage() {
     const userStreak = streaksData.find((s: { user_id: string }) => s.user_id === profile.id)
 
     const enrichedPenalties = userPenalties.map(penalty => {
-      const progressRecord = (historicProgressData || []).find(hp => 
+      const progressRecord = (historicProgressData || []).find(hp =>
         hp.usuario_id === penalty.usuario_id && hp.fecha_progreso === penalty.fecha_incumplimiento
       )
-      
+
       let motivo = 'Ambas tareas'
       if (progressRecord) {
         if (!progressRecord.lectura_completada && progressRecord.oracion_completada) motivo = 'Lectura'
@@ -66,14 +66,24 @@ export default async function CommunityPage() {
       }
     }
   })
+  // Compute the all-time highest streak from perfiles.max_streak
+  const allProfiles = profilesRes.data || []
+  const bestProfile = allProfiles.reduce((best: typeof allProfiles[0] | null, p) => {
+    if (!best || (p.max_streak || 0) > (best.max_streak || 0)) return p
+    return best
+  }, null)
+
+  let highestStreak: { nombre_usuario: string; streak: number } | null = null
+  if (bestProfile && (bestProfile.max_streak || 0) > 0) {
+    highestStreak = {
+      nombre_usuario: bestProfile.nombre_usuario,
+      streak: bestProfile.max_streak || 0,
+    }
+  }
 
   return (
     <div>
-      <header className="mb-6">
-        <h1 className="font-display text-2xl font-bold text-slate-900">Comunidad</h1>
-        <p className="text-sm text-slate-500">Crecemos, con transparencia y apoyo.</p>
-      </header>
-      <CommunityClient communityData={communityData} />
+      <CommunityClient communityData={communityData} highestStreak={highestStreak} />
     </div>
   )
 }

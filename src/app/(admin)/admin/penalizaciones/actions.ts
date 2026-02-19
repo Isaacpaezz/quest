@@ -29,6 +29,6 @@ export async function aplicarPagoAction(usuarioId: string, monto: number): Promi
   }
 
   revalidatePath('/admin/penalizaciones')
-  revalidatePath('/comunidad')
+  revalidatePath('/community')
   return { message: 'Pago aplicado exitosamente.' }
 }

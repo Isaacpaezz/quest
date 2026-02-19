@@ -1,111 +1,249 @@
 'use client'
 
+import { useState } from 'react'
+import { useTheme } from 'next-themes'
+import { Newspaper, Heart, MessageCircle, BookOpen, Timer, Flame, ChevronDown } from 'lucide-react'
 import { EmptyState } from '@/components/shared/empty-state'
-import { Newspaper, Crown, Flame } from 'lucide-react'
-import { ActivityCard } from './activity-card'
+import { toggleLikeAction } from '../actions'
 
-// Helper para formatear los encabezados de fecha
+// ─── Date helpers ────────────────────────────────────────────────────────────
 function formatDateHeader(dateString: string) {
-  // dateString comes in YYYY-MM-DD (zona Venezuela) from the server grouping.
-  // Crear la fecha usando componentes año/mes/día para evitar interpretaciones UTC
   const [yearStr, monthStr, dayStr] = dateString.split('-')
   const dateObj = new Date(Number(yearStr), Number(monthStr) - 1, Number(dayStr))
-  const today = new Date();
-  const yesterday = new Date();
-  yesterday.setDate(yesterday.getDate() - 1);
-  
-  // Comparar solo año, mes y día (ignorar hora)
-  const isSameDay = (date1: Date, date2: Date) => {
-    return date1.getFullYear() === date2.getFullYear() &&
-           date1.getMonth() === date2.getMonth() &&
-           date1.getDate() === date2.getDate();
-  };
-  
-  if (isSameDay(dateObj, today)) return 'Hoy';
-  if (isSameDay(dateObj, yesterday)) return 'Ayer';
-  
-  return dateObj.toLocaleDateString('es-ES', { 
-    weekday: 'long', 
-    day: 'numeric', 
-    month: 'long' 
-  });
+  const today = new Date()
+  const yesterday = new Date()
+  yesterday.setDate(yesterday.getDate() - 1)
+  const same = (a: Date, b: Date) =>
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate()
+  if (same(dateObj, today)) return 'Hoy'
+  if (same(dateObj, yesterday)) return 'Ayer'
+  return dateObj.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })
 }
 
-// Colores de gradiente para los héroes
-const HERO_COLORS = [
-  'from-amber-300 to-orange-500',
-  'from-blue-300 to-indigo-500',
-  'from-purple-300 to-pink-500',
-  'from-green-300 to-emerald-500',
-  'from-rose-300 to-red-500',
-]
+function formatRelativeTime(ts: string) {
+  const diff = Math.floor((Date.now() - new Date(ts).getTime()) / 1000)
+  if (diff < 60) return 'hace un momento'
+  if (diff < 3600) return `hace ${Math.floor(diff / 60)}m`
+  if (diff < 86400) return `hace ${Math.floor(diff / 3600)}h`
+  return `hace ${Math.floor(diff / 86400)}d`
+}
 
 interface Hero {
   id: string
   nombre_usuario: string
 }
 
-export function FeedClient({ groupedActivities, likedActivityIds, currentUserId, todaysHeroes }: { 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function ActivityItem({ act, currentUserLiked, currentUserId, isDark }: { act: any; currentUserLiked: boolean; currentUserId: string; isDark: boolean }) {
+  const [liked, setLiked] = useState(currentUserLiked)
+  const [likeCount, setLikeCount] = useState(Number(act.likes_count) || 0)
+  const [expanded, setExpanded] = useState(false)
+
+  const cardBg = isDark ? 'rgba(21,25,37,0.60)' : 'rgba(255,255,255,0.88)'
+  const border = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)'
+  const textClr = isDark ? '#FFFFFF' : '#111318'
+  const subClr = isDark ? '#5A6075' : '#8C9099'
+  const dotClr = isDark ? '#2B3045' : '#E8EBF0'
+
+  // Extract name from perfiles join (can be object or array)
+  const perfiles = act.perfiles
+  let nombre = 'Usuario'
+  if (perfiles) {
+    if (Array.isArray(perfiles)) {
+      nombre = perfiles[0]?.nombre_usuario || 'Usuario'
+    } else if (typeof perfiles === 'object' && perfiles.nombre_usuario) {
+      nombre = perfiles.nombre_usuario
+    }
+  }
+  const tipo = String(act.tipo_actividad || '')
+  const isLectura = tipo === 'lectura_completada'
+
+  async function handleLike() {
+    const newLiked = !liked
+    setLiked(newLiked)
+    setLikeCount(c => newLiked ? c + 1 : Math.max(0, c - 1))
+    await toggleLikeAction(Number(act.id), liked)
+  }
+
+  return (
+    <div
+      className="flex items-start gap-3 rounded-[20px] p-4"
+      style={{ backgroundColor: cardBg, border: `1px solid ${border}` }}
+    >
+      {/* Avatar */}
+      <div
+        className="size-10 rounded-full flex items-center justify-center shrink-0 text-[15px] font-bold font-display"
+        style={{ backgroundColor: dotClr, color: subClr }}
+      >
+        {nombre[0]?.toUpperCase() || '?'}
+      </div>
+
+      <div className="flex-1 min-w-0">
+        {/* Name + time */}
+        <div className="flex items-center justify-between gap-2 mb-1">
+          <span className="text-[14px] font-[600] font-sans truncate" style={{ color: textClr }}>
+            {nombre}
+          </span>
+          <span className="text-[12px] font-sans shrink-0" style={{ color: subClr }}>
+            {act.creado_en ? formatRelativeTime(String(act.creado_en)) : ''}
+          </span>
+        </div>
+
+        {/* Activity label */}
+        <div className="flex items-center gap-1.5 mb-3">
+          {isLectura
+            ? <BookOpen className="size-3.5 shrink-0" style={{ color: isDark ? '#7B8FFF' : '#5468FF' }} />
+            : <Timer className="size-3.5 shrink-0" style={{ color: isDark ? '#B97BFF' : '#8A4FFF' }} />
+          }
+          <span className="text-[12px] font-sans" style={{ color: subClr }}>
+            {isLectura
+              ? `Leyó ${act.referencia_contenido || 'la lectura de hoy'}`
+              : `Oró · ${act.referencia_contenido || 'Tiempo de Oración'}`
+            }
+          </span>
+        </div>
+
+        {/* Expandable reflection for reading activities */}
+        {isLectura && act.resumen_actividad && (
+          <div className="mb-2">
+            <button
+              onClick={() => setExpanded(!expanded)}
+              className="flex items-center gap-1 text-[11px] font-medium transition-colors"
+              style={{ color: isDark ? '#7B8FFF' : '#5468FF' }}
+            >
+              <ChevronDown
+                className="size-3 transition-transform duration-200"
+                style={{ transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)' }}
+              />
+              Reflexión
+            </button>
+            {expanded && (
+              <div
+                className="mt-2 rounded-xl px-3 py-2.5 text-[12px] leading-relaxed font-sans"
+                style={{
+                  backgroundColor: isDark ? 'rgba(123,143,255,0.08)' : 'rgba(84,104,255,0.06)',
+                  borderLeft: `2px solid ${isDark ? '#7B8FFF' : '#5468FF'}`,
+                  color: isDark ? '#A0ACD0' : '#5A6070',
+                }}
+              >
+                {act.resumen_actividad}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Actions */}
+        <div className="flex items-center gap-4">
+          <button
+            onClick={handleLike}
+            className="flex items-center gap-1.5 transition-opacity active:scale-95"
+          >
+            <Heart
+              className="size-4"
+              style={{
+                color: liked ? '#FF6B6B' : subClr,
+                fill: liked ? '#FF6B6B' : 'transparent',
+              }}
+            />
+            <span className="text-[12px] font-sans" style={{ color: liked ? '#FF6B6B' : subClr }}>
+              {likeCount}
+            </span>
+          </button>
+
+          <div className="flex items-center gap-1.5">
+            <MessageCircle className="size-4" style={{ color: subClr }} />
+            <span className="text-[12px] font-sans" style={{ color: subClr }}>
+              {Number(act.comentarios_count) || 0}
+            </span>
+          </div>
+
+          {Number(act.racha) > 0 && (
+            <div className="flex items-center gap-1">
+              <Flame className="size-3.5" style={{ color: '#FF6B35' }} />
+              <span className="text-[12px] font-sans" style={{ color: '#FF6B35' }}>
+                {act.racha}
+              </span>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export function FeedClient({ groupedActivities, likedActivityIds, currentUserId, todaysHeroes }: {
   groupedActivities: Record<string, unknown[]>
   likedActivityIds: Set<number>
   currentUserId: string
   todaysHeroes: Hero[]
 }) {
-  const activityDates = Object.keys(groupedActivities);
+  const { resolvedTheme } = useTheme()
+  const isDark = resolvedTheme !== 'light'
+  const activityDates = Object.keys(groupedActivities)
+
+  const sectionLbl = isDark ? '#7A8090' : '#6B7080'
+  const dateClr = isDark ? '#5A6075' : '#8C9099'
 
   return (
-    <div className="mx-auto max-w-3xl space-y-8 pb-24">
-      {/* HÉROES DEL DÍA (Gamification Header) */}
+    <div className="flex flex-col gap-6">
+
+      {/* Héroes del día */}
       {todaysHeroes.length > 0 && (
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">Héroes del día</h3>
-            <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-700">
-              {todaysHeroes.length} {todaysHeroes.length === 1 ? 'COMPLETADO' : 'COMPLETADOS'}
+        <div>
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-5 h-[2px] rounded-sm" style={{ backgroundColor: '#FF6B35' }} />
+            <span className="text-[11px] font-bold tracking-[2px] font-sans uppercase" style={{ color: sectionLbl }}>
+              HÉROES DEL DÍA
             </span>
           </div>
-          
-          <div className="no-scrollbar flex gap-5 overflow-x-auto py-2">
-            {todaysHeroes.map((hero, index) => (
-              <div key={hero.id} className="flex flex-col items-center">
-                <div className="relative">
-                  <Crown className="absolute -top-5 left-1/2 h-6 w-6 -translate-x-1/2 fill-amber-500 text-amber-500" />
-                  <div className={`flex h-16 w-16 items-center justify-center rounded-full border-[3px] border-transparent bg-gradient-to-br ${HERO_COLORS[index % HERO_COLORS.length]} p-[2px]`}>
-                    <div className="flex h-full w-full items-center justify-center rounded-full border-2 border-white bg-slate-100">
-                      <span className="font-bold text-slate-500">{hero.nombre_usuario[0]}</span>
-                    </div>
-                  </div>
-                  <div className="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-white shadow-sm">
-                    <Flame className="h-3.5 w-3.5 fill-orange-500 text-orange-500" />
-                  </div>
+          <div className="flex gap-3 overflow-x-auto no-scrollbar pb-1">
+            {todaysHeroes.map(hero => (
+              <div key={hero.id} className="flex flex-col items-center gap-1.5 shrink-0">
+                <div
+                  className="size-12 rounded-full flex items-center justify-center text-[15px] font-bold font-display relative"
+                  style={{
+                    backgroundColor: isDark ? '#1E2330' : '#E8EBF0',
+                    color: isDark ? '#2DDAB0' : '#1AAF8B',
+                    boxShadow: `0 0 0 2px ${isDark ? 'rgba(45,218,176,0.35)' : 'rgba(26,175,139,0.35)'}`,
+                  }}
+                >
+                  {hero.nombre_usuario[0]?.toUpperCase()}
+                  <Flame className="absolute -bottom-1 -right-1 size-3.5" style={{ color: '#FF6B35' }} />
                 </div>
-                <span className="mt-2 text-xs font-medium text-slate-700">{hero.nombre_usuario}</span>
+                <span className="text-[10px] font-sans" style={{ color: isDark ? '#5A6075' : '#8C9099' }}>
+                  {hero.nombre_usuario.split(' ')[0]}
+                </span>
               </div>
             ))}
           </div>
         </div>
       )}
 
-      {/* FEED DE ACTIVIDADES */}
+      {/* Activity feed */}
       {activityDates.length === 0 ? (
         <EmptyState
           Icon={Newspaper}
-          title="Sin Actividad Aún"
-          description="No hay actividades recientes para mostrar."
+          title="Sin actividad aún"
+          description="Las actividades de la comunidad aparecerán aquí."
         />
       ) : (
-        activityDates.map((date) => (
-          <div key={date} className="space-y-4">
-            <div className="sticky top-[72px] z-10 border-b border-slate-200/80 bg-white/90 pb-2 pt-3 backdrop-blur">
-              <h2 className="text-xs font-bold uppercase tracking-wider text-slate-400">{formatDateHeader(date)}</h2>
-            </div>
-            {(groupedActivities[date] as Record<string, unknown>[]).map((act) => (
-              <ActivityCard
+        activityDates.map(date => (
+          <div key={date} className="flex flex-col gap-3">
+            {/* Date separator */}
+            <span
+              className="text-[11px] font-bold tracking-[1.5px] font-sans uppercase"
+              style={{ color: dateClr }}
+            >
+              {formatDateHeader(date)}
+            </span>
+            {(groupedActivities[date] as Record<string, unknown>[]).map(act => (
+              <ActivityItem
                 key={String(act['id'] ?? Math.random())}
-                activity={act}
-                initialLikesCount={Number(act['likes_count'] as unknown) || 0}
-                initialCommentsCount={Number(act['comentarios_count'] as unknown) || 0}
-                currentUserLiked={likedActivityIds.has(Number(act['id'] as unknown))}
+                act={act}
+                isDark={isDark}
+                currentUserLiked={likedActivityIds.has(Number(act['id']))}
                 currentUserId={currentUserId}
               />
             ))}

@@ -5,6 +5,9 @@ import path from "path";
 const nextConfig: NextConfig = {
   // Fija la raíz correcta del proyecto para evitar problemas con múltiples lockfiles
   outputFileTracingRoot: path.resolve(__dirname),
+  // Next.js 16 usa Turbopack por defecto; config vacía para silenciar el error
+  // cuando el plugin PWA inyecta configuración webpack
+  turbopack: {},
 };
 
 const withPWA = withPWAInit({

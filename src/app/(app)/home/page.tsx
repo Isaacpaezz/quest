@@ -1,0 +1,270 @@
+import { createClient } from '@/lib/supabase/server'
+import { redirect } from 'next/navigation'
+import { DashboardClient } from './_components/dashboard-client'
+import { getTodayInVenezuela } from '@/lib/utils'
+
+/**
+ * Página principal del Dashboard.
+ * Muestra la "Misión del Día" del usuario, que consiste en la lectura bíblica
+ * y el tiempo de oración asignados por el plan de lectura activo.
+ */
+export default async function DashboardPage() {
+  const supabase = await createClient()
+
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) {
+    redirect('/login')
+  }
+
+  // 1. Obtener la misión de hoy (capítulo y tiempo de oración)
+  const today = getTodayInVenezuela() // Formato YYYY-MM-DD en zona horaria de Venezuela
+
+  const { data: dailyMission } = await supabase
+    .from('planes_lectura')
+    .select(`
+      minutos_oracion_requeridos,
+      capitulos_diarios (
+        id,
+        referencia_capitulo
+      )
+    `)
+    .eq('estado', 'activo') // Usamos 'estado' en lugar de 'esta_activo'
+    .eq('capitulos_diarios.fecha_lectura', today)
+    .single()
+
+  // 2. Obtener el progreso del usuario para la misión de hoy
+  const { data: userProgress } = await supabase
+    .from('progreso_usuario')
+    .select('lectura_completada, oracion_completada, segundos_oracion_acumulados, lectura_completada_en, oracion_completada_en')
+    .eq('usuario_id', user.id)
+    .eq('fecha_progreso', today)
+    .single()
+
+  // 3. Obtener estadísticas de comunidad: quiénes leyeron HOY (zona Venezuela)
+  // Construimos rango ISO para el día en zona Venezuela y filtramos por `creado_en`.
+  const startOfDayIso = new Date(`${today}T00:00:00-04:00`).toISOString()
+  const endOfDayIso = new Date(`${today}T23:59:59.999-04:00`).toISOString()
+
+  const { data: readers } = await supabase
+    .from('actividad_comunidad')
+    .select('usuario_id, perfiles ( nombre_usuario ), creado_en')
+    .eq('tipo_actividad', 'lectura_completada')
+    .gte('creado_en', startOfDayIso)
+    .lte('creado_en', endOfDayIso)
+    .order('creado_en', { ascending: false })
+    .limit(500)
+
+  const { data: prayers } = await supabase
+    .from('actividad_comunidad')
+    .select('usuario_id, perfiles ( nombre_usuario ), creado_en')
+    .eq('tipo_actividad', 'oracion_completada')
+    .gte('creado_en', startOfDayIso)
+    .lte('creado_en', endOfDayIso)
+    .order('creado_en', { ascending: false })
+    .limit(500)
+
+  const readersArray = Array.isArray(readers) ? (readers as unknown[]) : []
+  const readerIds = Array.from(new Set(readersArray.map(r => (r as Record<string, unknown>)['usuario_id'] as string)))
+  const readersCount = readerIds.length
+  const firstReaderName = readersArray.length > 0
+    ? (Array.isArray((readersArray[0] as Record<string, unknown>)['perfiles'])
+      ? ((readersArray[0] as Record<string, unknown>)['perfiles'] as Record<string, unknown>[])[0]?.['nombre_usuario'] as string
+      : ((readersArray[0] as Record<string, unknown>)['perfiles'] as Record<string, unknown>)?.['nombre_usuario'] as string)
+    : null
+
+  const prayersArray = Array.isArray(prayers) ? (prayers as unknown[]) : []
+  const prayerIds = Array.from(new Set(prayersArray.map(r => (r as Record<string, unknown>)['usuario_id'] as string)))
+  const prayersCount = prayerIds.length
+  const firstPrayerName = prayersArray.length > 0
+    ? (Array.isArray((prayersArray[0] as Record<string, unknown>)['perfiles'])
+      ? ((prayersArray[0] as Record<string, unknown>)['perfiles'] as Record<string, unknown>[])[0]?.['nombre_usuario'] as string
+      : ((prayersArray[0] as Record<string, unknown>)['perfiles'] as Record<string, unknown>)?.['nombre_usuario'] as string)
+    : null
+
+  // 4. Calculate streak: count consecutive days with progress before today
+  let streakCount = 0
+  const { data: recentProgress } = await supabase
+    .from('progreso_usuario')
+    .select('fecha_progreso, lectura_completada, oracion_completada')
+    .eq('usuario_id', user.id)
+    .order('fecha_progreso', { ascending: false })
+    .limit(60)
+
+  if (recentProgress) {
+    for (let i = 0; i < recentProgress.length; i++) {
+      const prog = recentProgress[i]
+      if (prog.lectura_completada || prog.oracion_completada) {
+        streakCount++
+      } else {
+        break
+      }
+    }
+  }
+
+  // Update max_streak if current streak exceeds stored record
+  if (streakCount > 0) {
+    const { data: profile } = await supabase
+      .from('perfiles')
+      .select('max_streak')
+      .eq('id', user.id)
+      .single()
+
+    if (profile && streakCount > (profile.max_streak || 0)) {
+      await supabase
+        .from('perfiles')
+        .update({ max_streak: streakCount })
+        .eq('id', user.id)
+    }
+  }
+
+  // 5. Weekly progress: get Mon-Sun of current week
+  const todayDate = new Date(`${today}T12:00:00-04:00`)
+  const dayOfWeek = todayDate.getDay() // 0=Sun, 1=Mon...
+  const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek
+  const monday = new Date(todayDate)
+  monday.setDate(todayDate.getDate() + mondayOffset)
+  const sunday = new Date(monday)
+  sunday.setDate(monday.getDate() + 6)
+
+  const fmt = (d: Date) => d.toISOString().split('T')[0]
+  const mondayStr = fmt(monday)
+  const sundayStr = fmt(sunday)
+
+  const { data: weekProgress } = await supabase
+    .from('progreso_usuario')
+    .select('fecha_progreso, lectura_completada, oracion_completada')
+    .eq('usuario_id', user.id)
+    .gte('fecha_progreso', mondayStr)
+    .lte('fecha_progreso', sundayStr)
+
+  const DAYS_LABELS = ['L', 'M', 'M', 'J', 'V', 'S', 'D']
+  const weeklyProgressData = DAYS_LABELS.map((label, i) => {
+    const dayDate = new Date(monday)
+    dayDate.setDate(monday.getDate() + i)
+    const dateStr = fmt(dayDate)
+    const prog = weekProgress?.find(p => p.fecha_progreso === dateStr)
+    return {
+      day: label,
+      reading: prog?.lectura_completada ?? false,
+      prayer: prog?.oracion_completada ?? false,
+    }
+  })
+
+  // 6. Plan chapter counts (total + completed by this user)
+  let totalChapters = 0
+  let completedChapters = 0
+
+  const { data: planData } = await supabase
+    .from('planes_lectura')
+    .select('id')
+    .eq('estado', 'activo')
+    .single()
+
+  if (planData) {
+    // Total chapters in the plan
+    const { count: total } = await supabase
+      .from('capitulos_diarios')
+      .select('id', { count: 'exact', head: true })
+      .eq('plan_id', planData.id)
+
+    totalChapters = total ?? 0
+
+    // Get all chapter IDs for this plan
+    const { data: planChapters } = await supabase
+      .from('capitulos_diarios')
+      .select('id')
+      .eq('plan_id', planData.id)
+
+    if (planChapters && planChapters.length > 0) {
+      const { count: completed } = await supabase
+        .from('progreso_usuario')
+        .select('id', { count: 'exact', head: true })
+        .eq('usuario_id', user.id)
+        .eq('lectura_completada', true)
+        .in('capitulo_id', planChapters.map(c => c.id))
+
+      completedChapters = completed ?? 0
+    }
+  }
+
+  // 7. Fetch user retos for home section
+  const { data: userRetosData } = await supabase
+    .from('reto_participantes')
+    .select(`
+      usuario_id,
+      progreso,
+      completado,
+      estado,
+      retos:reto_id (
+        id,
+        titulo,
+        descripcion,
+        tipo,
+        criterio,
+        recompensa_xp,
+        fecha_inicio,
+        fecha_fin,
+        creador_id,
+        creador:creador_id (nombre_usuario),
+        reto_participantes (
+          usuario_id,
+          progreso,
+          completado,
+          estado
+        )
+      )
+    `)
+    .eq('usuario_id', user.id)
+
+  type RetoFromJoin = {
+    id: string
+    titulo: string
+    descripcion: string | null
+    tipo: string
+    criterio: { action?: string; count?: number } | null
+    recompensa_xp: number | null
+    fecha_inicio: string
+    fecha_fin: string
+    creador_id: string | null
+    creador: { nombre_usuario: string } | null
+    reto_participantes: {
+      usuario_id: string | null
+      progreso: number | null
+      completado: boolean | null
+      estado: string | null
+    }[]
+  }
+
+  const allRetos: RetoFromJoin[] = (userRetosData || [])
+    .map(r => r.retos as unknown as RetoFromJoin)
+    .filter(Boolean)
+
+  const pendientesRetos = allRetos.filter(r =>
+    r.reto_participantes.some(p => p.usuario_id === user.id && p.estado === 'pendiente')
+  )
+  const activosRetos = allRetos.filter(r =>
+    r.reto_participantes.some(p => p.usuario_id === user.id && p.estado === 'aceptado') &&
+    r.fecha_inicio <= today && r.fecha_fin >= today
+  )
+  const proximosRetos = allRetos.filter(r =>
+    r.reto_participantes.some(p => p.usuario_id === user.id && p.estado === 'aceptado') &&
+    r.fecha_inicio > today
+  )
+
+  return (
+    <DashboardClient
+      dailyMission={dailyMission}
+      userProgress={userProgress}
+      readingStats={{ count: readersCount, firstReaderName }}
+      prayerStats={{ count: prayersCount, firstPrayerName }}
+      streak={streakCount}
+      weeklyProgress={weeklyProgressData}
+      totalChapters={totalChapters}
+      completedChapters={completedChapters}
+      userId={user.id}
+      pendientesRetos={pendientesRetos}
+      activosRetos={activosRetos}
+      proximosRetos={proximosRetos}
+    />
+  )
+}

@@ -3,72 +3,119 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* ─── Quest Design System — extracted from Pencil mockups ─── */
 :root {
-  /* Light mode base - will be fully redefined in Phase 2 */
-  --background: 210 40% 98%;
-  --foreground: 222 47% 11%;
+  /* Backgrounds */
+  --background: 230 20% 93%;
+  /* #ECEEF2 */
+  --foreground: 228 28% 8%;
+  /* #111318 */
+  --bg-surface: 0 0% 100%;
+  /* #FFFFFF */
+  --bg-glass: 0 0% 100% / 0.91;
+  /* #FFFFFFE8 */
 
+  /* Cards */
   --card: 0 0% 100%;
-  --card-foreground: 222 47% 11%;
+  --card-foreground: 228 28% 8%;
 
+  /* Popover */
   --popover: 0 0% 100%;
-  --popover-foreground: 222 47% 11%;
+  --popover-foreground: 228 28% 8%;
 
-  --primary: 243 75% 59%;
-  --primary-foreground: 210 40% 98%;
+  /* Primary — teal accent from Pencil */
+  --primary: 163 36% 39%;
+  /* #1AAF8B */
+  --primary-foreground: 0 0% 100%;
 
-  --secondary: 210 40% 96.1%;
-  --secondary-foreground: 222 47% 11%;
+  /* Secondary */
+  --secondary: 220 16% 95%;
+  --secondary-foreground: 228 28% 8%;
 
-  --muted: 210 40% 96.1%;
-  --muted-foreground: 215 16% 47%;
+  /* Muted */
+  --muted: 220 16% 95%;
+  --muted-foreground: 225 5% 55%;
+  /* #8C9099 */
 
-  --accent: 210 40% 96.1%;
-  --accent-foreground: 222 47% 11%;
+  /* Accent */
+  --accent: 220 16% 95%;
+  --accent-foreground: 228 28% 8%;
 
-  --destructive: 346 87% 43%;
-  --destructive-foreground: 210 40% 98%;
+  /* Destructive */
+  --destructive: 0 100% 71%;
+  /* #FF6B6B */
+  --destructive-foreground: 0 0% 100%;
 
-  --border: 214 32% 91%;
-  --input: 214 32% 91%;
-  --ring: 243 75% 59%;
+  /* Borders */
+  --border: 220 8% 90%;
+  --input: 220 8% 90%;
+  --ring: 163 36% 39%;
 
   --radius: 1rem;
+
+  /* Quest custom tokens */
+  --quest-accent-teal: #1AAF8B;
+  --quest-accent-warm: #FF6B35;
+  --quest-text-muted: #8C9099;
+  --quest-text-secondary: #6B7080;
+  --quest-shadow-card: 0 4px 40px #11131810;
+  --quest-glass-border: #00000008;
 }
 
 .dark {
-  /* Dark mode oklch - will be fully redefined in Phase 2 */
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  /* Backgrounds — deep navy from Pencil */
+  --background: 225 27% 5%;
+  /* #080A10 */
+  --foreground: 0 0% 100%;
+  /* #FFFFFF */
+  --bg-surface: 224 26% 11%;
+  /* #151925 */
+  --bg-glass: 224 26% 11% / 0.44;
+  /* #15192570 */
+
+  /* Cards */
+  --card: 224 26% 11%;
+  --card-foreground: 0 0% 100%;
+
+  /* Popover */
+  --popover: 224 26% 11%;
+  --popover-foreground: 0 0% 100%;
+
+  /* Primary — brighter teal in dark mode */
+  --primary: 164 67% 52%;
+  /* #2DDAB0 */
+  --primary-foreground: 225 27% 5%;
+
+  /* Secondary */
+  --secondary: 224 26% 11%;
+  --secondary-foreground: 0 0% 100%;
+
+  /* Muted */
+  --muted: 224 26% 11%;
+  --muted-foreground: 222 12% 41%;
+  /* #5A6075 */
+
+  /* Accent */
+  --accent: 224 26% 11%;
+  --accent-foreground: 0 0% 100%;
+
+  /* Destructive */
+  --destructive: 0 100% 71%;
+  --destructive-foreground: 0 0% 100%;
+
+  /* Borders */
+  --border: 0 0% 100% / 0.05;
+  /* #FFFFFF0D */
+  --input: 0 0% 100% / 0.08;
+  --ring: 164 67% 52%;
+
+  /* Quest custom tokens */
+  --quest-accent-teal: #2DDAB0;
+  --quest-accent-warm: #FF6B35;
+  --quest-text-muted: #5A6075;
+  --quest-text-secondary: #7A8090;
+  --quest-shadow-card: 0 2px 16px #00000020;
+  --quest-glass-border: #FFFFFF0D;
 }
 
 @theme inline {
@@ -94,27 +141,17 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
-  --color-chart-1: var(--chart-1);
-  --color-chart-2: var(--chart-2);
-  --color-chart-3: var(--chart-3);
-  --color-chart-4: var(--chart-4);
-  --color-chart-5: var(--chart-5);
-  --color-sidebar: var(--sidebar);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-ring: var(--sidebar-ring);
+  --font-display: var(--font-sora), 'Inter', system-ui, sans-serif;
 }
 
 @layer base {
   * {
     @apply border-border outline-ring/50;
   }
+
   body {
     @apply bg-background text-foreground;
+    font-family: var(--font-inter), 'Inter', system-ui, sans-serif;
   }
 }
 
@@ -122,7 +159,20 @@
   .pb-safe {
     padding-bottom: env(safe-area-inset-bottom);
   }
+
   .pt-safe {
     padding-top: env(safe-area-inset-top);
+  }
+
+  .font-display {
+    font-family: var(--font-display);
+  }
+
+  .quest-bg {
+    background: radial-gradient(120% 140% at 50% 30%, #FFFFFF 0%, #F5F6F8 45%, #ECEEF2 100%);
+  }
+
+  .dark .quest-bg {
+    background: radial-gradient(120% 140% at 50% 30%, #1A1E2A 0%, #10131C 45%, #080A10 100%);
   }
 }

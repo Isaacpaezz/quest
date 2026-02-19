@@ -101,12 +101,8 @@ export default async function FeedPage() {
 
   return (
     <div className="container mx-auto p-4 sm:p-8">
-      <header className="mb-8">
-        <h1 className="text-3xl font-bold text-foreground">Feed</h1>
-        <p className="text-muted-foreground">Nuestra comunidad en tiempo real.</p>
-      </header>
-      <FeedClient 
-        groupedActivities={groupedActivities} 
+      <FeedClient
+        groupedActivities={groupedActivities}
         likedActivityIds={likedActivityIds}
         currentUserId={user.id}
         todaysHeroes={todaysHeroes}

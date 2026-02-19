@@ -1,8 +1,9 @@
 'use client'
 
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { useTheme } from 'next-themes'
 import { toast } from 'sonner'
-import { Play } from 'lucide-react'
+import { Play, Pause } from 'lucide-react'
 import { actualizarProgresoOracionAction } from '../actions'
 
 type PrayerTimerProps = {
@@ -21,6 +22,8 @@ const formatTiempo = (segundos: number) => {
 
 export function PrayerTimer({ minutosRequeridos, segundosIniciales, capituloId, oracionCompletada }: PrayerTimerProps) {
   const totalSegundosRequeridos = Math.max(0, minutosRequeridos * 60)
+  const { resolvedTheme } = useTheme()
+  const isDark = resolvedTheme === 'dark'
 
   const [segundosBase, setSegundosBase] = useState<number>(segundosIniciales)
   const baseRef = useRef<number>(segundosIniciales)
@@ -113,22 +116,36 @@ export function PrayerTimer({ minutosRequeridos, segundosIniciales, capituloId, 
   const segundosMostrados = Math.min(calcularSegundosActuales(), totalSegundosRequeridos)
   const tiempoFormateado = formatTiempo(segundosMostrados)
   const tiempoTotalFormateado = formatTiempo(totalSegundosRequeridos)
+  const progress = totalSegundosRequeridos > 0 ? (segundosMostrados / totalSegundosRequeridos) * 100 : 0
+
+  const textPrimary = isDark ? 'text-white' : 'text-[#111318]'
+  const textSecondary = isDark ? 'text-[#5A6075]' : 'text-[#8C9099]'
 
   return (
     <div className="space-y-3">
       {/* Time Display */}
-      <div className="font-display text-2xl font-bold tabular-nums text-slate-900">
+      <div className={`font-sora text-2xl font-bold tabular-nums ${textPrimary}`}>
         {tiempoFormateado}
-        <span className="text-base font-normal text-slate-400"> / {tiempoTotalFormateado}</span>
+        <span className={`text-base font-normal ${textSecondary}`}> / {tiempoTotalFormateado}</span>
+      </div>
+
+      {/* Progress bar */}
+      <div className="h-1 w-full overflow-hidden rounded-full" style={{ background: isDark ? '#1E2330' : '#E8EBF0' }}>
+        <div className="h-full rounded-full transition-all" style={{ width: `${progress}%`, background: '#2DDAB0' }} />
       </div>
 
       {/* Control Button */}
       {!estaCompleto && (
         <button
           onClick={handleToggle}
-          className="flex h-[50px] w-full items-center justify-center gap-2 rounded-xl bg-[#5B5FEF] font-medium text-white shadow-sm transition-all active:scale-95"
+          className="flex h-12 w-full items-center justify-center gap-2 rounded-[14px] font-semibold transition-all active:scale-95"
+          style={{
+            background: estaActivo ? (isDark ? '#FF6B35' : '#FF6B35') : '#2DDAB0',
+            color: estaActivo ? '#FFFFFF' : '#111318',
+            boxShadow: estaActivo ? '0 0 24px #FF6B3540' : '0 0 32px #E5FF0040',
+          }}
         >
-          <Play className="h-5 w-5" fill="white" />
+          {estaActivo ? <Pause className="h-5 w-5" fill="white" /> : <Play className="h-5 w-5" fill="#111318" />}
           {estaActivo ? 'Pausar' : 'Iniciar'}
         </button>
       )}

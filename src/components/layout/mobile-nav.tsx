@@ -2,14 +2,14 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Home, Users, Activity, Clock, User } from 'lucide-react'
+import { Home, Users, Activity, Trophy, User } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const navLinks = [
-  { href: '/sustento-diario', label: 'Sustento', icon: Home },
-  { href: '/comunidad', label: 'Comunidad', icon: Users },
+  { href: '/home', label: 'Home', icon: Home },
+  { href: '/community', label: 'Comunidad', icon: Users },
   { href: '/feed', label: 'Feed', icon: Activity, isFab: true },
-  { href: '/historial', label: 'Historial', icon: Clock },
+  { href: '/challenges', label: 'Retos', icon: Trophy },
   { href: '/perfil', label: 'Perfil', icon: User },
 ]
 
@@ -42,13 +42,13 @@ export function MobileNav() {
                 href={href}
                 className="flex h-full flex-col items-center justify-center gap-0.5 pb-1 transition-colors"
               >
-                <Icon 
+                <Icon
                   className={cn(
                     "h-6 w-6 stroke-[1.5] transition-all",
                     isActive ? "text-indigo-600" : "text-slate-400"
-                  )} 
+                  )}
                 />
-                <span 
+                <span
                   className={cn(
                     "text-[10px] font-medium transition-colors",
                     isActive ? "text-indigo-600" : "text-slate-400"
