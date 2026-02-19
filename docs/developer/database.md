@@ -40,7 +40,7 @@ Grupos de la aplicación. Cada grupo tiene su propia configuración y miembros.
 | `created_at` | TIMESTAMPTZ | `now()` | — |
 
 ### `miembros_grupo`
-Relación N:N entre usuarios y grupos.
+Relación N:N entre usuarios y grupos. Almacena XP y nivel **por grupo**.
 
 | Columna | Tipo | Default | Descripción |
 |---------|------|---------|-------------|
@@ -48,6 +48,8 @@ Relación N:N entre usuarios y grupos.
 | `grupo_id` | UUID (FK) | — | → `grupos(id)` |
 | `usuario_id` | UUID (FK) | — | → `auth.users(id)` |
 | `rol` | TEXT | `'miembro'` | `admin` o `miembro` |
+| `xp` | INTEGER | `0` | XP acumulado en este grupo |
+| `nivel` | INTEGER | `1` | Nivel calculado del XP del grupo |
 | `unido_en` | TIMESTAMPTZ | `now()` | — |
 
 ### `invitaciones_grupo`
@@ -239,9 +241,9 @@ Configuración clave-valor para el sistema, ahora scoped por grupo.
 
 | Función | Argumentos | Retorna | Descripción |
 |---------|-----------|---------|-------------|
-| `otorgar_xp` | `usuario_id`, `cantidad`, `motivo` | `{nuevo_xp, nuevo_nivel, subio_nivel}` | Otorga XP y auto-levela |
+| `otorgar_xp` | `usuario_id`, `cantidad`, `motivo`, `referencia_id?`, `grupo_id?` | `{nuevo_xp, nuevo_nivel, subio_nivel}` | Otorga XP global + grupo (si `grupo_id`). Auto-levela ambos |
 | `calcular_nivel` | `xp` | `INTEGER` | Calcula nivel según XP |
-| `canjear_puntos` | `usuario_id`, `puntos`, `tasa` | `{monto_descontado, xp_restante}` | Canjea XP → reducir deuda |
+| `canjear_puntos` | `usuario_id`, `puntos`, `tasa`, `grupo_id?` | `{monto_descontado, xp_restante}` | Canjea XP → reducir deuda. Descuenta de grupo + global |
 | `crear_plan_con_capitulos` | `nombre`, `fechas`, `capitulos` | void | Crea plan de lectura |
 | `programar_plan_siguiente` | `plan_id` | void | Programa siguiente plan |
 | `transicion_automatica_de_plan` | — | void | Transiciona planes activos |

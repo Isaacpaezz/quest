@@ -9,7 +9,7 @@ export default async function DeudasPage() {
 
     // Obtener datos en paralelo
     const [perfilRes, penalizacionesRes, canjeosRes, configRes, progressRes] = await Promise.all([
-        supabase.from('perfiles').select('id, nombre_usuario, xp, nivel, max_streak').eq('id', user.id).single(),
+        supabase.from('perfiles').select('id, nombre_usuario, xp, nivel, max_streak, grupo_activo_id').eq('id', user.id).single(),
         supabase.from('penalizaciones').select('id, usuario_id, fecha_incumplimiento, monto, monto_pagado, estado')
             .eq('usuario_id', user.id)
             .eq('estado', 'pendiente')
@@ -49,6 +49,20 @@ export default async function DeudasPage() {
         configMap[c.clave] = c.valor
     }
 
+    // Override XP with group-specific if user has active group
+    let perfilData = perfilRes.data
+    if (perfilData?.grupo_activo_id) {
+        const { data: miembroXp } = await supabase
+            .from('miembros_grupo')
+            .select('xp, nivel')
+            .eq('usuario_id', user.id)
+            .eq('grupo_id', perfilData.grupo_activo_id)
+            .single()
+        if (miembroXp) {
+            perfilData = { ...perfilData, xp: miembroXp.xp, nivel: miembroXp.nivel }
+        }
+    }
+
     return (
         <div>
             <header className="mb-6">
@@ -56,7 +70,7 @@ export default async function DeudasPage() {
                 <p className="text-sm text-slate-500">Gestiona penalizaciones y canjea puntos.</p>
             </header>
             <DeudasClient
-                perfil={perfilRes.data}
+                perfil={perfilData}
                 penalizaciones={penalizacionesRes.data || []}
                 canjeos={canjeosRes.data || []}
                 tasaCanjeo={Number(configMap['tasa_canjeo'] || 100)}

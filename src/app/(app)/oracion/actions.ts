@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { getToday } from '@/lib/utils'
 import { getTimezone } from '@/lib/grupo-helpers'
+import { grantXp } from '@/lib/xp-helpers'
 import { revalidatePath } from 'next/cache'
 
 type OracionInput = {
@@ -33,27 +34,17 @@ export async function guardarProgresoOracionAction(input: OracionInput) {
 
   if (error) return { error: error.message }
 
-  // Award XP if prayer just completed
+  // Award XP if prayer just completed — uses RPC with per-group support
   if (input.oracionCompletada) {
     try {
       const { data: perfil } = await supabase
         .from('perfiles')
-        .select('xp')
+        .select('grupo_activo_id')
         .eq('id', user.id)
         .single()
 
-      const currentXp = perfil?.xp ?? 0
-      await supabase
-        .from('perfiles')
-        .update({ xp: currentXp + 50 })
-        .eq('id', user.id)
-
-      // Log community activity
-      await supabase.from('actividad_comunidad').insert({
-        usuario_id: user.id,
-        tipo_actividad: 'oracion_completada',
-        descripcion: `Completó su oración diaria`,
-      })
+      const grupoId = perfil?.grupo_activo_id ?? undefined
+      await grantXp(supabase, user.id, 50, 'oracion_completada', String(input.capituloId), grupoId)
     } catch (err) {
       console.error('Error otorgando XP por oración:', err)
     }

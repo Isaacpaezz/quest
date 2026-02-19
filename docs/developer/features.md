@@ -91,7 +91,7 @@ for (const prog of recentProgress) {
 - `src/app/(app)/community/_components/`
 
 ### Funcionalidad
-- Leaderboard por XP
+- Leaderboard por XP **del grupo activo** (lee de `miembros_grupo.xp`)
 - Rankings por racha (streak) actual y máxima (all-time)
 - Avatar + nombre + nivel + XP de cada usuario
 - Posición destacada del usuario actual

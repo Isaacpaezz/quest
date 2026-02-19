@@ -13,7 +13,7 @@ export default async function XpHistoryPage() {
 
     const [profileRes, historyRes] = await Promise.all([
         supabase.from('perfiles')
-            .select('xp, nivel')
+            .select('xp, nivel, grupo_activo_id')
             .eq('id', user.id)
             .single(),
         supabase.from('historial_xp')
@@ -23,10 +23,26 @@ export default async function XpHistoryPage() {
             .limit(100),
     ])
 
+    // Override with group XP if user has active group
+    let xp = profileRes.data?.xp ?? 0
+    let nivel = profileRes.data?.nivel ?? 1
+    if (profileRes.data?.grupo_activo_id) {
+        const { data: miembro } = await supabase
+            .from('miembros_grupo')
+            .select('xp, nivel')
+            .eq('usuario_id', user.id)
+            .eq('grupo_id', profileRes.data.grupo_activo_id)
+            .single()
+        if (miembro) {
+            xp = miembro.xp
+            nivel = miembro.nivel
+        }
+    }
+
     return (
         <XpHistoryClient
-            xp={profileRes.data?.xp ?? 0}
-            nivel={profileRes.data?.nivel ?? 1}
+            xp={xp}
+            nivel={nivel}
             history={historyRes.data ?? []}
         />
     )

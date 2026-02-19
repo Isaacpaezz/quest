@@ -60,7 +60,8 @@ export async function grantXp(
   userId: string,
   cantidad: number,
   motivo: string,
-  referenciaId?: string
+  referenciaId?: string,
+  grupoId?: string
 ): Promise<XpResult | null> {
   if (cantidad <= 0) return null
 
@@ -69,7 +70,8 @@ export async function grantXp(
       p_usuario_id: userId,
       p_cantidad: cantidad,
       p_motivo: motivo,
-      p_referencia_id: referenciaId ?? null,
+      p_referencia_id: referenciaId,
+      p_grupo_id: grupoId,
     })
 
     if (error) {

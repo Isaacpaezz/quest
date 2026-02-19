@@ -71,8 +71,22 @@ export function MenuPanel({ open, onClose }: MenuPanelProps) {
                 .select('nombre_usuario, xp, nivel, grupo_activo_id')
                 .eq('id', user.id)
                 .single()
-                .then(({ data }) => {
-                    if (data) setUserInfo(data as UserInfo)
+                .then(async ({ data }) => {
+                    if (!data) return
+                    // Override with group XP if user has active group
+                    if (data.grupo_activo_id) {
+                        const { data: miembro } = await supabase
+                            .from('miembros_grupo')
+                            .select('xp, nivel')
+                            .eq('usuario_id', user.id)
+                            .eq('grupo_id', data.grupo_activo_id)
+                            .single()
+                        if (miembro) {
+                            setUserInfo({ ...data, xp: miembro.xp, nivel: miembro.nivel } as UserInfo)
+                            return
+                        }
+                    }
+                    setUserInfo(data as UserInfo)
                 })
 
             // User's groups

@@ -287,6 +287,7 @@ export type Database = {
         Row: {
           cantidad: number
           created_at: string | null
+          grupo_id: string | null
           id: string
           motivo: string
           referencia_id: string | null
@@ -295,6 +296,7 @@ export type Database = {
         Insert: {
           cantidad: number
           created_at?: string | null
+          grupo_id?: string | null
           id?: string
           motivo: string
           referencia_id?: string | null
@@ -303,6 +305,7 @@ export type Database = {
         Update: {
           cantidad?: number
           created_at?: string | null
+          grupo_id?: string | null
           id?: string
           motivo?: string
           referencia_id?: string | null
@@ -352,23 +355,29 @@ export type Database = {
         Row: {
           grupo_id: string | null
           id: string
+          nivel: number
           rol: string | null
           unido_en: string | null
           usuario_id: string | null
+          xp: number
         }
         Insert: {
           grupo_id?: string | null
           id?: string
+          nivel?: number
           rol?: string | null
           unido_en?: string | null
           usuario_id?: string | null
+          xp?: number
         }
         Update: {
           grupo_id?: string | null
           id?: string
+          nivel?: number
           rol?: string | null
           unido_en?: string | null
           usuario_id?: string | null
+          xp?: number
         }
         Relationships: [
           {
@@ -781,7 +790,7 @@ export type Database = {
       }
       calcular_nivel: { Args: { p_xp: number }; Returns: number }
       canjear_puntos: {
-        Args: { p_puntos: number; p_tasa_canjeo?: number; p_usuario_id: string }
+        Args: { p_grupo_id?: string; p_puntos: number; p_tasa_canjeo?: number; p_usuario_id: string }
         Returns: {
           monto_descontado: number
           xp_restante: number
@@ -812,32 +821,20 @@ export type Database = {
         }[]
       }
       nanoid: { Args: { size?: number }; Returns: string }
-      otorgar_xp:
-        | {
-            Args: {
-              p_cantidad: number
-              p_motivo?: string
-              p_referencia_id?: string
-              p_usuario_id: string
-            }
-            Returns: {
-              nuevo_nivel: number
-              nuevo_xp: number
-              subio_nivel: boolean
-            }[]
-          }
-        | {
-            Args: {
-              p_cantidad: number
-              p_motivo?: string
-              p_usuario_id: string
-            }
-            Returns: {
-              nuevo_nivel: number
-              nuevo_xp: number
-              subio_nivel: boolean
-            }[]
-          }
+      otorgar_xp: {
+        Args: {
+          p_cantidad: number
+          p_grupo_id?: string
+          p_motivo?: string
+          p_referencia_id?: string
+          p_usuario_id: string
+        }
+        Returns: {
+          nuevo_nivel: number
+          nuevo_xp: number
+          subio_nivel: boolean
+        }[]
+      }
       programar_plan_siguiente: {
         Args: { plan_id_a_programar: number }
         Returns: undefined

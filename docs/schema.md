@@ -92,12 +92,14 @@ Grupos de la aplicación.
 
 ### `miembros_grupo`
 
-Relación N:N entre usuarios y grupos.
+Relación N:N entre usuarios y grupos. Almacena XP y nivel **por grupo**.
 
 - `id` (uuid, PK): Identificador único.
 - `grupo_id` (uuid, FK): Referencia a `grupos`.
 - `usuario_id` (uuid, FK): Referencia a `perfiles`.
 - `rol` (text): `admin` o `miembro`.
+- `xp` (integer, default 0): XP acumulado en este grupo.
+- `nivel` (integer, default 1): Nivel calculado del XP del grupo.
 - `unido_en` (timestamptz): Fecha de unión.
 
 ### `configuracion_app`

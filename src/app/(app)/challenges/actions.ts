@@ -301,7 +301,9 @@ export async function completarRetoAction(retoId: string): Promise<ActionState> 
   }
 
   const motivo = reto.tipo === 'grupal' ? 'reto_grupal_completado' : 'reto_personal_completado'
-  const result = await grantXp(supabase, user.id, xpAmount, motivo, retoId)
+  const { data: perfilReto } = await supabase.from('perfiles').select('grupo_activo_id').eq('id', user.id).single()
+  const grupoId = perfilReto?.grupo_activo_id ?? undefined
+  const result = await grantXp(supabase, user.id, xpAmount, motivo, retoId, grupoId)
 
   revalidatePath('/challenges')
   revalidatePath(`/challenges/${retoId}`)

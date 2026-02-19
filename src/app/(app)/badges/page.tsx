@@ -11,12 +11,26 @@ export default async function BadgesPage() {
     const [badgesRes, userBadgesRes, perfilRes, streaksRes] = await Promise.all([
         supabase.from('badges').select('id, nombre, descripcion, icono, criterio').order('nombre'),
         supabase.from('usuario_badges').select('badge_id, desbloqueado_en').eq('usuario_id', user.id),
-        supabase.from('perfiles').select('id, nombre_usuario, xp, nivel, max_streak').eq('id', user.id).single(),
+        supabase.from('perfiles').select('id, nombre_usuario, xp, nivel, max_streak, grupo_activo_id').eq('id', user.id).single(),
         supabase.rpc('get_all_user_streaks'),
     ])
 
     const maxStreak = perfilRes.data?.max_streak || 0
     const currentStreak = (streaksRes.data || []).find((s: { user_id: string }) => s.user_id === user.id)?.streak_count || 0
+
+    // Override with group XP if user has active group
+    let perfilData = perfilRes.data
+    if (perfilData?.grupo_activo_id) {
+        const { data: miembro } = await supabase
+            .from('miembros_grupo')
+            .select('xp, nivel')
+            .eq('usuario_id', user.id)
+            .eq('grupo_id', perfilData.grupo_activo_id)
+            .single()
+        if (miembro) {
+            perfilData = { ...perfilData, xp: miembro.xp, nivel: miembro.nivel }
+        }
+    }
 
     // Auto-award streak badges based on max_streak
     const allBadges = badgesRes.data || []
@@ -54,7 +68,7 @@ export default async function BadgesPage() {
         <div>
             <BadgesClient
                 badges={badgesConEstado}
-                perfil={perfilRes.data}
+                perfil={perfilData}
                 maxStreak={maxStreak}
                 currentStreak={currentStreak}
             />

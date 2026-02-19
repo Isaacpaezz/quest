@@ -25,12 +25,23 @@ export default async function CommunityPage() {
   }
 
   // Obtener todos los datos en paralelo, incluyendo rachas — filtrado por grupo
-  const [profilesRes, progressTodayRes, penaltiesRes, streaksRes] = await Promise.all([
+  const [profilesRes, miembrosXpRes, progressTodayRes, penaltiesRes, streaksRes] = await Promise.all([
     supabase.from('perfiles').select('id, nombre_usuario, xp, nivel, max_streak, rol, creado_en, grupo_activo_id').in('id', miembros),
+    grupoId
+      ? supabase.from('miembros_grupo').select('usuario_id, xp, nivel').eq('grupo_id', grupoId)
+      : Promise.resolve({ data: null }),
     supabase.from('progreso_usuario').select('usuario_id, fecha_progreso, lectura_completada, oracion_completada, segundos_oracion_acumulados').eq('fecha_progreso', today),
     supabase.from('penalizaciones').select('id, usuario_id, fecha_incumplimiento, monto, monto_pagado, estado').eq('estado', 'pendiente'),
     supabase.rpc('get_all_user_streaks'), // Obtener rachas de todos los usuarios
   ])
+
+  // Build a map of group XP per user (use group XP for rankings, not global)
+  const miembrosXpMap = new Map<string, { xp: number; nivel: number }>()
+  if (miembrosXpRes?.data) {
+    for (const m of miembrosXpRes.data) {
+      if (m.usuario_id) miembrosXpMap.set(m.usuario_id, { xp: m.xp, nivel: m.nivel })
+    }
+  }
 
   const pendingPenalties = penaltiesRes.data as Tables<'penalizaciones'>[] || []
   const streaksData = streaksRes.data || []
@@ -66,6 +77,9 @@ export default async function CommunityPage() {
 
     return {
       ...profile,
+      // Override with group-specific XP for rankings (fall back to global if no group data)
+      xp: miembrosXpMap.get(profile.id)?.xp ?? profile.xp,
+      nivel: miembrosXpMap.get(profile.id)?.nivel ?? profile.nivel,
       progresoHoy: {
         lectura_completada: todayProgress?.lectura_completada || false,
         oracion_completada: todayProgress?.oracion_completada || false,

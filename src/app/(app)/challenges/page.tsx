@@ -23,10 +23,24 @@ export default async function RetosPage() {
             .order('created_at', { ascending: false }),
         supabase
             .from('perfiles')
-            .select('id, nombre_usuario, xp, nivel')
+            .select('id, nombre_usuario, xp, nivel, grupo_activo_id')
             .eq('id', user.id)
             .single(),
     ])
+
+    // Override with group XP if user has active group
+    let perfilData = perfilRes.data
+    if (perfilData?.grupo_activo_id) {
+        const { data: miembro } = await supabase
+            .from('miembros_grupo')
+            .select('xp, nivel')
+            .eq('usuario_id', user.id)
+            .eq('grupo_id', perfilData.grupo_activo_id)
+            .single()
+        if (miembro) {
+            perfilData = { ...perfilData, xp: miembro.xp, nivel: miembro.nivel }
+        }
+    }
 
     // Only show retos where user is a participant
     const userRetos = (retosRes.data || []).filter(r =>
@@ -37,7 +51,7 @@ export default async function RetosPage() {
         <RetosClient
             retos={userRetos}
             userId={user.id}
-            perfil={perfilRes.data}
+            perfil={perfilData}
         />
     )
 }

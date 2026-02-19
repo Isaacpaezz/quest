@@ -175,6 +175,7 @@ Quest permite tener múltiples grupos. Cada grupo tiene sus propios rankings, fe
 - Puedes pertenecer a varios grupos a la vez
 - Cada grupo puede tener su propia configuración de penalizaciones
 - Cada grupo tiene su propia **zona horaria** que determina cuándo cambia el día
+- Tu **XP y nivel** son por grupo — al cambiar de grupo verás tu progreso en ese grupo
 - Los rankings y el feed solo muestran a los miembros de tu grupo activo
 
 ---

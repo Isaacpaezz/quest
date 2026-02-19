@@ -4,6 +4,24 @@ Todas las versiones y cambios notables del proyecto.
 
 ---
 
+## [0.14.0] - 2026-02-19
+
+### ✨ Nuevo
+- **XP por grupo** — El XP y nivel ahora son por grupo, con un acumulador global en `perfiles.xp`
+- `miembros_grupo`: nuevas columnas `xp` (default 0) y `nivel` (default 1)
+- `historial_xp`: nueva columna `grupo_id` para tracking por grupo
+- Rankings (`/community`) usan XP del grupo activo
+- Deudas y canjeos descuentan XP del grupo activo
+
+### 🔧 Cambios
+- `otorgar_xp()`: nuevo param `p_grupo_id` — actualiza XP global + grupo
+- `canjear_puntos()`: nuevo param `p_grupo_id` — descuenta de grupo + global
+- `grantXp()`: acepta `grupoId` opcional
+- Todas las páginas (perfil, badges, retos, deudas, menu) leen XP de `miembros_grupo`
+- `oracion/actions.ts`: refactorizado de update manual a `grantXp()`
+
+---
+
 ## [0.13.0] - 2026-02-19
 
 ### ✨ Nuevo

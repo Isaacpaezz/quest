@@ -46,7 +46,7 @@ export default async function ProfilePage() {
 
   // Obtener todos los datos necesarios en paralelo
   const [profileRes, progressHistoryRes, totalMissionsRes, xpHistoryRes] = await Promise.all([
-    supabase.from('perfiles').select('id, nombre_usuario, xp, nivel, max_streak, rol, creado_en').eq('id', user.id).single(),
+    supabase.from('perfiles').select('id, nombre_usuario, xp, nivel, max_streak, rol, creado_en, grupo_activo_id').eq('id', user.id).single(),
     supabase.from('progreso_usuario').select('fecha_progreso, segundos_oracion_acumulados')
       .eq('usuario_id', user.id)
       .eq('lectura_completada', true)
@@ -63,7 +63,19 @@ export default async function ProfilePage() {
       .limit(20),
   ]);
 
-  const profile = profileRes.data;
+  let profile = profileRes.data;
+  // Override with group-specific XP if user has active group
+  if (profile?.grupo_activo_id) {
+    const { data: miembro } = await supabase
+      .from('miembros_grupo')
+      .select('xp, nivel')
+      .eq('usuario_id', user.id)
+      .eq('grupo_id', profile.grupo_activo_id)
+      .single()
+    if (miembro) {
+      profile = { ...profile, xp: miembro.xp, nivel: miembro.nivel }
+    }
+  }
   const progressHistory = progressHistoryRes.data || [];
   const totalMissions = totalMissionsRes.count || 0;
   const xpHistory = xpHistoryRes.data || [];

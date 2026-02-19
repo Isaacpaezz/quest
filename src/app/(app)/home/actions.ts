@@ -145,11 +145,13 @@ export async function registrarProgresoLecturaAction(prevState: ActionState, for
 
   // ─── XP System ─────────────────────────────────────────────────────────────
   const config = await getXpConfig(supabase, user.id)
+  const { data: perfilXp } = await supabase.from('perfiles').select('grupo_activo_id').eq('id', user.id).single()
+  const grupoId = perfilXp?.grupo_activo_id ?? undefined
   let totalXp = 0
   let lastResult: { nuevo_xp: number; nuevo_nivel: number; subio_nivel: boolean } | null = null
 
   // 1. XP por lectura completada
-  lastResult = await grantXp(supabase, user.id, config.lectura_completada, 'lectura_completada', String(capituloId))
+  lastResult = await grantXp(supabase, user.id, config.lectura_completada, 'lectura_completada', String(capituloId), grupoId)
   totalXp += config.lectura_completada
 
   // 2. Streak bonus
@@ -157,7 +159,7 @@ export async function registrarProgresoLecturaAction(prevState: ActionState, for
   const userStreak = streakData?.find((s: { user_id: string; streak_count: number }) => s.user_id === user.id)?.streak_count ?? 0
   const streakBonus = calculateStreakBonus(userStreak, config)
   if (streakBonus > 0) {
-    lastResult = await grantXp(supabase, user.id, streakBonus, 'racha_bonus', `streak_${userStreak}`)
+    lastResult = await grantXp(supabase, user.id, streakBonus, 'racha_bonus', `streak_${userStreak}`, grupoId)
     totalXp += streakBonus
   }
 
@@ -169,7 +171,7 @@ export async function registrarProgresoLecturaAction(prevState: ActionState, for
     .eq('fecha_progreso', fechaHoy)
     .single()
   if (progressToday?.oracion_completada) {
-    lastResult = await grantXp(supabase, user.id, config.devocional_completo, 'devocional_completo')
+    lastResult = await grantXp(supabase, user.id, config.devocional_completo, 'devocional_completo', undefined, grupoId)
     totalXp += config.devocional_completo
   }
 
@@ -281,6 +283,8 @@ export async function actualizarProgresoOracionAction(datos: { segundosAcumulado
   }
 
   // ─── XP System ─────────────────────────────────────────────────────────────
+  const { data: perfilXpOracion } = await supabase.from('perfiles').select('grupo_activo_id').eq('id', user.id).single()
+  const grupoId = perfilXpOracion?.grupo_activo_id ?? undefined
   let totalXp = 0
   let lastResult: { nuevo_xp: number; nuevo_nivel: number; subio_nivel: boolean } | null = null
 
@@ -288,12 +292,12 @@ export async function actualizarProgresoOracionAction(datos: { segundosAcumulado
     const config = await getXpConfig(supabase, user.id)
 
     // 1. XP por oración completada
-    lastResult = await grantXp(supabase, user.id, config.oracion_completada, 'oracion_completada', String(capituloId))
+    lastResult = await grantXp(supabase, user.id, config.oracion_completada, 'oracion_completada', String(capituloId), grupoId)
     totalXp += config.oracion_completada
 
     // 2. Bonus si oración > 10 minutos (600 segundos)
     if (segundosAcumulados >= 600) {
-      lastResult = await grantXp(supabase, user.id, config.oracion_bonus_10min, 'oracion_bonus_10min')
+      lastResult = await grantXp(supabase, user.id, config.oracion_bonus_10min, 'oracion_bonus_10min', undefined, grupoId)
       totalXp += config.oracion_bonus_10min
     }
 
@@ -305,7 +309,7 @@ export async function actualizarProgresoOracionAction(datos: { segundosAcumulado
       .eq('fecha_progreso', fechaHoy)
       .single()
     if (progressToday?.lectura_completada) {
-      lastResult = await grantXp(supabase, user.id, config.devocional_completo, 'devocional_completo')
+      lastResult = await grantXp(supabase, user.id, config.devocional_completo, 'devocional_completo', undefined, grupoId)
       totalXp += config.devocional_completo
     }
   }
