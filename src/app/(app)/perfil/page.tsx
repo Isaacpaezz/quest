@@ -1,10 +1,9 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { UserProfile } from './_components/user-profile'
-import { Tables } from '@/types/database'
 
 // Helper para calcular la racha
-function calculateStreak(progress: Tables<'progreso_usuario'>[]): number {
+function calculateStreak(progress: { fecha_progreso: string }[]): number {
   if (progress.length === 0) return 0;
 
   let streak = 0;
@@ -14,7 +13,7 @@ function calculateStreak(progress: Tables<'progreso_usuario'>[]): number {
   // Comprobar si el último día completado es hoy o ayer
   const lastProgressDate = new Date(progress[0].fecha_progreso);
   lastProgressDate.setHours(0, 0, 0, 0);
-  
+
   const diffDays = (today.getTime() - lastProgressDate.getTime()) / (1000 * 3600 * 24);
 
   if (diffDays > 1) {
@@ -47,13 +46,13 @@ export default async function ProfilePage() {
 
   // Obtener todos los datos necesarios en paralelo
   const [profileRes, progressHistoryRes, totalMissionsRes] = await Promise.all([
-    supabase.from('perfiles').select('*').eq('id', user.id).single(),
-    supabase.from('progreso_usuario').select('*')
+    supabase.from('perfiles').select('id, nombre_usuario, xp, nivel, max_streak, rol, creado_en').eq('id', user.id).single(),
+    supabase.from('progreso_usuario').select('fecha_progreso, segundos_oracion_acumulados')
       .eq('usuario_id', user.id)
       .eq('lectura_completada', true)
       .eq('oracion_completada', true)
       .order('fecha_progreso', { ascending: false }),
-    supabase.from('progreso_usuario').select('*', { count: 'exact', head: true })
+    supabase.from('progreso_usuario').select('fecha_progreso', { count: 'exact', head: true })
       .eq('usuario_id', user.id)
       .eq('lectura_completada', true)
       .eq('oracion_completada', true)
@@ -62,7 +61,7 @@ export default async function ProfilePage() {
   const profile = profileRes.data;
   const progressHistory = progressHistoryRes.data || [];
   const totalMissions = totalMissionsRes.count || 0;
-  
+
   const currentStreak = calculateStreak(progressHistory);
 
   const totalPrayerSeconds = progressHistory.reduce((acc, curr) => acc + (curr.segundos_oracion_acumulados || 0), 0);

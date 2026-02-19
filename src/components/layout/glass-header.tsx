@@ -106,7 +106,7 @@ export function GlassHeader() {
                     className="absolute top-1 right-1 size-2 rounded-full ring-2"
                     style={{
                         backgroundColor: '#FF6B6B',
-                        ringColor: isDark ? '#1A1E2A' : '#FFFFFF',
+                        boxShadow: `0 0 0 2px ${isDark ? '#1A1E2A' : '#FFFFFF'}`,
                     }}
                 />
             </button>

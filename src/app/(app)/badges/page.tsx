@@ -9,7 +9,7 @@ export default async function BadgesPage() {
 
     // Fetch badges, user badges, profile (with max_streak), and current streak
     const [badgesRes, userBadgesRes, perfilRes, streaksRes] = await Promise.all([
-        supabase.from('badges').select('*').order('nombre'),
+        supabase.from('badges').select('id, nombre, descripcion, icono, criterio').order('nombre'),
         supabase.from('usuario_badges').select('badge_id, desbloqueado_en').eq('usuario_id', user.id),
         supabase.from('perfiles').select('id, nombre_usuario, xp, nivel, max_streak').eq('id', user.id).single(),
         supabase.rpc('get_all_user_streaks'),

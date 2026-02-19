@@ -1,7 +1,6 @@
 'use server'
 
-import { createServerClient, type CookieOptions } from '@supabase/ssr'
-import { cookies } from 'next/headers'
+import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 import { ActionState } from '@/types/definitions'
@@ -21,30 +20,11 @@ const CrearRetoSchema = z.object({
   fecha_fin: z.string().min(1, 'Selecciona una fecha de fin'),
 })
 
-async function getSupabase() {
-  const cookieStore = await cookies()
-  return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        get(name: string) { return cookieStore.get(name)?.value },
-        set(name: string, value: string, options: CookieOptions) {
-          try { cookieStore.set({ name, value, ...options }) } catch {}
-        },
-        remove(name: string, options: CookieOptions) {
-          try { cookieStore.set({ name, value: '', ...options }) } catch {}
-        },
-      },
-    }
-  )
-}
-
 export async function crearRetoAction(
   prevState: ActionState,
   formData: FormData
 ): Promise<ActionState> {
-  const supabase = await getSupabase()
+  const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'No autenticado' }
 
@@ -155,7 +135,7 @@ export async function responderInvitacionAction(
   aceptar: boolean,
   xpPropuesto?: number
 ): Promise<ActionState> {
-  const supabase = await getSupabase()
+  const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'No autenticado' }
 
@@ -217,7 +197,7 @@ export async function responderInvitacionAction(
 }
 
 export async function unirseRetoAction(retoId: string): Promise<ActionState> {
-  const supabase = await getSupabase()
+  const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'No autenticado' }
 
@@ -238,7 +218,7 @@ export async function unirseRetoAction(retoId: string): Promise<ActionState> {
 }
 
 export async function eliminarRetoAction(retoId: string): Promise<ActionState> {
-  const supabase = await getSupabase()
+  const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'No autenticado' }
 

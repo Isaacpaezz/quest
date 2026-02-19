@@ -14,9 +14,9 @@ export default async function CommunityPage() {
 
   // Obtener todos los datos en paralelo, incluyendo rachas
   const [profilesRes, progressTodayRes, penaltiesRes, streaksRes] = await Promise.all([
-    supabase.from('perfiles').select('*'),
-    supabase.from('progreso_usuario').select('*').eq('fecha_progreso', today),
-    supabase.from('penalizaciones').select('*').eq('estado', 'pendiente'),
+    supabase.from('perfiles').select('id, nombre_usuario, xp, nivel, max_streak, rol, creado_en'),
+    supabase.from('progreso_usuario').select('usuario_id, fecha_progreso, lectura_completada, oracion_completada, segundos_oracion_acumulados').eq('fecha_progreso', today),
+    supabase.from('penalizaciones').select('id, usuario_id, fecha_incumplimiento, monto, monto_pagado, estado').eq('estado', 'pendiente'),
     supabase.rpc('get_all_user_streaks'), // Obtener rachas de todos los usuarios
   ])
 
@@ -28,7 +28,7 @@ export default async function CommunityPage() {
 
   const { data: historicProgressData } = await supabase
     .from('progreso_usuario')
-    .select('*')
+    .select('usuario_id, fecha_progreso, lectura_completada, oracion_completada')
     .in('fecha_progreso', penaltyDates)
     .in('usuario_id', penaltyUserIds)
 

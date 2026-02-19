@@ -17,7 +17,7 @@ export default async function HistoryPage() {
       .order('fecha_progreso', { ascending: false }),
     supabase
       .from('planes_lectura')
-      .select('*')
+      .select('id, nombre_libro, fecha_inicio, fecha_fin, estado, minutos_oracion_requeridos')
       .eq('estado', 'completado')
       .order('fecha_fin', { ascending: false }),
   ])

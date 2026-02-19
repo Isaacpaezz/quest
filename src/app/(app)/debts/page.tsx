@@ -10,11 +10,11 @@ export default async function DeudasPage() {
     // Obtener datos en paralelo
     const [perfilRes, penalizacionesRes, canjeosRes, configRes, progressRes] = await Promise.all([
         supabase.from('perfiles').select('id, nombre_usuario, xp, nivel, max_streak').eq('id', user.id).single(),
-        supabase.from('penalizaciones').select('*')
+        supabase.from('penalizaciones').select('id, usuario_id, fecha_incumplimiento, monto, monto_pagado, estado')
             .eq('usuario_id', user.id)
             .eq('estado', 'pendiente')
             .order('fecha_incumplimiento', { ascending: false }),
-        supabase.from('canjeos').select('*')
+        supabase.from('canjeos').select('id, puntos_usados, monto_descontado, descripcion, usuario_id, created_at')
             .eq('usuario_id', user.id)
             .order('created_at', { ascending: false })
             .limit(10),

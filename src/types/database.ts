@@ -275,6 +275,7 @@ export type Database = {
         Row: {
           creado_en: string
           id: string
+          max_streak: number
           nivel: number | null
           nombre_usuario: string
           rol: string
@@ -283,6 +284,7 @@ export type Database = {
         Insert: {
           creado_en?: string
           id: string
+          max_streak?: number
           nivel?: number | null
           nombre_usuario: string
           rol?: string
@@ -291,6 +293,7 @@ export type Database = {
         Update: {
           creado_en?: string
           id?: string
+          max_streak?: number
           nivel?: number | null
           nombre_usuario?: string
           rol?: string
@@ -422,28 +425,34 @@ export type Database = {
           completado: boolean | null
           completado_en: string | null
           created_at: string | null
+          estado: string | null
           id: string
           progreso: number | null
           reto_id: string | null
           usuario_id: string | null
+          xp_propuesto: number | null
         }
         Insert: {
           completado?: boolean | null
           completado_en?: string | null
           created_at?: string | null
+          estado?: string | null
           id?: string
           progreso?: number | null
           reto_id?: string | null
           usuario_id?: string | null
+          xp_propuesto?: number | null
         }
         Update: {
           completado?: boolean | null
           completado_en?: string | null
           created_at?: string | null
+          estado?: string | null
           id?: string
           progreso?: number | null
           reto_id?: string | null
           usuario_id?: string | null
+          xp_propuesto?: number | null
         }
         Relationships: [
           {
@@ -476,6 +485,7 @@ export type Database = {
           recompensa_xp: number | null
           tipo: string
           titulo: string
+          xp_negociado: boolean | null
         }
         Insert: {
           completado?: boolean | null
@@ -490,6 +500,7 @@ export type Database = {
           recompensa_xp?: number | null
           tipo: string
           titulo: string
+          xp_negociado?: boolean | null
         }
         Update: {
           completado?: boolean | null
@@ -504,6 +515,7 @@ export type Database = {
           recompensa_xp?: number | null
           tipo?: string
           titulo?: string
+          xp_negociado?: boolean | null
         }
         Relationships: [
           {
@@ -781,3 +793,4 @@ export const Constants = {
     },
   },
 } as const
+

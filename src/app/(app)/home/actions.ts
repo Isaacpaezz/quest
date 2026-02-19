@@ -1,7 +1,6 @@
 'use server'
 
-import { createServerClient, type CookieOptions } from '@supabase/ssr'
-import { cookies } from 'next/headers'
+import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 import { ActionState } from '@/types/definitions'
@@ -23,27 +22,7 @@ const OracionProgressSchema = z.object({
 });
 
 export async function registrarProgresoLecturaAction(prevState: ActionState, formData: FormData): Promise<ActionState> {
-  // --- INICIO DE LA CORRECCIÓN ---
-  // Se crea el cliente de Supabase de la forma correcta para una Server Action
-  const cookieStore = await cookies()
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        get(name: string) {
-          return cookieStore.get(name)?.value
-        },
-        set(name: string, value: string, options: CookieOptions) {
-          cookieStore.set({ name, value, ...options })
-        },
-        remove(name: string, options: CookieOptions) {
-          cookieStore.set({ name, value: '', ...options })
-        },
-      },
-    }
-  )
-  // --- FIN DE LA CORRECCIÓN ---
+  const supabase = await createClient()
 
   const { data: { user } } = await supabase.auth.getUser()
 
@@ -179,24 +158,7 @@ export async function registrarProgresoLecturaAction(prevState: ActionState, for
 }
 
 export async function actualizarProgresoOracionAction(datos: { segundosAcumulados: number, capituloId: number, oracionCompletada: boolean }): Promise<ActionState> {
-  const cookieStore = await cookies();
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        get(name: string) {
-          return cookieStore.get(name)?.value
-        },
-        set(name: string, value: string, options: CookieOptions) {
-          cookieStore.set({ name, value, ...options })
-        },
-        remove(name: string, options: CookieOptions) {
-          cookieStore.set({ name, value: '', ...options })
-        },
-      },
-    }
-  );
+  const supabase = await createClient();
 
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: 'No autenticado.' };

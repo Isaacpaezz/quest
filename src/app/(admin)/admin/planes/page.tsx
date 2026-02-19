@@ -5,7 +5,7 @@ import Link from 'next/link'
 
 export default async function PlanManagementPage() {
   const supabase = await createClient()
-  const { data: planes, error } = await supabase.from('planes_lectura').select('*').order('fecha_inicio', { ascending: false })
+  const { data: planes, error } = await supabase.from('planes_lectura').select('id, nombre_libro, fecha_inicio, fecha_fin, estado, minutos_oracion_requeridos').order('fecha_inicio', { ascending: false })
 
   if (error) {
     console.error('Error fetching plans:', error)
@@ -14,8 +14,8 @@ export default async function PlanManagementPage() {
   return (
     <div className="mx-auto max-w-2xl space-y-6 pb-24">
       <div className="flex items-center gap-4 px-4 pt-8">
-        <Link 
-          href="/perfil" 
+        <Link
+          href="/perfil"
           className="flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-sm transition-colors hover:bg-slate-50"
         >
           <ChevronLeft className="h-6 w-6 text-slate-600" />
