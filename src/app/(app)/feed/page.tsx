@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { FeedClient } from './_components/feed-client'
 import { getTodayInVenezuela } from '@/lib/utils'
+import type { FeedActivity } from './types'
 
 export default async function FeedPage() {
   const supabase = await createClient()
@@ -30,7 +31,8 @@ export default async function FeedPage() {
 
   // CALCULAR HÉROES DEL DÍA (usuarios que completaron lectura Y oración hoy)
   const today = getTodayInVenezuela() // Formato YYYY-MM-DD
-  const todayActivities = (activities || []).filter(activity => {
+  const feedActivities = (activities || []) as FeedActivity[]
+  const todayActivities = feedActivities.filter(activity => {
     // Convertir timestamp UTC a fecha en Venezuela
     const activityDate = new Date(activity.creado_en)
     const venezuelaTime = new Date(activityDate.toLocaleString('en-US', { timeZone: 'America/Caracas' }))
@@ -42,19 +44,12 @@ export default async function FeedPage() {
   })
 
   // Agrupar por usuario y verificar si completaron ambas misiones
-  function extractNombrePerfil(perfiles: unknown): string | undefined {
+  function extractNombrePerfil(perfiles: FeedActivity['perfiles']): string | undefined {
     if (!perfiles) return undefined
     if (Array.isArray(perfiles)) {
-      const first = perfiles[0]
-      if (first && typeof first === 'object' && 'nombre_usuario' in (first as Record<string, unknown>)) {
-        return (first as Record<string, unknown>)['nombre_usuario'] as string
-      }
-      return undefined
+      return perfiles[0]?.nombre_usuario
     }
-    if (typeof perfiles === 'object' && perfiles !== null && 'nombre_usuario' in (perfiles as Record<string, unknown>)) {
-      return (perfiles as Record<string, unknown>)['nombre_usuario'] as string
-    }
-    return undefined
+    return perfiles.nombre_usuario
   }
 
   const userMissions = todayActivities.reduce((acc, activity) => {
@@ -83,8 +78,7 @@ export default async function FeedPage() {
     }))
 
   // PROCESAMIENTO DE DATOS: Agrupar por fecha en zona horaria de Venezuela
-  type Activity = NonNullable<typeof activities>[number];
-  const groupedActivities: Record<string, Activity[]> = (activities || []).reduce((acc, activity) => {
+  const groupedActivities: Record<string, FeedActivity[]> = feedActivities.reduce((acc, activity) => {
     // Convertir timestamp UTC a fecha en Venezuela
     const activityDate = new Date(activity.creado_en);
     const venezuelaDate = new Date(activityDate.toLocaleString('en-US', { timeZone: 'America/Caracas' }));
@@ -97,7 +91,7 @@ export default async function FeedPage() {
     }
     acc[date].push(activity);
     return acc;
-  }, {} as Record<string, Activity[]>);
+  }, {} as Record<string, FeedActivity[]>);
 
   return (
     <div className="container mx-auto p-4 sm:p-8">

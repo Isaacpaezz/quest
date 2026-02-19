@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react'
 import { Heart, MessageCircle, Sparkles, MoreHorizontal, Send, Trash2 } from 'lucide-react'
 import { toggleLikeAction, postCommentAction, getCommentsAction, deleteCommentAction } from '../actions'
+import type { FeedActivity } from '../types'
 import { toast } from 'sonner'
 
 function timeAgo(date: string) {
@@ -31,28 +32,27 @@ interface Comment {
 }
 
 interface ActivityCardProps {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  activity: any
+  activity: FeedActivity
   initialLikesCount: number
   initialCommentsCount: number
   currentUserLiked: boolean
   currentUserId?: string
 }
 
-export function ActivityCard({ 
-  activity, 
-  initialLikesCount, 
-  initialCommentsCount, 
+export function ActivityCard({
+  activity,
+  initialLikesCount,
+  initialCommentsCount,
   currentUserLiked,
-  currentUserId 
+  currentUserId
 }: ActivityCardProps) {
   const isReading = activity.tipo_actividad === 'lectura_completada';
-  
+
   // Estado local para UI optimista
   const [likesCount, setLikesCount] = useState(initialLikesCount)
   const [isLiked, setIsLiked] = useState(currentUserLiked)
   const [isPending, startTransition] = useTransition()
-  
+
   // Estado para comentarios
   const [showComments, setShowComments] = useState(false)
   const [comments, setComments] = useState<Comment[]>([])
@@ -65,14 +65,14 @@ export function ActivityCard({
     // Actualización optimista inmediata
     const newIsLiked = !isLiked
     const newLikesCount = newIsLiked ? likesCount + 1 : likesCount - 1
-    
+
     setIsLiked(newIsLiked)
     setLikesCount(newLikesCount)
 
     // Ejecutar Server Action en background
     startTransition(async () => {
       const result = await toggleLikeAction(activity.id, !newIsLiked)
-      
+
       if (!result.success) {
         // Revertir cambios si falla
         setIsLiked(!newIsLiked)
@@ -85,7 +85,7 @@ export function ActivityCard({
   // Cargar comentarios
   const loadComments = async () => {
     if (commentsLoaded) return
-    
+
     const result = await getCommentsAction(activity.id)
     if (result.success) {
       setComments(result.comments)
@@ -106,13 +106,13 @@ export function ActivityCard({
   // Publicar comentario
   const handleSubmitComment = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     if (!commentText.trim()) return
 
     setIsSubmittingComment(true)
 
     const result = await postCommentAction(activity.id, commentText)
-    
+
     if (result.success && result.comment) {
       // Agregar comentario a la lista local
       setComments([result.comment, ...comments])
@@ -128,7 +128,7 @@ export function ActivityCard({
   // Eliminar comentario
   const handleDeleteComment = async (commentId: string) => {
     const result = await deleteCommentAction(commentId)
-    
+
     if (result.success) {
       setComments(comments.filter(c => c.id !== commentId))
       toast.success('Comentario eliminado')
@@ -137,16 +137,21 @@ export function ActivityCard({
     }
   }
 
+  const perfiles = activity.perfiles
+  const nombre = perfiles
+    ? Array.isArray(perfiles) ? perfiles[0]?.nombre_usuario ?? 'Usuario' : perfiles.nombre_usuario
+    : 'Usuario'
+
   return (
     <div className="relative mb-6 rounded-3xl border border-slate-100 bg-white p-5 shadow-sm">
       {/* HEADER */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-full bg-purple-100 text-purple-600">
-            <span className="font-bold">{activity.perfiles.nombre_usuario[0]}</span>
+            <span className="font-bold">{nombre[0]}</span>
           </div>
           <div>
-            <h4 className="font-bold text-slate-900">{activity.perfiles.nombre_usuario}</h4>
+            <h4 className="font-bold text-slate-900">{nombre}</h4>
             <p className="text-xs text-slate-400">{timeAgo(activity.creado_en)}</p>
           </div>
         </div>
@@ -160,7 +165,7 @@ export function ActivityCard({
         <div className="mb-1 text-[10px] font-bold uppercase tracking-widest text-slate-400">
           {isReading ? 'Lectura Bíblica' : 'Oración Completada'}
         </div>
-        
+
         <h3 className="font-display text-lg font-bold leading-tight text-slate-900">
           {isReading ? activity.referencia_contenido : (activity.referencia_contenido ?? 'ha terminado su tiempo con Dios.')}
         </h3>
@@ -183,17 +188,16 @@ export function ActivityCard({
         <div className="mt-4">
           <div className="flex items-center gap-6">
             {/* LIKE BUTTON */}
-            <button 
+            <button
               onClick={handleLikeClick}
               disabled={isPending}
               className="group flex items-center gap-1.5 transition-colors disabled:opacity-50"
             >
-              <Heart 
-                className={`h-5 w-5 stroke-2 transition-all group-active:scale-90 ${
-                  isLiked 
-                    ? 'fill-rose-500 text-rose-500' 
-                    : 'text-slate-400 group-hover:text-rose-500'
-                }`}
+              <Heart
+                className={`h-5 w-5 stroke-2 transition-all group-active:scale-90 ${isLiked
+                  ? 'fill-rose-500 text-rose-500'
+                  : 'text-slate-400 group-hover:text-rose-500'
+                  }`}
               />
               <span className={`text-sm font-medium ${isLiked ? 'text-rose-500' : 'text-slate-400'}`}>
                 {likesCount}
@@ -201,7 +205,7 @@ export function ActivityCard({
             </button>
 
             {/* COMMENTS BUTTON */}
-            <button 
+            <button
               onClick={handleCommentsClick}
               className="flex items-center gap-1.5 text-slate-400 transition-colors hover:text-indigo-500"
             >
@@ -236,7 +240,7 @@ export function ActivityCard({
               {!commentsLoaded && (
                 <p className="text-center text-sm text-slate-400">Cargando comentarios...</p>
               )}
-              
+
               {commentsLoaded && comments.length === 0 && (
                 <p className="text-center text-sm text-slate-400">Sé el primero en comentar</p>
               )}

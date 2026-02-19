@@ -5,6 +5,7 @@ import { useTheme } from 'next-themes'
 import { Newspaper, Heart, MessageCircle, BookOpen, Timer, Flame, ChevronDown } from 'lucide-react'
 import { EmptyState } from '@/components/shared/empty-state'
 import { toggleLikeAction } from '../actions'
+import type { FeedActivity } from '../types'
 
 // ─── Date helpers ────────────────────────────────────────────────────────────
 function formatDateHeader(dateString: string) {
@@ -35,8 +36,7 @@ interface Hero {
   nombre_usuario: string
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function ActivityItem({ act, currentUserLiked, currentUserId, isDark }: { act: any; currentUserLiked: boolean; currentUserId: string; isDark: boolean }) {
+function ActivityItem({ act, currentUserLiked, currentUserId, isDark }: { act: FeedActivity; currentUserLiked: boolean; currentUserId: string; isDark: boolean }) {
   const [liked, setLiked] = useState(currentUserLiked)
   const [likeCount, setLikeCount] = useState(Number(act.likes_count) || 0)
   const [expanded, setExpanded] = useState(false)
@@ -159,14 +159,6 @@ function ActivityItem({ act, currentUserLiked, currentUserId, isDark }: { act: a
             </span>
           </div>
 
-          {Number(act.racha) > 0 && (
-            <div className="flex items-center gap-1">
-              <Flame className="size-3.5" style={{ color: '#FF6B35' }} />
-              <span className="text-[12px] font-sans" style={{ color: '#FF6B35' }}>
-                {act.racha}
-              </span>
-            </div>
-          )}
         </div>
       </div>
     </div>
@@ -174,7 +166,7 @@ function ActivityItem({ act, currentUserLiked, currentUserId, isDark }: { act: a
 }
 
 export function FeedClient({ groupedActivities, likedActivityIds, currentUserId, todaysHeroes }: {
-  groupedActivities: Record<string, unknown[]>
+  groupedActivities: Record<string, FeedActivity[]>
   likedActivityIds: Set<number>
   currentUserId: string
   todaysHeroes: Hero[]
@@ -238,12 +230,12 @@ export function FeedClient({ groupedActivities, likedActivityIds, currentUserId,
             >
               {formatDateHeader(date)}
             </span>
-            {(groupedActivities[date] as Record<string, unknown>[]).map(act => (
+            {groupedActivities[date].map(act => (
               <ActivityItem
-                key={String(act['id'] ?? Math.random())}
+                key={act.id}
                 act={act}
                 isDark={isDark}
-                currentUserLiked={likedActivityIds.has(Number(act['id']))}
+                currentUserLiked={likedActivityIds.has(act.id)}
                 currentUserId={currentUserId}
               />
             ))}
