@@ -1,8 +1,8 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { DashboardClient } from './_components/dashboard-client'
-import { getTodayInVenezuela } from '@/lib/utils'
-import { getMiembrosGrupoActivo } from '@/lib/grupo-helpers'
+import { getToday } from '@/lib/utils'
+import { getMiembrosGrupoActivo, getTimezone } from '@/lib/grupo-helpers'
 
 /**
  * Página principal del Dashboard.
@@ -18,7 +18,8 @@ export default async function DashboardPage() {
   }
 
   // 1. Obtener la misión de hoy (capítulo y tiempo de oración)
-  const today = getTodayInVenezuela() // Formato YYYY-MM-DD en zona horaria de Venezuela
+  const tz = await getTimezone(supabase)
+  const today = getToday(tz)
 
   const { data: dailyMission } = await supabase
     .from('planes_lectura')

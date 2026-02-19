@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
-import { getTodayInVenezuela } from '@/lib/utils'
+import { getToday } from '@/lib/utils'
+import { getTimezone } from '@/lib/grupo-helpers'
 import { OracionClient } from './_components/oracion-client'
 
 export default async function OracionPage() {
@@ -9,7 +10,8 @@ export default async function OracionPage() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) redirect('/login')
 
-    const today = getTodayInVenezuela()
+    const tz = await getTimezone(supabase)
+    const today = getToday(tz)
 
     const { data: dailyMission } = await supabase
         .from('planes_lectura')

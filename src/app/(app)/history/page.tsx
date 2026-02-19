@@ -1,7 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { HistoryClient } from './_components/history-client'
-import { getTodayInVenezuela } from '@/lib/utils'
 
 export default async function HistoryPage() {
   const supabase = await createClient()

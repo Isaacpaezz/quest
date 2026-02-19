@@ -4,6 +4,22 @@ Todas las versiones y cambios notables del proyecto.
 
 ---
 
+## [0.12.0] - 2026-02-19
+
+### ✨ Nuevo
+- **Timezone configurable por grupo** — Cada grupo define su propia zona horaria en `configuracion_app`
+- `getToday(tz)` y `formatDateInTimezone(date, tz)` reemplazan a `getTodayInVenezuela()`
+- `getTimezone(supabase)` lee la timezone del grupo activo
+
+### 🔧 Cambios
+- **PK `configuracion_app`**: `(clave)` → `(clave, grupo_id)` — soporta config independiente por grupo
+- **Cron de penalizaciones**: ahora corre **cada hora** y solo procesa grupos donde es medianoche local
+- Protecciones: advisory lock, orden aleatorio, micro-pausa entre grupos, `ON CONFLICT DO NOTHING`
+- `getTodayInVenezuela()` marcada como deprecated (alias de `getToday()`)
+- Removido import no usado en `history/page.tsx`
+
+---
+
 ## [0.11.0] - 2026-02-19
 
 ### ✨ Nuevo

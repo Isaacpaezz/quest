@@ -5,18 +5,25 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
+export const DEFAULT_TIMEZONE = 'America/Caracas'
+
 /**
- * Obtiene la fecha actual en formato YYYY-MM-DD en la zona horaria de Venezuela (UTC-4)
- * Esto asegura que el día cambie a las 12:00am hora de Venezuela, no a las 8pm
+ * Obtiene la fecha actual en formato YYYY-MM-DD en la timezone especificada.
+ * @param timezone - IANA timezone string (ej: 'America/Caracas', 'Europe/Madrid')
  */
+export function getToday(timezone: string = DEFAULT_TIMEZONE): string {
+  return new Date().toLocaleDateString('en-CA', { timeZone: timezone })
+}
+
+/**
+ * Convierte un Date a formato YYYY-MM-DD en la timezone especificada.
+ * Útil para agrupar actividades por fecha en la timezone del grupo.
+ */
+export function formatDateInTimezone(date: Date, timezone: string = DEFAULT_TIMEZONE): string {
+  return date.toLocaleDateString('en-CA', { timeZone: timezone })
+}
+
+/** @deprecated Usar getToday(timezone) — se mantiene por compatibilidad */
 export function getTodayInVenezuela(): string {
-  const now = new Date();
-  // Convertir a zona horaria de Venezuela (UTC-4)
-  const venezuelaTime = new Date(now.toLocaleString('en-US', { timeZone: 'America/Caracas' }));
-  
-  const year = venezuelaTime.getFullYear();
-  const month = String(venezuelaTime.getMonth() + 1).padStart(2, '0');
-  const day = String(venezuelaTime.getDate()).padStart(2, '0');
-  
-  return `${year}-${month}-${day}`;
+  return getToday(DEFAULT_TIMEZONE)
 }

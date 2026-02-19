@@ -174,6 +174,7 @@ Quest permite tener múltiples grupos. Cada grupo tiene sus propios rankings, fe
 ### Tips
 - Puedes pertenecer a varios grupos a la vez
 - Cada grupo puede tener su propia configuración de penalizaciones
+- Cada grupo tiene su propia **zona horaria** que determina cuándo cambia el día
 - Los rankings y el feed solo muestran a los miembros de tu grupo activo
 
 ---
@@ -200,3 +201,6 @@ Sí, puedes ser miembro de múltiples grupos. Cambia de grupo activo desde el me
 
 ### ¿Cómo comparto el código de invitación?
 Toca "Invitar" junto a tu grupo → elige la app para compartir (WhatsApp, Telegram, etc.).
+
+### ¿Qué zona horaria usa Quest?
+Cada grupo tiene su propia zona horaria configurada. El día cambia a las **12:00 AM** de esa zona horaria. Esto afecta cuándo aparece la nueva lectura y cuándo se calculan las penalizaciones.

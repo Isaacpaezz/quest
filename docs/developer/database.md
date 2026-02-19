@@ -211,11 +211,13 @@ Configuración clave-valor para el sistema, ahora scoped por grupo.
 |---------|------|-------------|
 | `clave` | TEXT (PK) | Nombre de la config |
 | `valor` | TEXT | Valor de la config |
-| `grupo_id` | UUID (FK) | → `grupos(id)` — Config específica del grupo |
+| `grupo_id` | UUID (PK, FK) | → `grupos(id)` — PK compuesta: `(clave, grupo_id)` |
 
 **Claves actuales:**
 | Clave | Valor Default | Descripción |
 |-------|---------------|-------------|
+| `timezone` | `America/Caracas` | Timezone IANA del grupo (ej: `Europe/Madrid`) |
+| `monto_penalizacion` | `3` | Monto de penalización por incumplimiento |
 | `modo_penalizacion` | `dinero` | `dinero` o `puntos` |
 | `tasa_canjeo` | `100` | XP por $1 de descuento |
 | `costo_recuperar_racha` | `200` | XP para recuperar racha |
@@ -243,7 +245,7 @@ Configuración clave-valor para el sistema, ahora scoped por grupo.
 | `crear_plan_con_capitulos` | `nombre`, `fechas`, `capitulos` | void | Crea plan de lectura |
 | `programar_plan_siguiente` | `plan_id` | void | Programa siguiente plan |
 | `transicion_automatica_de_plan` | — | void | Transiciona planes activos |
-| `registrar_penalizaciones_diarias` | — | void | Registra penalizaciones por grupo activo |
+| `registrar_penalizaciones_diarias` | — | void | Registra penalizaciones por grupo. Corre cada hora, solo procesa grupos donde es medianoche local. Advisory lock + orden aleatorio + micro-pausa |
 | `nanoid` | `size` | TEXT | Genera ID corto para códigos de invitación |
 | `aplicar_pago_a_usuario` | `usuario_id`, `monto` | void | Aplica pago a deudas |
 | `get_all_user_streaks` | — | `[{user_id, streak_count}]` | Rachas de todos los usuarios |

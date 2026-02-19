@@ -285,6 +285,7 @@ getGrupoActivoId()       // → grupo_id del usuario actual
 getMiembrosGrupo(id)     // → usuario_ids del grupo
 getConfigGrupo(id)       // → configuración del grupo
 getMiembrosGrupoActivo() // → { memberIds, grupoId, nombreGrupo }
+getTimezone()            // → timezone IANA del grupo activo
 ```
 
 ---
@@ -302,3 +303,31 @@ getMiembrosGrupoActivo() // → { memberIds, grupoId, nombreGrupo }
 - Admins bypasan el redirect para poder revisar el diseño
 - `auth-form.tsx` redirige a `/onboarding` después del registro
 
+---
+
+## 15. Timezone Configurable (Sub-fase 3G)
+
+**Problema:** Todas las fechas estaban hardcodeadas a `America/Caracas`. Grupos en otras zonas horarias veían un corte de día incorrecto.
+
+**Solución:** Cada grupo tiene su propia timezone en `configuracion_app`.
+
+### Funciones de fecha
+```typescript
+// src/lib/utils.ts
+getToday(timezone)              // → 'YYYY-MM-DD' en la timezone
+formatDateInTimezone(date, tz)  // → convierte Date a 'YYYY-MM-DD'
+DEFAULT_TIMEZONE                // → 'America/Caracas'
+```
+
+### Cron de penalizaciones
+- Se ejecuta **cada hora** vía `pg_cron` (`5 * * * *`)
+- Solo procesa grupos donde es **hora 0** (12:00–12:59 AM local)
+- Protecciones: advisory lock, orden aleatorio, micro-pausa entre grupos
+- `ON CONFLICT DO NOTHING` evita duplicados
+
+### Archivos modificados
+- `src/lib/utils.ts` — Funciones de fecha generalizadas
+- `src/lib/grupo-helpers.ts` — `getTimezone()`
+- `home/page.tsx`, `home/actions.ts`, `community/page.tsx`, `feed/page.tsx`, `oracion/page.tsx`, `oracion/actions.ts` — Usan timezone configurable
+- `history/page.tsx` — Import no usado removido
+- `supabase/migrations/20260219202700_*.sql` — PK fix + función + cron + seed

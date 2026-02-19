@@ -1,5 +1,6 @@
 import { SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@/types/database'
+import { DEFAULT_TIMEZONE } from '@/lib/utils'
 
 type TypedSupabaseClient = SupabaseClient<Database>
 
@@ -69,4 +70,16 @@ export async function getMiembrosGrupoActivo(
 
   const miembros = await getMiembrosGrupo(supabase, grupoId)
   return { grupoId, miembros }
+}
+
+/**
+ * Obtiene la timezone del grupo activo del usuario.
+ * Si no tiene grupo activo (modo solo), retorna DEFAULT_TIMEZONE.
+ */
+export async function getTimezone(supabase: TypedSupabaseClient): Promise<string> {
+  const grupoId = await getGrupoActivo(supabase)
+  if (!grupoId) return DEFAULT_TIMEZONE
+
+  const config = await getConfigGrupo(supabase, grupoId)
+  return config['timezone'] || DEFAULT_TIMEZONE
 }

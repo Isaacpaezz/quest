@@ -1,7 +1,8 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
-import { getTodayInVenezuela } from '@/lib/utils'
+import { getToday } from '@/lib/utils'
+import { getTimezone } from '@/lib/grupo-helpers'
 import { revalidatePath } from 'next/cache'
 
 type OracionInput = {
@@ -15,7 +16,8 @@ export async function guardarProgresoOracionAction(input: OracionInput) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'No autenticado' }
 
-  const today = getTodayInVenezuela()
+  const tz = await getTimezone(supabase)
+  const today = getToday(tz)
 
   const { error } = await supabase
     .from('progreso_usuario')

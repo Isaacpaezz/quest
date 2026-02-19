@@ -4,7 +4,8 @@ import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 import { ActionState } from '@/types/definitions'
-import { getTodayInVenezuela } from '@/lib/utils'
+import { getToday } from '@/lib/utils'
+import { getTimezone } from '@/lib/grupo-helpers'
 import { pushService } from '@/lib/web-push'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { getXpConfig, grantXp, calculateStreakBonus } from '@/lib/xp-helpers'
@@ -44,7 +45,8 @@ export async function registrarProgresoLecturaAction(prevState: ActionState, for
   }
   
   const { resumen, capituloId, capituloReferencia } = validatedFields.data
-  const fechaHoy = getTodayInVenezuela()
+  const tz = await getTimezone(supabase)
+  const fechaHoy = getToday(tz)
 
   const { error } = await supabase.from('progreso_usuario').upsert({
     usuario_id: user.id,
@@ -192,7 +194,7 @@ export async function actualizarProgresoOracionAction(datos: { segundosAcumulado
   if (!validatedFields.success) return { error: 'Datos inválidos.' };
   
   const { segundosAcumulados, capituloId, oracionCompletada } = validatedFields.data;
-  const fechaHoy = getTodayInVenezuela();
+  const fechaHoy = getToday(await getTimezone(supabase));
 
   const { error } = await supabase.from('progreso_usuario').upsert({
     usuario_id: user.id,

@@ -1,9 +1,9 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { FeedClient } from './_components/feed-client'
-import { getTodayInVenezuela } from '@/lib/utils'
+import { getToday, formatDateInTimezone } from '@/lib/utils'
 import type { FeedActivity } from './types'
-import { getMiembrosGrupoActivo } from '@/lib/grupo-helpers'
+import { getMiembrosGrupoActivo, getTimezone } from '@/lib/grupo-helpers'
 
 export default async function FeedPage() {
   const supabase = await createClient()
@@ -35,16 +35,12 @@ export default async function FeedPage() {
   const likedActivityIds = new Set(userLikes?.map(like => like.actividad_id) || [])
 
   // CALCULAR HÉROES DEL DÍA (usuarios que completaron lectura Y oración hoy)
-  const today = getTodayInVenezuela() // Formato YYYY-MM-DD
+  const tz = await getTimezone(supabase)
+  const today = getToday(tz) // Formato YYYY-MM-DD
   const feedActivities = (activities || []) as FeedActivity[]
   const todayActivities = feedActivities.filter(activity => {
-    // Convertir timestamp UTC a fecha en Venezuela
     const activityDate = new Date(activity.creado_en)
-    const venezuelaTime = new Date(activityDate.toLocaleString('en-US', { timeZone: 'America/Caracas' }))
-    const year = venezuelaTime.getFullYear()
-    const month = String(venezuelaTime.getMonth() + 1).padStart(2, '0')
-    const day = String(venezuelaTime.getDate()).padStart(2, '0')
-    const activityDateStr = `${year}-${month}-${day}`
+    const activityDateStr = formatDateInTimezone(activityDate, tz)
     return activityDateStr === today
   })
 
@@ -84,13 +80,8 @@ export default async function FeedPage() {
 
   // PROCESAMIENTO DE DATOS: Agrupar por fecha en zona horaria de Venezuela
   const groupedActivities: Record<string, FeedActivity[]> = feedActivities.reduce((acc, activity) => {
-    // Convertir timestamp UTC a fecha en Venezuela
     const activityDate = new Date(activity.creado_en);
-    const venezuelaDate = new Date(activityDate.toLocaleString('en-US', { timeZone: 'America/Caracas' }));
-    const year = venezuelaDate.getFullYear();
-    const month = String(venezuelaDate.getMonth() + 1).padStart(2, '0');
-    const day = String(venezuelaDate.getDate()).padStart(2, '0');
-    const date = `${year}-${month}-${day}`;
+    const date = formatDateInTimezone(activityDate, tz);
     if (!acc[date]) {
       acc[date] = [];
     }

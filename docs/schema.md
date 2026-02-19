@@ -111,7 +111,7 @@ Registro detallado de cada ganancia de XP.
 ## Funciones Importantes (RPC)
 
 - **`otorgar_xp(usuario_id, cantidad)`**: Otorga XP al usuario y auto-sube de nivel si corresponde. Inserta automáticamente un registro en `historial_xp`.
-- **`registrar_penalizaciones_diarias()`**: Se ejecuta diariamente (cron). Itera por cada grupo activo, lee su `monto_penalizacion`, y penaliza solo a los miembros que no cumplieron (excluyendo domingos).
+- **`registrar_penalizaciones_diarias()`**: Se ejecuta cada hora (cron `5 * * * *`). Para cada grupo activo donde es medianoche local (hora 0 en su timezone), lee `monto_penalizacion` y penaliza miembros que no cumplieron. Incluye advisory lock, orden aleatorio y micro-pausa entre grupos.
 - **`get_all_user_streaks()`**: Calcula la racha actual de días consecutivos para todos los usuarios, permitiendo saltos de fin de semana (sábado a lunes).
 - **`nanoid(size)`**: Genera IDs cortos para códigos de invitación de grupo.
 - **`marcar_penalizacion_pagada(penalizacion_id)`**: Actualiza el estado de una penalización a 'pagado'.
@@ -119,5 +119,5 @@ Registro detallado de cada ganancia de XP.
 
 ## Notas de Implementación
 
-- **Zona Horaria:** Todas las funciones de fecha críticas utilizan la zona horaria 'America/Caracas' para asegurar la consistencia con los usuarios locales.
+- **Zona Horaria:** Cada grupo tiene su propia timezone configurable en `configuracion_app` (clave `timezone`). Default: `America/Caracas`. Todas las funciones de fecha (`getToday`, `formatDateInTimezone`) y el cron de penalizaciones usan la timezone del grupo.
 - **Domingos:** Los domingos se consideran días de descanso y están excluidos de la generación automática de penalizaciones.

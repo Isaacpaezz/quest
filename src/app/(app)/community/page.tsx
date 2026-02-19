@@ -3,15 +3,16 @@ import { redirect } from 'next/navigation'
 import { CommunityClient } from './_components/community-client'
 import { Tables } from '@/types/database'
 import { CommunityMember } from '@/types/definitions'
-import { getTodayInVenezuela } from '@/lib/utils'
-import { getMiembrosGrupoActivo } from '@/lib/grupo-helpers'
+import { getToday } from '@/lib/utils'
+import { getMiembrosGrupoActivo, getTimezone } from '@/lib/grupo-helpers'
 
 export default async function CommunityPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const today = getTodayInVenezuela()
+  const tz = await getTimezone(supabase)
+  const today = getToday(tz)
 
   // Obtener miembros del grupo activo para scoping
   const { miembros, grupoId } = await getMiembrosGrupoActivo(supabase)
