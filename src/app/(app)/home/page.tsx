@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { DashboardClient } from './_components/dashboard-client'
 import { getTodayInVenezuela } from '@/lib/utils'
+import { getMiembrosGrupoActivo } from '@/lib/grupo-helpers'
 
 /**
  * Página principal del Dashboard.
@@ -41,11 +42,13 @@ export default async function DashboardPage() {
     .single()
 
   // 3. Obtener estadísticas de comunidad: quiénes leyeron HOY (zona Venezuela)
-  // Construimos rango ISO para el día en zona Venezuela y filtramos por `creado_en`.
+  // Filtrar por miembros del grupo activo
   const startOfDayIso = new Date(`${today}T00:00:00-04:00`).toISOString()
   const endOfDayIso = new Date(`${today}T23:59:59.999-04:00`).toISOString()
 
-  const { data: readers } = await supabase
+  const { miembros: memberIds } = await getMiembrosGrupoActivo(supabase)
+
+  let readersQuery = supabase
     .from('actividad_comunidad')
     .select('usuario_id, perfiles ( nombre_usuario ), creado_en')
     .eq('tipo_actividad', 'lectura_completada')
@@ -54,7 +57,7 @@ export default async function DashboardPage() {
     .order('creado_en', { ascending: false })
     .limit(500)
 
-  const { data: prayers } = await supabase
+  let prayersQuery = supabase
     .from('actividad_comunidad')
     .select('usuario_id, perfiles ( nombre_usuario ), creado_en')
     .eq('tipo_actividad', 'oracion_completada')
@@ -62,6 +65,15 @@ export default async function DashboardPage() {
     .lte('creado_en', endOfDayIso)
     .order('creado_en', { ascending: false })
     .limit(500)
+
+  // Solo filtrar si el usuario tiene grupo activo con miembros
+  if (memberIds.length > 0) {
+    readersQuery = readersQuery.in('usuario_id', memberIds)
+    prayersQuery = prayersQuery.in('usuario_id', memberIds)
+  }
+
+  const { data: readers } = await readersQuery
+  const { data: prayers } = await prayersQuery
 
   const readersArray = Array.isArray(readers) ? (readers as unknown[]) : []
   const readerIds = Array.from(new Set(readersArray.map(r => (r as Record<string, unknown>)['usuario_id'] as string)))

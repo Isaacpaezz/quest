@@ -11,6 +11,7 @@ Almacena la información pública de los usuarios.
 - `id` (uuid, PK): Referencia a `auth.users`.
 - `nombre_usuario` (text): Nombre visible en la comunidad.
 - `rol` (text): Rol del usuario ('admin', 'usuario').
+- `grupo_activo_id` (uuid, FK): Grupo activo del usuario → `grupos(id)`.
 - `creado_en` (timestamptz): Fecha de registro.
 
 ### `planes_lectura`
@@ -65,12 +66,34 @@ Feed de eventos sociales.
 - `referencia_contenido` (text): Contexto (ej. "Mateo 5").
 - `creado_en` (timestamptz): Fecha del evento.
 
+### `grupos`
+
+Grupos de la aplicación.
+
+- `id` (uuid, PK): Identificador único.
+- `nombre` (text): Nombre del grupo.
+- `codigo_invitacion` (text): Código para unirse (generado con `nanoid`).
+- `creador_id` (uuid, FK): Creador del grupo.
+- `activo` (boolean): Si el grupo está activo.
+- `created_at` (timestamptz): Fecha de creación.
+
+### `miembros_grupo`
+
+Relación N:N entre usuarios y grupos.
+
+- `id` (uuid, PK): Identificador único.
+- `grupo_id` (uuid, FK): Referencia a `grupos`.
+- `usuario_id` (uuid, FK): Referencia a `perfiles`.
+- `rol` (text): `admin` o `miembro`.
+- `unido_en` (timestamptz): Fecha de unión.
+
 ### `configuracion_app`
 
-Configuraciones globales del sistema.
+Configuraciones del sistema, scoped por grupo.
 
 - `clave` (text, PK): Nombre de la configuración (ej. 'monto_penalizacion').
 - `valor` (text): Valor de la configuración.
+- `grupo_id` (uuid, FK): Grupo al que aplica → `grupos(id)`.
 
 ### `historial_xp`
 
@@ -88,8 +111,9 @@ Registro detallado de cada ganancia de XP.
 ## Funciones Importantes (RPC)
 
 - **`otorgar_xp(usuario_id, cantidad)`**: Otorga XP al usuario y auto-sube de nivel si corresponde. Inserta automáticamente un registro en `historial_xp`.
-- **`registrar_penalizaciones_diarias()`**: Se ejecuta diariamente (cron). Verifica el cumplimiento del día anterior (excluyendo domingos) y genera penalizaciones si es necesario.
+- **`registrar_penalizaciones_diarias()`**: Se ejecuta diariamente (cron). Itera por cada grupo activo, lee su `monto_penalizacion`, y penaliza solo a los miembros que no cumplieron (excluyendo domingos).
 - **`get_all_user_streaks()`**: Calcula la racha actual de días consecutivos para todos los usuarios, permitiendo saltos de fin de semana (sábado a lunes).
+- **`nanoid(size)`**: Genera IDs cortos para códigos de invitación de grupo.
 - **`marcar_penalizacion_pagada(penalizacion_id)`**: Actualiza el estado de una penalización a 'pagado'.
 - **`canjear_puntos(usuario_id, cantidad)`**: Canjea XP por reducción de deuda.
 

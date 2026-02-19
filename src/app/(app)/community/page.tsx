@@ -4,6 +4,7 @@ import { CommunityClient } from './_components/community-client'
 import { Tables } from '@/types/database'
 import { CommunityMember } from '@/types/definitions'
 import { getTodayInVenezuela } from '@/lib/utils'
+import { getMiembrosGrupoActivo } from '@/lib/grupo-helpers'
 
 export default async function CommunityPage() {
   const supabase = await createClient()
@@ -12,9 +13,19 @@ export default async function CommunityPage() {
 
   const today = getTodayInVenezuela()
 
-  // Obtener todos los datos en paralelo, incluyendo rachas
+  // Obtener miembros del grupo activo para scoping
+  const { miembros, grupoId } = await getMiembrosGrupoActivo(supabase)
+
+  // Obtener nombre del grupo activo
+  let nombreGrupo = 'Mi Comunidad'
+  if (grupoId) {
+    const { data: grupo } = await supabase.from('grupos').select('nombre').eq('id', grupoId).single()
+    if (grupo) nombreGrupo = grupo.nombre
+  }
+
+  // Obtener todos los datos en paralelo, incluyendo rachas — filtrado por grupo
   const [profilesRes, progressTodayRes, penaltiesRes, streaksRes] = await Promise.all([
-    supabase.from('perfiles').select('id, nombre_usuario, xp, nivel, max_streak, rol, creado_en'),
+    supabase.from('perfiles').select('id, nombre_usuario, xp, nivel, max_streak, rol, creado_en, grupo_activo_id').in('id', miembros),
     supabase.from('progreso_usuario').select('usuario_id, fecha_progreso, lectura_completada, oracion_completada, segundos_oracion_acumulados').eq('fecha_progreso', today),
     supabase.from('penalizaciones').select('id, usuario_id, fecha_incumplimiento, monto, monto_pagado, estado').eq('estado', 'pendiente'),
     supabase.rpc('get_all_user_streaks'), // Obtener rachas de todos los usuarios
@@ -83,7 +94,7 @@ export default async function CommunityPage() {
 
   return (
     <div>
-      <CommunityClient communityData={communityData} highestStreak={highestStreak} />
+      <CommunityClient communityData={communityData} highestStreak={highestStreak} nombreGrupo={nombreGrupo} />
     </div>
   )
 }

@@ -3,13 +3,17 @@ import { redirect } from 'next/navigation'
 import { FeedClient } from './_components/feed-client'
 import { getTodayInVenezuela } from '@/lib/utils'
 import type { FeedActivity } from './types'
+import { getMiembrosGrupoActivo } from '@/lib/grupo-helpers'
 
 export default async function FeedPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  // Obtener actividades con contadores de likes y comentarios
+  // Obtener miembros del grupo activo para scoping
+  const { miembros } = await getMiembrosGrupoActivo(supabase)
+
+  // Obtener actividades filtradas por miembros del grupo
   const { data: activities } = await supabase
     .from('actividad_comunidad')
     .select(`
@@ -17,6 +21,7 @@ export default async function FeedPage() {
       likes_count, comentarios_count, usuario_id,
       perfiles ( nombre_usuario )
     `)
+    .in('usuario_id', miembros)
     .order('creado_en', { ascending: false })
     .limit(100)
 

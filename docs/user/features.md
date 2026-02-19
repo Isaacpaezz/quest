@@ -98,8 +98,10 @@ Puedes usar tus puntos XP para reducir tu deuda:
 - **Por Racha:** Quién lleva más días consecutivos
 - **All-time:** Racha máxima histórica
 
+> Los rankings muestran solo a los miembros de tu grupo activo.
+
 ### Feed
-- Ve cuando alguien completa su lectura u oración
+- Ve cuando alguien de tu grupo completa su lectura u oración
 - Dale ❤️ a las actividades de otros
 - Comenta para animar a tu comunidad
 
@@ -143,6 +145,39 @@ Desde `/perfil/xp` puedes ver un desglose detallado de todo el XP que has ganado
 
 ---
 
+## 🏠 Grupos
+
+Quest permite tener múltiples grupos. Cada grupo tiene sus propios rankings, feed y configuración.
+
+### ¿Cómo crear un grupo?
+1. Ve a **Grupos** desde el menú
+2. Toca **"Crear Grupo"**
+3. Escribe el nombre del grupo
+4. Se te asigna un código de invitación automático
+
+### ¿Cómo unirme a un grupo?
+1. Ve a **Grupos** desde el menú
+2. Toca **"Unirme con Código"**
+3. Ingresa el código que te compartieron
+4. ¡Listo! Ya eres parte del grupo
+
+### ¿Cómo invitar a alguien?
+- Toca el botón **"Invitar"** junto al código de tu grupo
+- Se abre la opción de compartir de tu dispositivo (WhatsApp, Telegram, AirDrop, correo, etc.)
+- En computadora, se copia el mensaje de invitación al portapapeles
+
+### ¿Cómo cambiar de grupo?
+- Desde el **menú móvil**, toca el nombre de tu grupo actual
+- Se despliega la lista de tus grupos
+- Selecciona el grupo al que quieres cambiar
+
+### Tips
+- Puedes pertenecer a varios grupos a la vez
+- Cada grupo puede tener su propia configuración de penalizaciones
+- Los rankings y el feed solo muestran a los miembros de tu grupo activo
+
+---
+
 ## ❓ Preguntas Frecuentes
 
 ### ¿Qué pasa si pierdo mi racha?
@@ -159,3 +194,9 @@ Toca la tarjeta de nivel en tu perfil o en badges → se abre el **Historial XP*
 
 ### ¿Quién configura las penalizaciones?
 El admin de tu grupo configura el modo de penalización (dinero o puntos) y los montos.
+
+### ¿Puedo pertenecer a varios grupos?
+Sí, puedes ser miembro de múltiples grupos. Cambia de grupo activo desde el menú.
+
+### ¿Cómo comparto el código de invitación?
+Toca "Invitar" junto a tu grupo → elige la app para compartir (WhatsApp, Telegram, etc.).

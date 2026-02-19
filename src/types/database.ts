@@ -224,15 +224,62 @@ export type Database = {
       configuracion_app: {
         Row: {
           clave: string
+          grupo_id: string | null
           valor: string
         }
         Insert: {
           clave: string
+          grupo_id?: string | null
           valor: string
         }
         Update: {
           clave?: string
+          grupo_id?: string | null
           valor?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "configuracion_app_grupo_id_fkey"
+            columns: ["grupo_id"]
+            isOneToOne: false
+            referencedRelation: "grupos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      grupos: {
+        Row: {
+          activo: boolean | null
+          avatar_url: string | null
+          codigo_invitacion: string | null
+          creador_id: string | null
+          created_at: string | null
+          descripcion: string | null
+          id: string
+          max_miembros: number | null
+          nombre: string
+        }
+        Insert: {
+          activo?: boolean | null
+          avatar_url?: string | null
+          codigo_invitacion?: string | null
+          creador_id?: string | null
+          created_at?: string | null
+          descripcion?: string | null
+          id?: string
+          max_miembros?: number | null
+          nombre: string
+        }
+        Update: {
+          activo?: boolean | null
+          avatar_url?: string | null
+          codigo_invitacion?: string | null
+          creador_id?: string | null
+          created_at?: string | null
+          descripcion?: string | null
+          id?: string
+          max_miembros?: number | null
+          nombre?: string
         }
         Relationships: []
       }
@@ -262,6 +309,76 @@ export type Database = {
           usuario_id?: string
         }
         Relationships: []
+      }
+      invitaciones_grupo: {
+        Row: {
+          codigo: string | null
+          created_at: string | null
+          estado: string | null
+          expira_en: string | null
+          grupo_id: string | null
+          id: string
+          invitado_por: string | null
+        }
+        Insert: {
+          codigo?: string | null
+          created_at?: string | null
+          estado?: string | null
+          expira_en?: string | null
+          grupo_id?: string | null
+          id?: string
+          invitado_por?: string | null
+        }
+        Update: {
+          codigo?: string | null
+          created_at?: string | null
+          estado?: string | null
+          expira_en?: string | null
+          grupo_id?: string | null
+          id?: string
+          invitado_por?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invitaciones_grupo_grupo_id_fkey"
+            columns: ["grupo_id"]
+            isOneToOne: false
+            referencedRelation: "grupos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      miembros_grupo: {
+        Row: {
+          grupo_id: string | null
+          id: string
+          rol: string | null
+          unido_en: string | null
+          usuario_id: string | null
+        }
+        Insert: {
+          grupo_id?: string | null
+          id?: string
+          rol?: string | null
+          unido_en?: string | null
+          usuario_id?: string | null
+        }
+        Update: {
+          grupo_id?: string | null
+          id?: string
+          rol?: string | null
+          unido_en?: string | null
+          usuario_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "miembros_grupo_grupo_id_fkey"
+            columns: ["grupo_id"]
+            isOneToOne: false
+            referencedRelation: "grupos"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       penalizaciones: {
         Row: {
@@ -301,6 +418,7 @@ export type Database = {
       perfiles: {
         Row: {
           creado_en: string
+          grupo_activo_id: string | null
           id: string
           max_streak: number
           nivel: number | null
@@ -310,6 +428,7 @@ export type Database = {
         }
         Insert: {
           creado_en?: string
+          grupo_activo_id?: string | null
           id: string
           max_streak?: number
           nivel?: number | null
@@ -319,6 +438,7 @@ export type Database = {
         }
         Update: {
           creado_en?: string
+          grupo_activo_id?: string | null
           id?: string
           max_streak?: number
           nivel?: number | null
@@ -326,7 +446,15 @@ export type Database = {
           rol?: string
           xp?: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "perfiles_grupo_activo_id_fkey"
+            columns: ["grupo_activo_id"]
+            isOneToOne: false
+            referencedRelation: "grupos"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       planes_lectura: {
         Row: {
@@ -683,6 +811,7 @@ export type Database = {
           user_id: string
         }[]
       }
+      nanoid: { Args: { size?: number }; Returns: string }
       otorgar_xp:
         | {
             Args: {

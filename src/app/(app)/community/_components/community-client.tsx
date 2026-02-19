@@ -83,7 +83,7 @@ function RankRow({
   )
 }
 
-export function CommunityClient({ communityData, highestStreak }: { communityData: CommunityMember[]; highestStreak: { nombre_usuario: string; streak: number } | null }) {
+export function CommunityClient({ communityData, highestStreak, nombreGrupo }: { communityData: CommunityMember[]; highestStreak: { nombre_usuario: string; streak: number } | null; nombreGrupo: string }) {
   const { resolvedTheme } = useTheme()
   const isDark = resolvedTheme !== 'light'
 
@@ -112,7 +112,7 @@ export function CommunityClient({ communityData, highestStreak }: { communityDat
       >
         <div className="flex items-center justify-between mb-1">
           <h2 className="font-display text-[18px] font-bold" style={{ color: textClr }}>
-            Iglesia Centro
+            {nombreGrupo}
           </h2>
           <div
             className="flex items-center gap-1.5 rounded-full px-3 py-1"

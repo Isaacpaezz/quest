@@ -28,7 +28,7 @@ export default function AuthForm() {
     if (error) {
       setError(error.message)
     } else {
-      router.push('/')
+      router.push('/onboarding')
       router.refresh()
     }
   }
@@ -58,7 +58,7 @@ export default function AuthForm() {
 
   return (
     <div className="w-full bg-transparent">
-  <form onSubmit={handleSubmit} className="space-y-6 bg-white rounded-3xl p-6 shadow-lg border border-slate-100">
+      <form onSubmit={handleSubmit} className="space-y-6 bg-white rounded-3xl p-6 shadow-lg border border-slate-100">
         {/* Username */}
         {isNewUser && (
           <div className="space-y-2">

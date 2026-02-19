@@ -4,6 +4,27 @@ Todas las versiones y cambios notables del proyecto.
 
 ---
 
+## [0.11.0] - 2026-02-19
+
+### ✨ Nuevo
+- **Sistema Multi-Grupo** — Crear, unirse y gestionar múltiples grupos desde `/grupos`
+- **Selector de grupo** — Cambiar de grupo activo desde el menú móvil
+- **Onboarding** — Flujo post-registro para crear o unirse a un grupo
+- **Invitar miembros** — Botón "Invitar" con Web Share API nativa (WhatsApp, Telegram, AirDrop, etc.)
+- **Scoping por grupo** — Comunidad, feed, retos y estadísticas filtrados por grupo activo
+- **Nombre de grupo dinámico** — La página de comunidad muestra el nombre del grupo activo
+
+### 🐛 Corregido
+- **Clipboard crash** — `navigator.clipboard` no existe en HTTP/mobile; ahora usa fallback con textarea + `execCommand('copy')`
+
+### 🔧 Cambios
+- RPC `registrar_penalizaciones_diarias` ahora itera por grupo activo
+- `configuracion_app` ahora soporta `grupo_id` para config por grupo
+- `perfiles` incluye `grupo_activo_id` (FK → `grupos`)
+- Tipos `Grupo`, `MiembroGrupo`, `InvitacionGrupo`, `GrupoConMiembros` en `definitions.ts`
+
+---
+
 ## [0.10.0] - 2026-02-19
 
 ### ✨ Nuevo

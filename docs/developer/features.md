@@ -233,8 +233,72 @@ for (const prog of recentProgress) {
 ### Mobile
 - **PillNav:** Navegación inferior pill-shaped con 4 tabs (Home, Feed, Community, More)
 - **GlassHeader:** Header translúcido con título dinámico por ruta
-- **MenuPanel:** Drawer lateral con perfil, navegación completa, dark mode toggle
+- **MenuPanel:** Drawer lateral con perfil, navegación completa, dark mode toggle, y **selector de grupo**
 
 ### Desktop
-- **DesktopSidebar:** Sidebar izquierda con links a todas las secciones
+- **DesktopSidebar:** Sidebar izquierda con links a todas las secciones (incluye Grupos)
 - Contenido centrado con max-width
+
+---
+
+## 13. Grupos (Multi-Grupo)
+
+**Ruta:** `/grupos`  
+**Archivos clave:**
+- `src/app/(app)/grupos/page.tsx` — Server component
+- `src/app/(app)/grupos/_components/grupos-client.tsx` — Client component
+- `src/app/(app)/grupos/actions.ts` — Server actions (crear, unirse, cambiar grupo)
+- `src/lib/grupo-helpers.ts` — Helpers server-side para scoping
+- `src/components/layout/menu-panel.tsx` — Selector de grupo en menú móvil
+
+### Funcionalidad
+
+#### Gestión de Grupos
+- Crear grupo → genera `codigo_invitacion` automático vía `nanoid(8)`
+- Unirse a grupo → ingresar código de invitación
+- Cambiar grupo activo → actualiza `perfiles.grupo_activo_id`
+- Ver grupos del usuario con conteo de miembros y rol
+
+#### Compartir / Invitar
+- **Botón "Invitar"** → usa Web Share API nativa (`navigator.share`)
+  - Soporta WhatsApp, Telegram, AirDrop, correo, etc.
+  - Mensaje: `¡Únete a mi grupo "X" en Quest! 🙏\nUsa este código: ABC123`
+- **Fallback desktop** → copia el mensaje completo al portapapeles
+- **Botón "Copiar código"** → fallback con `textarea + execCommand('copy')` para HTTP/mobile
+
+#### Scoping por Grupo
+Todas las páginas principales filtran datos por miembros del grupo activo:
+- `/community` → Rankings solo de miembros del grupo
+- `/feed` → Actividades solo de miembros del grupo
+- `/challenges` → Retos creados por miembros del grupo
+- `/home` → Estadísticas (readers/prayers) del grupo
+
+#### Selector de Grupo (Menú Móvil)
+- Dropdown en header del `MenuPanel`
+- Muestra grupo activo con icono y nombre
+- Lista desplegable con todos los grupos del usuario
+- Al seleccionar → `cambiarGrupoActivoAction` + `router.refresh()`
+
+### Helper: `grupo-helpers.ts`
+```typescript
+getGrupoActivoId()       // → grupo_id del usuario actual
+getMiembrosGrupo(id)     // → usuario_ids del grupo
+getConfigGrupo(id)       // → configuración del grupo
+getMiembrosGrupoActivo() // → { memberIds, grupoId, nombreGrupo }
+```
+
+---
+
+## 14. Onboarding
+
+**Ruta:** `/onboarding`  
+**Archivos clave:**
+- `src/app/(app)/onboarding/page.tsx` — Server component (redirect si ya tiene grupo)
+- `src/app/(app)/onboarding/_components/onboarding-client.tsx` — Client component
+
+### Funcionalidad
+- Flujo post-registro para usuarios sin grupo activo
+- Dos opciones: **Crear grupo** o **Unirse con código**
+- Admins bypasan el redirect para poder revisar el diseño
+- `auth-form.tsx` redirige a `/onboarding` después del registro
+

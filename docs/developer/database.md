@@ -19,7 +19,49 @@ Datos del usuario. Se crea al registrarse via trigger o RPC admin.
 | `xp` | INTEGER | `0` | Puntos de experiencia acumulados |
 | `nivel` | INTEGER | `1` | Nivel actual del usuario |
 | `max_streak` | INTEGER | `0` | Racha máxima alcanzada |
+| `grupo_activo_id` | UUID (FK) | `null` | → `grupos(id)` — Grupo activo del usuario |
 | `creado_en` | TIMESTAMPTZ | `now()` | Fecha de registro |
+
+---
+
+### `grupos`
+Grupos de la aplicación. Cada grupo tiene su propia configuración y miembros.
+
+| Columna | Tipo | Default | Descripción |
+|---------|------|---------|-------------|
+| `id` | UUID (PK) | auto | — |
+| `nombre` | TEXT | — | Nombre del grupo |
+| `descripcion` | TEXT | `null` | Descripción opcional |
+| `codigo_invitacion` | TEXT | `null` | Código para unirse (generado con `nanoid`) |
+| `creador_id` | UUID (FK) | `null` | → `auth.users(id)` |
+| `avatar_url` | TEXT | `null` | URL del avatar del grupo |
+| `max_miembros` | INTEGER | `null` | Límite de miembros |
+| `activo` | BOOLEAN | `true` | Si el grupo está activo |
+| `created_at` | TIMESTAMPTZ | `now()` | — |
+
+### `miembros_grupo`
+Relación N:N entre usuarios y grupos.
+
+| Columna | Tipo | Default | Descripción |
+|---------|------|---------|-------------|
+| `id` | UUID (PK) | auto | — |
+| `grupo_id` | UUID (FK) | — | → `grupos(id)` |
+| `usuario_id` | UUID (FK) | — | → `auth.users(id)` |
+| `rol` | TEXT | `'miembro'` | `admin` o `miembro` |
+| `unido_en` | TIMESTAMPTZ | `now()` | — |
+
+### `invitaciones_grupo`
+Invitaciones generadas para unirse a un grupo.
+
+| Columna | Tipo | Default | Descripción |
+|---------|------|---------|-------------|
+| `id` | UUID (PK) | auto | — |
+| `grupo_id` | UUID (FK) | — | → `grupos(id)` |
+| `codigo` | TEXT | `null` | Código de invitación |
+| `invitado_por` | UUID (FK) | `null` | → `auth.users(id)` |
+| `estado` | TEXT | `'pendiente'` | `pendiente`, `usada`, `expirada` |
+| `expira_en` | TIMESTAMPTZ | `null` | Fecha de expiración |
+| `created_at` | TIMESTAMPTZ | `now()` | — |
 
 ---
 
@@ -163,12 +205,13 @@ Registro de rachas recuperadas.
 ---
 
 ### `configuracion_app`
-Configuración clave-valor para el sistema.
+Configuración clave-valor para el sistema, ahora scoped por grupo.
 
 | Columna | Tipo | Descripción |
 |---------|------|-------------|
 | `clave` | TEXT (PK) | Nombre de la config |
 | `valor` | TEXT | Valor de la config |
+| `grupo_id` | UUID (FK) | → `grupos(id)` — Config específica del grupo |
 
 **Claves actuales:**
 | Clave | Valor Default | Descripción |
@@ -200,7 +243,8 @@ Configuración clave-valor para el sistema.
 | `crear_plan_con_capitulos` | `nombre`, `fechas`, `capitulos` | void | Crea plan de lectura |
 | `programar_plan_siguiente` | `plan_id` | void | Programa siguiente plan |
 | `transicion_automatica_de_plan` | — | void | Transiciona planes activos |
-| `registrar_penalizaciones_diarias` | — | void | Registra penalizaciones |
+| `registrar_penalizaciones_diarias` | — | void | Registra penalizaciones por grupo activo |
+| `nanoid` | `size` | TEXT | Genera ID corto para códigos de invitación |
 | `aplicar_pago_a_usuario` | `usuario_id`, `monto` | void | Aplica pago a deudas |
 | `get_all_user_streaks` | — | `[{user_id, streak_count}]` | Rachas de todos los usuarios |
 | `get_all_push_subscriptions` | — | `[{usuario_id, subscription}]` | Todas las suscripciones push |

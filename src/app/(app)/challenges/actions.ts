@@ -7,6 +7,7 @@ import { ActionState } from '@/types/definitions'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { pushService } from '@/lib/web-push'
 import { getXpConfig, grantXp } from '@/lib/xp-helpers'
+import { getMiembrosGrupoActivo } from '@/lib/grupo-helpers'
 import type { PushSubscription as WebPushSubscription } from 'web-push'
 
 const CrearRetoSchema = z.object({
@@ -67,18 +68,16 @@ export async function crearRetoAction(
     xp_propuesto: recompensa_xp,
   })
 
-  // Si es grupal, invitar a todos los demás miembros
+  // Si es grupal, invitar solo a miembros del grupo activo
   if (tipo === 'grupal') {
-    const { data: allProfiles } = await supabase
-      .from('perfiles')
-      .select('id')
-      .neq('id', user.id)
+    const { miembros } = await getMiembrosGrupoActivo(supabase)
+    const otrosMiembros = miembros.filter(id => id !== user.id)
 
-    if (allProfiles && allProfiles.length > 0) {
+    if (otrosMiembros.length > 0) {
       // Insert all as pendiente
-      const invitations = allProfiles.map(p => ({
+      const invitations = otrosMiembros.map(memberId => ({
         reto_id: reto.id,
-        usuario_id: p.id,
+        usuario_id: memberId,
         estado: 'pendiente',
       }))
       await supabase.from('reto_participantes').insert(invitations)
@@ -104,11 +103,10 @@ export async function crearRetoAction(
         }
 
         if (admin) {
-          const memberIds = allProfiles.map(p => p.id)
           const { data: subs } = await admin
             .from('suscripciones_push')
             .select('subscription, usuario_id')
-            .in('usuario_id', memberIds)
+            .in('usuario_id', otrosMiembros)
 
           if (subs && subs.length > 0) {
             await Promise.all(

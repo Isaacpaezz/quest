@@ -1,19 +1,22 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useTransition } from 'react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { useTheme } from 'next-themes'
 import {
     X, Activity, Users, CalendarDays, User, Settings,
-    Trophy, Award, AlertTriangle, Sun, Moon,
+    Trophy, Award, AlertTriangle, Sun, Moon, UsersRound,
+    ChevronDown, Check,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { cambiarGrupoActivoAction } from '@/app/(app)/grupos/actions'
 
 /* ───── menu sections ───── */
 const NAV_ITEMS = [
     { href: '/feed', label: 'Feed', icon: Activity },
     { href: '/community', label: 'Comunidad', icon: Users },
+    { href: '/grupos', label: 'Grupos', icon: UsersRound },
     { href: '/history', label: 'Historial', icon: CalendarDays },
     { href: '/challenges', label: 'Retos', icon: Trophy },
     { href: '/badges', label: 'Badges', icon: Award },
@@ -35,29 +38,58 @@ interface UserInfo {
     nombre_usuario: string | null
     xp: number
     nivel: number
+    grupo_activo_id: string | null
+}
+
+interface GrupoItem {
+    id: string
+    nombre: string
 }
 
 /* ───── component ───── */
 export function MenuPanel({ open, onClose }: MenuPanelProps) {
     const pathname = usePathname()
+    const router = useRouter()
     const { resolvedTheme, setTheme } = useTheme()
     const isDark = resolvedTheme !== 'light'
 
     const [userInfo, setUserInfo] = useState<UserInfo | null>(null)
+    const [grupos, setGrupos] = useState<GrupoItem[]>([])
+    const [showGroupPicker, setShowGroupPicker] = useState(false)
+    const [isSwitching, startTransition] = useTransition()
 
-    // Fetch user profile once
+    // Fetch user profile + groups
     useEffect(() => {
         if (!open) return
         const supabase = createClient()
         supabase.auth.getUser().then(({ data: { user } }) => {
             if (!user) return
+
+            // Profile
             supabase
                 .from('perfiles')
-                .select('nombre_usuario, xp, nivel')
+                .select('nombre_usuario, xp, nivel, grupo_activo_id')
                 .eq('id', user.id)
                 .single()
                 .then(({ data }) => {
                     if (data) setUserInfo(data as UserInfo)
+                })
+
+            // User's groups
+            supabase
+                .from('miembros_grupo')
+                .select('grupo_id, grupos ( id, nombre )')
+                .eq('usuario_id', user.id)
+                .then(({ data }) => {
+                    if (data) {
+                        const items: GrupoItem[] = data
+                            .map(m => {
+                                const g = m.grupos as unknown as { id: string; nombre: string } | null
+                                return g ? { id: g.id, nombre: g.nombre } : null
+                            })
+                            .filter((g): g is GrupoItem => g !== null)
+                        setGrupos(items)
+                    }
                 })
         })
     }, [open])
@@ -76,7 +108,21 @@ export function MenuPanel({ open, onClose }: MenuPanelProps) {
         return () => window.removeEventListener('keydown', handler)
     }, [onClose])
 
+    // Close group picker when panel closes
+    useEffect(() => {
+        if (!open) setShowGroupPicker(false)
+    }, [open])
+
     const toggleTheme = () => setTheme(isDark ? 'light' : 'dark')
+
+    const handleSwitchGroup = (grupoId: string) => {
+        startTransition(async () => {
+            await cambiarGrupoActivoAction(grupoId)
+            setUserInfo(prev => prev ? { ...prev, grupo_activo_id: grupoId } : prev)
+            setShowGroupPicker(false)
+            router.refresh()
+        })
+    }
 
     /* ─── colors ─── */
     const panelBg = isDark ? '#0A0C12' : '#FFFFFF'
@@ -93,6 +139,8 @@ export function MenuPanel({ open, onClose }: MenuPanelProps) {
     const initials = userInfo?.nombre_usuario
         ? userInfo.nombre_usuario.slice(0, 2).toUpperCase()
         : '?'
+
+    const activeGroup = grupos.find(g => g.id === userInfo?.grupo_activo_id)
 
     /* ─── helpers ─── */
     function renderItem(
@@ -210,6 +258,82 @@ export function MenuPanel({ open, onClose }: MenuPanelProps) {
                             </span>
                         </div>
                     </div>
+
+                    {/* ─── Group Selector ─── */}
+                    {grupos.length > 0 && (
+                        <div className="mt-3 relative">
+                            <button
+                                onClick={() => setShowGroupPicker(!showGroupPicker)}
+                                className="flex items-center gap-2 w-full rounded-[10px] px-3 py-2 active:scale-[0.98] transition-transform"
+                                style={{
+                                    backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+                                    border: `1px solid ${isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)'}`,
+                                }}
+                            >
+                                <UsersRound className="size-3.5 shrink-0" style={{ color: isDark ? '#2DDAB0' : '#1AAF8B' }} />
+                                <span
+                                    className="text-[12px] font-sans font-[600] truncate flex-1 text-left"
+                                    style={{ color: textPrimary }}
+                                >
+                                    {activeGroup?.nombre ?? 'Sin grupo'}
+                                </span>
+                                <ChevronDown
+                                    className="size-3.5 shrink-0 transition-transform duration-200"
+                                    style={{
+                                        color: textSecondary,
+                                        transform: showGroupPicker ? 'rotate(180deg)' : 'rotate(0deg)',
+                                    }}
+                                />
+                            </button>
+
+                            {/* Dropdown */}
+                            {showGroupPicker && (
+                                <div
+                                    className="absolute left-0 right-0 mt-1 rounded-[12px] overflow-hidden z-10"
+                                    style={{
+                                        backgroundColor: isDark ? '#151929' : '#FFFFFF',
+                                        border: `1px solid ${isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'}`,
+                                        boxShadow: '0 8px 24px rgba(0,0,0,0.2)',
+                                    }}
+                                >
+                                    {grupos.map((grupo, i) => {
+                                        const isActive = grupo.id === userInfo?.grupo_activo_id
+                                        return (
+                                            <button
+                                                key={grupo.id}
+                                                onClick={() => !isActive && handleSwitchGroup(grupo.id)}
+                                                disabled={isSwitching}
+                                                className="flex items-center gap-2.5 w-full px-3 py-2.5 text-left transition-colors disabled:opacity-50"
+                                                style={{
+                                                    backgroundColor: isActive
+                                                        ? (isDark ? 'rgba(45,218,176,0.08)' : 'rgba(26,175,139,0.06)')
+                                                        : 'transparent',
+                                                    borderBottom: i < grupos.length - 1
+                                                        ? `1px solid ${isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.04)'}`
+                                                        : 'none',
+                                                }}
+                                            >
+                                                {isActive ? (
+                                                    <Check className="size-3.5 shrink-0" style={{ color: isDark ? '#2DDAB0' : '#1AAF8B' }} />
+                                                ) : (
+                                                    <div className="size-3.5 shrink-0" />
+                                                )}
+                                                <span
+                                                    className="text-[12px] font-sans truncate"
+                                                    style={{
+                                                        color: isActive ? (isDark ? '#2DDAB0' : '#1AAF8B') : textPrimary,
+                                                        fontWeight: isActive ? 600 : 400,
+                                                    }}
+                                                >
+                                                    {grupo.nombre}
+                                                </span>
+                                            </button>
+                                        )
+                                    })}
+                                </div>
+                            )}
+                        </div>
+                    )}
                 </div>
 
                 {/* ─── Navigation items ─── */}
