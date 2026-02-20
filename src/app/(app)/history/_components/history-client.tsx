@@ -27,12 +27,14 @@ type PlanWithProgress = {
 function MonthCalendar({
   completedDates,
   pendingDates,
+  maintenanceDates,
   year,
   month,
   isDark,
 }: {
   completedDates: Set<string>
   pendingDates: Set<string>
+  maintenanceDates: Set<string>
   year: number
   month: number
   isDark: boolean
@@ -49,6 +51,7 @@ function MonthCalendar({
   const weekDays = ['L', 'M', 'X', 'J', 'V', 'S', 'D']
   const accentClr = isDark ? '#2DDAB0' : '#1AAF8B'
   const pendingClr = isDark ? '#FFB84D' : '#E69500'
+  const maintenanceClr = isDark ? '#7B8CDE' : '#5B6BC0'
   const dotBg = isDark ? '#1E2330' : '#E0E3EB'
   const textClr = isDark ? '#5A6075' : '#8C9099'
   const todayBdr = isDark ? '#3D4560' : '#C0C5D5'
@@ -72,11 +75,13 @@ function MonthCalendar({
           const isToday = day === today.getDate() && month === today.getMonth() && year === today.getFullYear()
           const done = completedDates.has(dateStr)
           const pending = pendingDates.has(dateStr)
+          const isMaintenance = maintenanceDates.has(dateStr)
           const isSunday = new Date(year, month, day).getDay() === 0
 
           let bg = dotBg
           let color = textClr
-          if (done) { bg = accentClr; color = isDark ? '#080A10' : '#FFFFFF' }
+          if (isMaintenance) { bg = maintenanceClr; color = '#FFFFFF' }
+          else if (done) { bg = accentClr; color = isDark ? '#080A10' : '#FFFFFF' }
           else if (pending) { bg = pendingClr; color = isDark ? '#080A10' : '#FFFFFF' }
 
           return (
@@ -97,7 +102,7 @@ function MonthCalendar({
       </div>
 
       {/* Legend */}
-      <div className="flex items-center gap-4 mt-3">
+      <div className="flex flex-wrap items-center gap-3 mt-3">
         <div className="flex items-center gap-1.5">
           <div className="size-3 rounded-sm" style={{ backgroundColor: accentClr }} />
           <span className="text-[10px] font-sans" style={{ color: textClr }}>Completado</span>
@@ -110,6 +115,12 @@ function MonthCalendar({
           <div className="size-3 rounded-sm" style={{ backgroundColor: dotBg }} />
           <span className="text-[10px] font-sans" style={{ color: textClr }}>Libre</span>
         </div>
+        {maintenanceDates.size > 0 && (
+          <div className="flex items-center gap-1.5">
+            <div className="size-3 rounded-sm" style={{ backgroundColor: maintenanceClr }} />
+            <span className="text-[10px] font-sans" style={{ color: textClr }}>🔧 En actualización</span>
+          </div>
+        )}
       </div>
     </div>
   )
@@ -138,10 +149,13 @@ function ProgressBar({
 export function HistoryClient({
   progressData,
   planes,
+  maintenanceDates: maintenanceDatesProp,
 }: {
   progressData: ProgressEntry[]
   planes: PlanWithProgress[]
+  maintenanceDates?: string[]
 }) {
+  const maintenanceDatesSet = new Set(maintenanceDatesProp || [])
   const { resolvedTheme } = useTheme()
   const isDark = resolvedTheme !== 'light'
 
@@ -288,6 +302,7 @@ export function HistoryClient({
         <MonthCalendar
           completedDates={completedDates}
           pendingDates={pendingDates}
+          maintenanceDates={maintenanceDatesSet}
           year={viewYear}
           month={viewMonth}
           isDark={isDark}

@@ -76,11 +76,18 @@ export default async function HistoryPage() {
     })
   )
 
+  // Maintenance period indicator — only for Tiempo con Dios group
+  const TIEMPO_CON_DIOS_ID = '21efefd8-f647-40d1-98cf-380069e6d7b4'
+  const maintenanceDates = grupoId === TIEMPO_CON_DIOS_ID
+    ? ['2026-02-11', '2026-02-12', '2026-02-13', '2026-02-14', '2026-02-15', '2026-02-16', '2026-02-17', '2026-02-18', '2026-02-19']
+    : undefined
+
   return (
     <div>
       <HistoryClient
         progressData={progressRes.data || []}
         planes={planesConProgreso}
+        maintenanceDates={maintenanceDates}
       />
     </div>
   )
