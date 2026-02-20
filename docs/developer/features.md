@@ -25,14 +25,26 @@ Este documento describe todas las features implementadas en Quest hasta la fecha
 - Mini-cards de retos con invitaciones pendientes
 
 ### Cálculo de Racha
+
+Todas las páginas usan la utilidad compartida `calculateStreak()` de `src/lib/streak.ts`:
+
 ```typescript
-// Consultar últimos 60 registros ordenados por fecha desc
-// Contar consecutivos donde lectura_completada OR oracion_completada
-for (const prog of recentProgress) {
-  if (prog.lectura_completada || prog.oracion_completada) {
-    streakCount++
-  } else { break }
-}
+// src/lib/streak.ts
+export function calculateStreak(progressEntries, todayStr): number
+```
+
+**Reglas:**
+- Un día cuenta solo si `lectura_completada && oracion_completada` (ambas)
+- Verifica fechas **consecutivas** reales (no solo filas en secuencia)
+- **Día libre** (configurado por admin) se salta — no rompe la racha
+- Si hoy no está completado, cuenta desde ayer (racha vigente hasta medianoche)
+- Deduplica entradas por fecha
+
+**Usado en:** `home/page.tsx`, `community/page.tsx`, `admin/page.tsx`, `admin/miembros/page.tsx`
+
+**Scoping por grupo:** Las páginas admin y community filtran progreso via inner join:
+```
+progreso_usuario → capitulos_diarios!inner → planes_lectura!inner(grupo_id)
 ```
 
 ---
@@ -92,9 +104,10 @@ for (const prog of recentProgress) {
 
 ### Funcionalidad
 - Leaderboard por XP **del grupo activo** (lee de `miembros_grupo.xp`)
-- Rankings por racha (streak) actual y máxima (all-time)
+- Rankings por racha (streak) actual (**scoped al grupo** via `calculateStreak()`) y máxima (all-time)
 - Avatar + nombre + nivel + XP de cada usuario
 - Posición destacada del usuario actual
+- Rachas calculadas con progreso filtrado por grupo via inner join
 
 ---
 

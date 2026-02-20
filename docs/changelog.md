@@ -4,6 +4,26 @@ Todas las versiones y cambios notables del proyecto.
 
 ---
 
+## [0.15.0] - 2026-02-19
+
+### 🐛 Correcciones
+- **Rachas corregidas** — Ahora requieren lectura **Y** oración (antes bastaba con una)
+- **Rachas por grupo** — Solo cuenta progreso de planes del grupo activo (antes era global)
+- **Fechas consecutivas** — Verifica que los días sean realmente consecutivos, no solo filas en secuencia
+- **Día libre** — El día libre configurado por el admin no rompe la racha
+- **Racha vigente hasta medianoche** — Si hoy no has completado, muestra la racha de ayer
+
+### ✨ Nuevo
+- **Utilidad compartida `calculateStreak()`** en `src/lib/streak.ts` — Elimina lógica duplicada en 4 páginas
+- **Historial: progreso comunitario** — El historial ahora muestra barras duales (individual + comunidad) por plan
+- **Perfil: enlace admin simplificado** — Un solo enlace "Panel Admin" en vez de 3 enlaces separados
+
+### 🔧 Cambios
+- `community/page.tsx`: Reemplazó RPC global `get_all_user_streaks` por query scoped al grupo
+- `admin/page.tsx`, `admin/miembros/page.tsx`, `home/page.tsx`: Usan `calculateStreak()` compartido
+
+---
+
 ## [0.14.0] - 2026-02-19
 
 ### ✨ Nuevo

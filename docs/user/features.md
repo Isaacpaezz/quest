@@ -21,12 +21,15 @@ Tu lectura bíblica y oración de cada día.
 
 ## 🔥 Rachas
 
-Tu racha es el número de días consecutivos que has completado al menos una actividad.
+Tu racha es el número de días consecutivos que has completado **lectura y oración**.
 
 ### ¿Cómo se calcula?
-- Si hoy completaste lectura **o** oración → cuenta como día activo
-- La racha se incrementa por cada día consecutivo
-- Si un día no completas nada → la racha se rompe
+- Un día cuenta como completado solo si hiciste **lectura Y oración**
+- La racha cuenta días consecutivos hacia atrás (sin contar hoy si aún no terminas)
+- El **día libre** configurado por el admin no rompe la racha aunque no hagas nada
+- La racha se mantiene vigente **hasta las 12:00 AM** de la zona horaria de tu grupo
+- Si al final del día no completaste ambas tareas → la racha se rompe
+- La racha es **por grupo** — solo cuenta progreso de planes del grupo activo
 
 ### Recuperar racha
 Si perdiste tu racha pero tenías una racha anterior:

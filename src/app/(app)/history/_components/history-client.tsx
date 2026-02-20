@@ -2,13 +2,25 @@
 
 import { useState } from 'react'
 import { useTheme } from 'next-themes'
-import { BookOpen, Clock, Calendar, ChevronDown } from 'lucide-react'
-import { type Tables } from '@/types/database'
+import { BookOpen, ChevronDown, Users, User } from 'lucide-react'
 
 type ProgressEntry = {
   fecha_progreso: string
   lectura_completada: boolean
   oracion_completada: boolean
+}
+
+type PlanWithProgress = {
+  id: number
+  nombre_libro: string
+  fecha_inicio: string
+  fecha_fin: string
+  estado: string
+  minutos_oracion_requeridos: number | null
+  grupo_id: string | null
+  communityProgress: number
+  individualProgress: number
+  totalCapitulos: number
 }
 
 // ── Simple calendar heatmap ────────────────────────────────────────────────
@@ -103,12 +115,32 @@ function MonthCalendar({
   )
 }
 
+// ── Progress bar component ─────────────────────────────────────────────────
+function ProgressBar({
+  progress,
+  color,
+  trackColor,
+}: {
+  progress: number
+  color: string
+  trackColor: string
+}) {
+  return (
+    <div className="w-full h-[6px] rounded-full overflow-hidden" style={{ backgroundColor: trackColor }}>
+      <div
+        className="h-full rounded-full transition-all duration-500"
+        style={{ width: `${Math.min(progress, 100)}%`, backgroundColor: color }}
+      />
+    </div>
+  )
+}
+
 export function HistoryClient({
   progressData,
   planes,
 }: {
   progressData: ProgressEntry[]
-  planes: Tables<'planes_lectura'>[]
+  planes: PlanWithProgress[]
 }) {
   const { resolvedTheme } = useTheme()
   const isDark = resolvedTheme !== 'light'
@@ -123,6 +155,12 @@ export function HistoryClient({
   const subClr = isDark ? '#5A6075' : '#8C9099'
   const accentClr = isDark ? '#2DDAB0' : '#1AAF8B'
   const sectionLbl = isDark ? '#7A8090' : '#6B7080'
+  const communityClr = '#6C63FF'
+  const trackClr = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)'
+
+  // Separate active vs completed plans
+  const activePlanes = planes.filter(p => p.estado === 'activo')
+  const completedPlanes = planes.filter(p => p.estado === 'completado')
 
   // Build sets for the viewed month
   const completedDates = new Set<string>()
@@ -256,7 +294,7 @@ export function HistoryClient({
         />
       </div>
 
-      {/* Stats cards — matching Pencil design */}
+      {/* Stats cards */}
       <div className="grid grid-cols-2 gap-3">
         <div
           className="rounded-[20px] p-4"
@@ -284,8 +322,39 @@ export function HistoryClient({
         </div>
       </div>
 
-      {/* Books section */}
-      {planes.length > 0 && (
+      {/* Active Plans with progress */}
+      {activePlanes.length > 0 && (
+        <div>
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-5 h-[2px] rounded-sm" style={{ backgroundColor: accentClr }} />
+            <span
+              className="text-[11px] font-bold tracking-[2px] font-sans uppercase"
+              style={{ color: sectionLbl }}
+            >
+              PLAN ACTIVO
+            </span>
+          </div>
+          <div className="flex flex-col gap-3">
+            {activePlanes.map(plan => (
+              <PlanCard
+                key={plan.id}
+                plan={plan}
+                isDark={isDark}
+                cardBg={cardBg}
+                border={border}
+                textClr={textClr}
+                subClr={subClr}
+                accentClr={accentClr}
+                communityClr={communityClr}
+                trackClr={trackClr}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Completed Plans */}
+      {completedPlanes.length > 0 && (
         <div>
           <div className="flex items-center gap-3 mb-3">
             <div className="w-5 h-[2px] rounded-sm" style={{ backgroundColor: '#FF6B35' }} />
@@ -293,53 +362,128 @@ export function HistoryClient({
               className="text-[11px] font-bold tracking-[2px] font-sans uppercase"
               style={{ color: sectionLbl }}
             >
-              LIBROS LEÍDOS
+              LIBROS LEÍDOS ({completedPlanes.length})
             </span>
           </div>
           <div className="flex flex-col gap-3">
-            {planes.map(plan => {
-              const endDate = new Date(plan.fecha_fin)
-              const startDate = new Date(plan.fecha_inicio)
-              const diffDays = Math.ceil(Math.abs(endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1
-              return (
-                <div
-                  key={plan.id}
-                  className="rounded-[20px] p-4"
-                  style={{ backgroundColor: cardBg, border: `1px solid ${border}` }}
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-center gap-3 flex-1 min-w-0">
-                      <div
-                        className="size-10 rounded-xl flex items-center justify-center shrink-0"
-                        style={{ backgroundColor: isDark ? 'rgba(45,218,176,0.12)' : 'rgba(26,175,139,0.10)' }}
-                      >
-                        <BookOpen className="size-5" style={{ color: accentClr }} />
-                      </div>
-                      <div className="min-w-0">
-                        <h3 className="text-[14px] font-[600] font-sans truncate" style={{ color: textClr }}>
-                          {plan.nombre_libro}
-                        </h3>
-                        <p className="text-[12px] font-sans mt-0.5" style={{ color: subClr }}>
-                          {endDate.toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })}
-                        </p>
-                      </div>
-                    </div>
-                    <div
-                      className="shrink-0 px-2.5 py-1 rounded-full text-[11px] font-[600] font-sans"
-                      style={{
-                        backgroundColor: isDark ? 'rgba(45,218,176,0.12)' : 'rgba(26,175,139,0.10)',
-                        color: accentClr,
-                      }}
-                    >
-                      ✓ {diffDays}d
-                    </div>
-                  </div>
-                </div>
-              )
-            })}
+            {completedPlanes.map(plan => (
+              <PlanCard
+                key={plan.id}
+                plan={plan}
+                isDark={isDark}
+                cardBg={cardBg}
+                border={border}
+                textClr={textClr}
+                subClr={subClr}
+                accentClr={accentClr}
+                communityClr={communityClr}
+                trackClr={trackClr}
+              />
+            ))}
           </div>
         </div>
       )}
+    </div>
+  )
+}
+
+// ── Plan card with dual progress bars ──────────────────────────────────────
+function PlanCard({
+  plan,
+  isDark,
+  cardBg,
+  border,
+  textClr,
+  subClr,
+  accentClr,
+  communityClr,
+  trackClr,
+}: {
+  plan: PlanWithProgress
+  isDark: boolean
+  cardBg: string
+  border: string
+  textClr: string
+  subClr: string
+  accentClr: string
+  communityClr: string
+  trackClr: string
+}) {
+  const startStr = plan.fecha_inicio?.split('T')[0] ?? ''
+  const endStr = plan.fecha_fin?.split('T')[0] ?? ''
+  const startDate = startStr ? new Date(startStr + 'T12:00:00') : null
+  const endDate = endStr ? new Date(endStr + 'T12:00:00') : null
+  const dateRange = startDate && endDate && !isNaN(startDate.getTime()) && !isNaN(endDate.getTime())
+    ? `${startDate.toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' })} — ${endDate.toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' })}`
+    : ''
+  const isActive = plan.estado === 'activo'
+
+  return (
+    <div
+      className="rounded-[20px] p-4"
+      style={{ backgroundColor: cardBg, border: `1px solid ${border}` }}
+    >
+      {/* Header */}
+      <div className="flex items-start justify-between gap-3 mb-3">
+        <div className="flex items-center gap-3 flex-1 min-w-0">
+          <div
+            className="size-10 rounded-xl flex items-center justify-center shrink-0"
+            style={{ backgroundColor: isDark ? 'rgba(45,218,176,0.12)' : 'rgba(26,175,139,0.10)' }}
+          >
+            <BookOpen className="size-5" style={{ color: accentClr }} />
+          </div>
+          <div className="min-w-0">
+            <h3 className="text-[14px] font-[600] font-sans truncate" style={{ color: textClr }}>
+              {plan.nombre_libro}
+            </h3>
+            <p className="text-[11px] font-sans mt-0.5" style={{ color: subClr }}>
+              {dateRange}
+            </p>
+          </div>
+        </div>
+        {isActive && (
+          <div
+            className="shrink-0 px-2.5 py-1 rounded-full text-[10px] font-[600] font-sans"
+            style={{
+              backgroundColor: isDark ? 'rgba(45,218,176,0.15)' : 'rgba(26,175,139,0.12)',
+              color: accentClr,
+            }}
+          >
+            Activo
+          </div>
+        )}
+      </div>
+
+      {/* Dual progress bars */}
+      <div className="flex flex-col gap-2.5">
+        {/* Individual progress */}
+        <div>
+          <div className="flex items-center justify-between mb-1">
+            <div className="flex items-center gap-1.5">
+              <User className="size-3" style={{ color: accentClr }} />
+              <span className="text-[11px] font-sans font-medium" style={{ color: subClr }}>Mi progreso</span>
+            </div>
+            <span className="text-[11px] font-sans font-bold" style={{ color: accentClr }}>
+              {plan.individualProgress}%
+            </span>
+          </div>
+          <ProgressBar progress={plan.individualProgress} color={accentClr} trackColor={trackClr} />
+        </div>
+
+        {/* Community progress */}
+        <div>
+          <div className="flex items-center justify-between mb-1">
+            <div className="flex items-center gap-1.5">
+              <Users className="size-3" style={{ color: communityClr }} />
+              <span className="text-[11px] font-sans font-medium" style={{ color: subClr }}>Comunidad</span>
+            </div>
+            <span className="text-[11px] font-sans font-bold" style={{ color: communityClr }}>
+              {plan.communityProgress}%
+            </span>
+          </div>
+          <ProgressBar progress={plan.communityProgress} color={communityClr} trackColor={trackClr} />
+        </div>
+      </div>
     </div>
   )
 }

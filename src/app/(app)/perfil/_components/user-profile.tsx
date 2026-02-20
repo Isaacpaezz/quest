@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useTheme } from 'next-themes'
-import { Moon, Sun, Bell, Crown, LogOut, ChevronRight, ListChecks, ShieldX, Settings, TrendingUp } from 'lucide-react'
+import { Moon, Sun, Bell, Crown, LogOut, ChevronRight, Settings, TrendingUp } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
@@ -350,9 +350,7 @@ export function UserProfile({ profile, stats, xpHistory = [] }: { profile: any; 
             className="rounded-[20px] overflow-hidden"
             style={{ backgroundColor: cardBg, border: `1px solid ${cardBorder}` }}
           >
-            <MenuItem icon={ListChecks} label="Planes de Lectura" href="/admin/planes" />
-            <MenuItem icon={ShieldX} label="Penalizaciones" href="/admin/penalizaciones" />
-            <MenuItem icon={Settings} label="Configuración" href="/admin/configuracion" />
+            <MenuItem icon={Settings} label="Panel Admin" href="/admin" />
           </div>
           {/* Test notification (admin only) */}
           <button

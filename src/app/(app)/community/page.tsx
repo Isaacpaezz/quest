@@ -4,7 +4,8 @@ import { CommunityClient } from './_components/community-client'
 import { Tables } from '@/types/database'
 import { CommunityMember } from '@/types/definitions'
 import { getToday } from '@/lib/utils'
-import { getMiembrosGrupoActivo, getTimezone } from '@/lib/grupo-helpers'
+import { getMiembrosGrupoActivo, getTimezone, getDiasLibres } from '@/lib/grupo-helpers'
+import { calculateStreak } from '@/lib/streak'
 
 export default async function CommunityPage() {
   const supabase = await createClient()
@@ -24,15 +25,27 @@ export default async function CommunityPage() {
     if (grupo) nombreGrupo = grupo.nombre
   }
 
-  // Obtener todos los datos en paralelo, incluyendo rachas — filtrado por grupo
-  const [profilesRes, miembrosXpRes, progressTodayRes, penaltiesRes, streaksRes] = await Promise.all([
+  // Obtener todos los datos en paralelo — rachas scoped al grupo activo
+  const [profilesRes, miembrosXpRes, progressTodayRes, penaltiesRes, streakProgressRes] = await Promise.all([
     supabase.from('perfiles').select('id, nombre_usuario, xp, nivel, max_streak, rol, creado_en, grupo_activo_id').in('id', miembros),
     grupoId
       ? supabase.from('miembros_grupo').select('usuario_id, xp, nivel').eq('grupo_id', grupoId)
       : Promise.resolve({ data: null }),
     supabase.from('progreso_usuario').select('usuario_id, fecha_progreso, lectura_completada, oracion_completada, segundos_oracion_acumulados').eq('fecha_progreso', today),
     supabase.from('penalizaciones').select('id, usuario_id, fecha_incumplimiento, monto, monto_pagado, estado').eq('estado', 'pendiente'),
-    supabase.rpc('get_all_user_streaks'), // Obtener rachas de todos los usuarios
+    // Group-scoped progress for streak calculation (via capitulos_diarios → planes_lectura)
+    grupoId
+      ? supabase
+        .from('progreso_usuario')
+        .select('usuario_id, fecha_progreso, lectura_completada, oracion_completada, capitulos_diarios!inner(planes_lectura!inner(grupo_id))')
+        .in('usuario_id', miembros)
+        .eq('capitulos_diarios.planes_lectura.grupo_id', grupoId)
+        .order('fecha_progreso', { ascending: false })
+      : supabase
+        .from('progreso_usuario')
+        .select('usuario_id, fecha_progreso, lectura_completada, oracion_completada')
+        .in('usuario_id', miembros)
+        .order('fecha_progreso', { ascending: false }),
   ])
 
   // Build a map of group XP per user (use group XP for rankings, not global)
@@ -44,7 +57,15 @@ export default async function CommunityPage() {
   }
 
   const pendingPenalties = penaltiesRes.data as Tables<'penalizaciones'>[] || []
-  const streaksData = streaksRes.data || []
+  const streakProgress = streakProgressRes.data ?? []
+
+  // Calculate group-scoped streaks using shared utility
+  const diasLibres = await getDiasLibres(supabase, grupoId)
+  const streakMap: Record<string, number> = {}
+  for (const uid of miembros) {
+    const userProgress = streakProgress.filter(p => p.usuario_id === uid)
+    streakMap[uid] = calculateStreak(userProgress, today, diasLibres)
+  }
 
   const penaltyDates = pendingPenalties.map(p => p.fecha_incumplimiento);
   const penaltyUserIds = pendingPenalties.map(p => p.usuario_id);
@@ -58,7 +79,7 @@ export default async function CommunityPage() {
   const communityData: CommunityMember[] = (profilesRes.data || []).map((profile): CommunityMember => {
     const todayProgress = (progressTodayRes.data || []).find(p => p.usuario_id === profile.id)
     const userPenalties = pendingPenalties.filter(p => p.usuario_id === profile.id)
-    const userStreak = streaksData.find((s: { user_id: string }) => s.user_id === profile.id)
+    const userStreak = streakMap[profile.id] ?? 0
 
     const enrichedPenalties = userPenalties.map(penalty => {
       const progressRecord = (historicProgressData || []).find(hp =>
@@ -84,7 +105,7 @@ export default async function CommunityPage() {
         lectura_completada: todayProgress?.lectura_completada || false,
         oracion_completada: todayProgress?.oracion_completada || false,
       },
-      streak: userStreak?.streak_count || 0, // Añadir racha del usuario
+      streak: userStreak, // Group-scoped streak
       deuda: {
         total: totalDeuda,
         dias_pendientes: enrichedPenalties.length,

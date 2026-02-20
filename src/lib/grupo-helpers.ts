@@ -83,3 +83,23 @@ export async function getTimezone(supabase: TypedSupabaseClient): Promise<string
   const config = await getConfigGrupo(supabase, grupoId)
   return config['timezone'] || DEFAULT_TIMEZONE
 }
+
+/**
+ * Obtiene los días libres del grupo activo (0=domingo, 6=sábado).
+ * Si no tiene grupo activo, retorna array vacío.
+ */
+export async function getDiasLibres(
+  supabase: TypedSupabaseClient,
+  grupoId?: string | null
+): Promise<number[]> {
+  const gid = grupoId ?? await getGrupoActivo(supabase)
+  if (!gid) return []
+
+  const config = await getConfigGrupo(supabase, gid)
+  try {
+    return JSON.parse(config['dias_libres'] || '[]')
+  } catch {
+    return []
+  }
+}
+

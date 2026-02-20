@@ -2,7 +2,8 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { DashboardClient } from './_components/dashboard-client'
 import { getToday } from '@/lib/utils'
-import { getMiembrosGrupoActivo, getTimezone } from '@/lib/grupo-helpers'
+import { getMiembrosGrupoActivo, getTimezone, getDiasLibres } from '@/lib/grupo-helpers'
+import { calculateStreak } from '@/lib/streak'
 
 /**
  * Página principal del Dashboard.
@@ -21,7 +22,10 @@ export default async function DashboardPage() {
   const tz = await getTimezone(supabase)
   const today = getToday(tz)
 
-  const { data: dailyMission } = await supabase
+  // Obtener grupo activo para filtrar planes
+  const { grupoId: grupoIdForPlan } = await getMiembrosGrupoActivo(supabase)
+
+  let dailyMissionQuery = supabase
     .from('planes_lectura')
     .select(`
       minutos_oracion_requeridos,
@@ -30,9 +34,14 @@ export default async function DashboardPage() {
         referencia_capitulo
       )
     `)
-    .eq('estado', 'activo') // Usamos 'estado' en lugar de 'esta_activo'
+    .eq('estado', 'activo')
     .eq('capitulos_diarios.fecha_lectura', today)
-    .single()
+
+  if (grupoIdForPlan) {
+    dailyMissionQuery = dailyMissionQuery.eq('grupo_id', grupoIdForPlan)
+  }
+
+  const { data: dailyMission } = await dailyMissionQuery.single()
 
   // 2. Obtener el progreso del usuario para la misión de hoy
   const { data: userProgress } = await supabase
@@ -47,7 +56,7 @@ export default async function DashboardPage() {
   const startOfDayIso = new Date(`${today}T00:00:00-04:00`).toISOString()
   const endOfDayIso = new Date(`${today}T23:59:59.999-04:00`).toISOString()
 
-  const { miembros: memberIds } = await getMiembrosGrupoActivo(supabase)
+  const { grupoId, miembros: memberIds } = await getMiembrosGrupoActivo(supabase)
 
   let readersQuery = supabase
     .from('actividad_comunidad')
@@ -104,14 +113,8 @@ export default async function DashboardPage() {
     .limit(60)
 
   if (recentProgress) {
-    for (let i = 0; i < recentProgress.length; i++) {
-      const prog = recentProgress[i]
-      if (prog.lectura_completada || prog.oracion_completada) {
-        streakCount++
-      } else {
-        break
-      }
-    }
+    const diasLibres = await getDiasLibres(supabase, grupoIdForPlan)
+    streakCount = calculateStreak(recentProgress, today, diasLibres)
   }
 
   // Update max_streak if current streak exceeds stored record
@@ -167,11 +170,16 @@ export default async function DashboardPage() {
   let totalChapters = 0
   let completedChapters = 0
 
-  const { data: planData } = await supabase
+  let planQuery = supabase
     .from('planes_lectura')
     .select('id')
     .eq('estado', 'activo')
-    .single()
+
+  if (grupoIdForPlan) {
+    planQuery = planQuery.eq('grupo_id', grupoIdForPlan)
+  }
+
+  const { data: planData } = await planQuery.single()
 
   if (planData) {
     // Total chapters in the plan
