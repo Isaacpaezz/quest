@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation'
 import { X, Play, Pause, Square } from 'lucide-react'
 import { toast } from 'sonner'
 import { Toaster } from '@/components/ui/sonner'
-import { guardarProgresoOracionAction } from '../actions'
+import { actualizarProgresoOracionAction } from '@/app/(app)/home/actions'
 
 // ── Types & Constants ──────────────────────────────────────────────────
 
@@ -109,16 +109,39 @@ export function OracionClient({ minutosRequeridos, segundosIniciales, capituloId
     const save = useCallback(async (secs: number, done: boolean) => {
         const clamped = Math.min(Math.floor(secs), totalSecs)
         try {
-            await guardarProgresoOracionAction({
+            const result = await actualizarProgresoOracionAction({
                 segundosAcumulados: clamped,
                 capituloId,
                 oracionCompletada: done,
             })
-            if (done) toast.success('¡Oración completada!', { description: '+50 XP 🙏' })
+            if (done) {
+                const xp = result?.xpGanado ?? 0
+                toast.success('¡Oración completada!', {
+                    description: xp > 0 ? `+${xp} XP 🙏` : '¡Has completado tu tiempo de oración!',
+                })
+            }
         } catch (e) {
             console.error('Save error:', e)
         }
     }, [capituloId, totalSecs])
+
+    // ── Handle completion (async, awaits save) ──
+    const handleCompletion = useCallback(async () => {
+        rafId.current = null
+        runStartRef.current = null
+        elapsedRef.current = totalSecs
+        setElapsed(totalSecs)
+        setIsRunning(false)
+        setIsComplete(true)
+        setSaving(true)
+        lsClear()
+        void wakeOff()
+        try {
+            await save(totalSecs, true)
+        } finally {
+            setSaving(false)
+        }
+    }, [totalSecs, save])
 
     // ── RAF loop ──
     const loop = useCallback(() => {
@@ -126,20 +149,13 @@ export function OracionClient({ minutosRequeridos, segundosIniciales, capituloId
         setElapsed(cur)
 
         if (cur >= totalSecs) {
-            // DONE
-            rafId.current = null
-            runStartRef.current = null
-            elapsedRef.current = totalSecs
-            setIsRunning(false)
-            setIsComplete(true)
-            lsClear()
-            void wakeOff()
-            void save(totalSecs, true)
+            // DONE — delegate to async handler
+            void handleCompletion()
             return
         }
 
         rafId.current = requestAnimationFrame(loop)
-    }, [now, totalSecs, save])
+    }, [now, totalSecs, handleCompletion])
 
     // ── Start / Pause ──
     const doStart = useCallback(() => {
@@ -316,10 +332,11 @@ export function OracionClient({ minutosRequeridos, segundosIniciales, capituloId
                         )}
                         <button
                             onClick={() => { lsClear(); router.push('/home') }}
-                            className="mt-1 rounded-xl px-6 py-3 text-sm font-semibold active:scale-95"
+                            disabled={saving}
+                            className="mt-1 rounded-xl px-6 py-3 text-sm font-semibold active:scale-95 disabled:opacity-50"
                             style={{ background: teal, color: '#111318' }}
                         >
-                            Volver al inicio
+                            {saving ? 'Guardando…' : 'Volver al inicio'}
                         </button>
                     </div>
                 )}
