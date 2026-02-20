@@ -117,19 +117,23 @@ export default async function DashboardPage() {
     streakCount = calculateStreak(recentProgress, today, diasLibres)
   }
 
-  // Update max_streak if current streak exceeds stored record
+  // Update max_streak: global (perfiles) + per-group (miembros_grupo)
   if (streakCount > 0) {
-    const { data: profile } = await supabase
-      .from('perfiles')
-      .select('max_streak')
-      .eq('id', user.id)
-      .single()
+    const [{ data: profile }, { data: miembro }] = await Promise.all([
+      supabase.from('perfiles').select('max_streak').eq('id', user.id).single(),
+      grupoIdForPlan
+        ? supabase.from('miembros_grupo').select('id, max_streak').eq('usuario_id', user.id).eq('grupo_id', grupoIdForPlan).single()
+        : Promise.resolve({ data: null }),
+    ])
 
+    // Global max streak (all-time across all groups)
     if (profile && streakCount > (profile.max_streak || 0)) {
-      await supabase
-        .from('perfiles')
-        .update({ max_streak: streakCount })
-        .eq('id', user.id)
+      await supabase.from('perfiles').update({ max_streak: streakCount }).eq('id', user.id)
+    }
+
+    // Per-group max streak
+    if (miembro && streakCount > (miembro.max_streak || 0)) {
+      await supabase.from('miembros_grupo').update({ max_streak: streakCount }).eq('id', miembro.id)
     }
   }
 

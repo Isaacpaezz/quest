@@ -15,20 +15,21 @@ export default async function BadgesPage() {
         supabase.rpc('get_all_user_streaks'),
     ])
 
-    const maxStreak = perfilRes.data?.max_streak || 0
+    let maxStreak = perfilRes.data?.max_streak || 0
     const currentStreak = (streaksRes.data || []).find((s: { user_id: string }) => s.user_id === user.id)?.streak_count || 0
 
-    // Override with group XP if user has active group
+    // Override with group XP/nivel/max_streak if user has active group
     let perfilData = perfilRes.data
     if (perfilData?.grupo_activo_id) {
         const { data: miembro } = await supabase
             .from('miembros_grupo')
-            .select('xp, nivel')
+            .select('xp, nivel, max_streak')
             .eq('usuario_id', user.id)
             .eq('grupo_id', perfilData.grupo_activo_id)
             .single()
         if (miembro) {
             perfilData = { ...perfilData, xp: miembro.xp, nivel: miembro.nivel }
+            maxStreak = miembro.max_streak || 0
         }
     }
 

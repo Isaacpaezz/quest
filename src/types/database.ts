@@ -366,6 +366,7 @@ export type Database = {
         Row: {
           grupo_id: string | null
           id: string
+          max_streak: number
           nivel: number
           rol: string | null
           unido_en: string | null
@@ -375,6 +376,7 @@ export type Database = {
         Insert: {
           grupo_id?: string | null
           id?: string
+          max_streak?: number
           nivel?: number
           rol?: string | null
           unido_en?: string | null
@@ -384,6 +386,7 @@ export type Database = {
         Update: {
           grupo_id?: string | null
           id?: string
+          max_streak?: number
           nivel?: number
           rol?: string | null
           unido_en?: string | null

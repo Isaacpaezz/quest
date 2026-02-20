@@ -113,18 +113,21 @@ export default async function CommunityPage() {
       }
     }
   })
-  // Compute the all-time highest streak from perfiles.max_streak
+  // Compute the all-time highest streak from miembros_grupo.max_streak (per-group)
+  const { data: miembrosMaxStreak } = grupoId
+    ? await supabase.from('miembros_grupo').select('usuario_id, max_streak').eq('grupo_id', grupoId)
+    : { data: null }
+
   const allProfiles = profilesRes.data || []
-  const bestProfile = allProfiles.reduce((best: typeof allProfiles[0] | null, p) => {
-    if (!best || (p.max_streak || 0) > (best.max_streak || 0)) return p
-    return best
-  }, null)
+  const profileMap = new Map(allProfiles.map(p => [p.id, p]))
 
   let highestStreak: { nombre_usuario: string; streak: number } | null = null
-  if (bestProfile && (bestProfile.max_streak || 0) > 0) {
-    highestStreak = {
-      nombre_usuario: bestProfile.nombre_usuario,
-      streak: bestProfile.max_streak || 0,
+  for (const m of miembrosMaxStreak || []) {
+    if ((m.max_streak || 0) > (highestStreak?.streak || 0)) {
+      const profile = profileMap.get(m.usuario_id!)
+      if (profile) {
+        highestStreak = { nombre_usuario: profile.nombre_usuario, streak: m.max_streak || 0 }
+      }
     }
   }
 
