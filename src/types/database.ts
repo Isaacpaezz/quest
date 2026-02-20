@@ -190,18 +190,21 @@ export type Database = {
           actividad_id: number
           created_at: string
           id: string
+          tipo_reaccion: string
           user_id: string
         }
         Insert: {
           actividad_id: number
           created_at?: string
           id?: string
+          tipo_reaccion?: string
           user_id: string
         }
         Update: {
           actividad_id?: number
           created_at?: string
           id?: string
+          tipo_reaccion?: string
           user_id?: string
         }
         Relationships: [
@@ -224,17 +227,17 @@ export type Database = {
       configuracion_app: {
         Row: {
           clave: string
-          grupo_id: string | null
+          grupo_id: string
           valor: string
         }
         Insert: {
           clave: string
-          grupo_id?: string | null
+          grupo_id: string
           valor: string
         }
         Update: {
           clave?: string
-          grupo_id?: string | null
+          grupo_id?: string
           valor?: string
         }
         Relationships: [
@@ -311,7 +314,15 @@ export type Database = {
           referencia_id?: string | null
           usuario_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "historial_xp_grupo_id_fkey"
+            columns: ["grupo_id"]
+            isOneToOne: false
+            referencedRelation: "grupos"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       invitaciones_grupo: {
         Row: {
@@ -393,6 +404,7 @@ export type Database = {
         Row: {
           estado: Database["public"]["Enums"]["penalizacion_estado"]
           fecha_incumplimiento: string
+          grupo_id: string | null
           id: number
           monto: number
           monto_pagado: number
@@ -401,6 +413,7 @@ export type Database = {
         Insert: {
           estado?: Database["public"]["Enums"]["penalizacion_estado"]
           fecha_incumplimiento: string
+          grupo_id?: string | null
           id?: number
           monto: number
           monto_pagado?: number
@@ -409,12 +422,20 @@ export type Database = {
         Update: {
           estado?: Database["public"]["Enums"]["penalizacion_estado"]
           fecha_incumplimiento?: string
+          grupo_id?: string | null
           id?: number
           monto?: number
           monto_pagado?: number
           usuario_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "penalizaciones_grupo_id_fkey"
+            columns: ["grupo_id"]
+            isOneToOne: false
+            referencedRelation: "grupos"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "penalizaciones_usuario_id_fkey"
             columns: ["usuario_id"]
@@ -470,6 +491,7 @@ export type Database = {
           estado: Database["public"]["Enums"]["plan_estado"]
           fecha_fin: string
           fecha_inicio: string
+          grupo_id: string
           id: number
           minutos_oracion_requeridos: number
           nombre_libro: string
@@ -478,6 +500,7 @@ export type Database = {
           estado?: Database["public"]["Enums"]["plan_estado"]
           fecha_fin: string
           fecha_inicio: string
+          grupo_id: string
           id?: number
           minutos_oracion_requeridos: number
           nombre_libro: string
@@ -486,11 +509,20 @@ export type Database = {
           estado?: Database["public"]["Enums"]["plan_estado"]
           fecha_fin?: string
           fecha_inicio?: string
+          grupo_id?: string
           id?: number
           minutos_oracion_requeridos?: number
           nombre_libro?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "planes_lectura_grupo_id_fkey"
+            columns: ["grupo_id"]
+            isOneToOne: false
+            referencedRelation: "grupos"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       progreso_usuario: {
         Row: {
@@ -789,23 +821,52 @@ export type Database = {
         Returns: undefined
       }
       calcular_nivel: { Args: { p_xp: number }; Returns: number }
-      canjear_puntos: {
-        Args: { p_grupo_id?: string; p_puntos: number; p_tasa_canjeo?: number; p_usuario_id: string }
-        Returns: {
-          monto_descontado: number
-          xp_restante: number
-        }[]
-      }
-      crear_plan_con_capitulos: {
-        Args: {
-          capitulos_param: Json
-          fecha_fin_param: string
-          fecha_inicio_param: string
-          minutos_oracion_requeridos_param: number
-          nombre_libro_param: string
-        }
-        Returns: undefined
-      }
+      canjear_puntos:
+        | {
+            Args: {
+              p_puntos: number
+              p_tasa_canjeo?: number
+              p_usuario_id: string
+            }
+            Returns: {
+              monto_descontado: number
+              xp_restante: number
+            }[]
+          }
+        | {
+            Args: {
+              p_grupo_id?: string
+              p_puntos: number
+              p_tasa_canjeo?: number
+              p_usuario_id: string
+            }
+            Returns: {
+              monto_descontado: number
+              xp_restante: number
+            }[]
+          }
+      crear_plan_con_capitulos:
+        | {
+            Args: {
+              capitulos_param: Json
+              fecha_fin_param: string
+              fecha_inicio_param: string
+              minutos_oracion_requeridos_param: number
+              nombre_libro_param: string
+            }
+            Returns: undefined
+          }
+        | {
+            Args: {
+              capitulos_param: Json
+              fecha_fin_param: string
+              fecha_inicio_param: string
+              grupo_id_param: string
+              minutos_oracion_requeridos_param: number
+              nombre_libro_param: string
+            }
+            Returns: undefined
+          }
       get_all_push_subscriptions: {
         Args: never
         Returns: {
@@ -821,20 +882,46 @@ export type Database = {
         }[]
       }
       nanoid: { Args: { size?: number }; Returns: string }
-      otorgar_xp: {
-        Args: {
-          p_cantidad: number
-          p_grupo_id?: string
-          p_motivo?: string
-          p_referencia_id?: string
-          p_usuario_id: string
-        }
-        Returns: {
-          nuevo_nivel: number
-          nuevo_xp: number
-          subio_nivel: boolean
-        }[]
-      }
+      otorgar_xp:
+        | {
+            Args: {
+              p_cantidad: number
+              p_motivo?: string
+              p_referencia_id?: string
+              p_usuario_id: string
+            }
+            Returns: {
+              nuevo_nivel: number
+              nuevo_xp: number
+              subio_nivel: boolean
+            }[]
+          }
+        | {
+            Args: {
+              p_cantidad: number
+              p_grupo_id?: string
+              p_motivo?: string
+              p_referencia_id?: string
+              p_usuario_id: string
+            }
+            Returns: {
+              nuevo_nivel: number
+              nuevo_xp: number
+              subio_nivel: boolean
+            }[]
+          }
+        | {
+            Args: {
+              p_cantidad: number
+              p_motivo?: string
+              p_usuario_id: string
+            }
+            Returns: {
+              nuevo_nivel: number
+              nuevo_xp: number
+              subio_nivel: boolean
+            }[]
+          }
       programar_plan_siguiente: {
         Args: { plan_id_a_programar: number }
         Returns: undefined
@@ -982,4 +1069,3 @@ export const Constants = {
     },
   },
 } as const
-

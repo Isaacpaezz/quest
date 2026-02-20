@@ -202,6 +202,43 @@ Cuando subes de nivel, se comparte automáticamente en el feed con un diseño do
 
 ---
 
+## 🛡️ Panel de Admin
+
+Solo los administradores del grupo pueden acceder al panel de administración.
+
+### Dashboard (`/admin`)
+- **4 estadísticas** en grid: Miembros activos, Deuda total, XP promedio, Racha promedio
+- **Plan activo** del grupo
+- **Alertas:** Rachas en peligro (≤ 1 día) y deudas altas
+- **Acciones rápidas:** Crear Reto, Invitar miembros (Web Share API)
+- Links a las 4 sub-páginas de admin
+
+### Miembros (`/admin/miembros`)
+- Lista de miembros con nombre, nivel, XP, racha y deuda
+- **Cambiar rol:** Asignar o quitar rol de admin
+- **Eliminar miembro** del grupo (no puedes eliminarte a ti mismo)
+- **Código de invitación** visible con botones de copiar/compartir
+
+### Configuración (`/admin/configuracion`)
+| Parámetro | Descripción |
+|-----------|-------------|
+| Modo penalización | Dinero o puntos |
+| Monto penalización | Cuánto se cobra por incumplimiento |
+| Tasa de canjeo | XP → reducción de deuda |
+| Costo recuperar racha (XP) | XP para recuperar racha |
+| Costo recuperar racha (dinero) | Monto en dinero para recuperar |
+| Máx. recuperaciones/mes | Límite mensual |
+| Método de recuperación | XP, dinero, reto extra (multi-select) |
+| Zona horaria | Timezone del grupo (afecta el corte de día) |
+| Días libres | Qué día(s) de la semana no se penaliza (ej: domingo) |
+
+### Penalizaciones (`/admin/penalizaciones`)
+- **Ver deudas del grupo** con nombre, monto y estado
+- **Marcar como pagada** — Aplicar pago parcial o total
+- **Crear penalización manual** — Seleccionar miembro, monto y motivo
+
+---
+
 ## ❓ Preguntas Frecuentes
 
 ### ¿Qué pasa si pierdo mi racha?
@@ -217,7 +254,7 @@ Ganas XP completando actividades, retos, y manteniendo rachas. Al acumular sufic
 Toca la tarjeta de nivel en tu perfil o en badges → se abre el **Historial XP** con el desglose completo.
 
 ### ¿Quién configura las penalizaciones?
-El admin de tu grupo configura el modo de penalización (dinero o puntos) y los montos.
+El admin de tu grupo configura el modo de penalización (dinero o puntos) y los montos desde **Panel Admin → Configuración**.
 
 ### ¿Puedo pertenecer a varios grupos?
 Sí, puedes ser miembro de múltiples grupos. Cambia de grupo activo desde el menú.
@@ -227,3 +264,10 @@ Toca "Invitar" junto a tu grupo → elige la app para compartir (WhatsApp, Teleg
 
 ### ¿Qué zona horaria usa Quest?
 Cada grupo tiene su propia zona horaria configurada. El día cambia a las **12:00 AM** de esa zona horaria. Esto afecta cuándo aparece la nueva lectura y cuándo se calculan las penalizaciones.
+
+### ¿Qué son los días libres?
+Días de la semana que el admin configura donde **no** se penaliza por no completar lectura/oración. Tampoco rompen tu racha.
+
+### ¿Las penalizaciones son por grupo?
+Sí. Si perteneces a varios grupos, las penalizaciones de cada grupo se manejan por separado.
+

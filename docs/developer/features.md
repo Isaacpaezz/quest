@@ -317,6 +317,7 @@ getMiembrosGrupo(id)     // → usuario_ids del grupo
 getConfigGrupo(id)       // → configuración del grupo
 getMiembrosGrupoActivo() // → { memberIds, grupoId, nombreGrupo }
 getTimezone()            // → timezone IANA del grupo activo
+getDiasLibres(supabase, grupoId?) // → number[] de días libres (0=dom, 6=sáb)
 ```
 
 ---
@@ -362,3 +363,103 @@ DEFAULT_TIMEZONE                // → 'America/Caracas'
 - `home/page.tsx`, `home/actions.ts`, `community/page.tsx`, `feed/page.tsx`, `oracion/page.tsx`, `oracion/actions.ts` — Usan timezone configurable
 - `history/page.tsx` — Import no usado removido
 - `supabase/migrations/20260219202700_*.sql` — PK fix + función + cron + seed
+
+---
+
+## 16. Panel de Admin (Sub-fase 3I)
+
+Pantallas de administración relocalizadas de `src/app/(admin)/admin/` a `src/app/(app)/admin/` para compartir el layout principal de la app.
+
+### 16.1 Dashboard (`/admin`)
+**Archivos:**
+- `src/app/(app)/admin/page.tsx` — Server component (fetch stats, streaks, alerts)
+- `src/app/(app)/admin/_components/admin-dashboard-client.tsx` — Client component
+
+**Funcionalidad:**
+- Grid de 4 stats: miembros activos, deuda total (scoped al grupo), XP promedio, racha promedio
+- Plan activo del grupo
+- **Alertas inteligentes:** rachas ≤ 1 día (en peligro), deudas > $20
+- **Acciones rápidas:** Crear Reto (→ `/challenges`), Invitar (Web Share API)
+- Links a 4 sub-páginas: Planes, Penalizaciones, Miembros, Configuración
+
+### 16.2 Miembros (`/admin/miembros`)
+**Archivos:**
+- `src/app/(app)/admin/miembros/page.tsx` — Server component (perfiles fetched individualmente, no via join)
+- `src/app/(app)/admin/miembros/_components/miembros-client.tsx` — Client component
+- `src/app/(app)/admin/miembros/actions.ts` — `cambiarRolAction`, `eliminarMiembroAction`
+
+**Funcionalidad:**
+- Lista de miembros con nombre, nivel, XP, racha y deuda
+- Cambiar rol admin ↔ miembro
+- Eliminar miembro (protección: no puedes eliminarte a ti mismo)
+- Código de invitación con botones copiar/compartir
+
+**Fix:** El join `perfiles(nombre_usuario)` no funcionaba porque no existe FK explícita entre `miembros_grupo.usuario_id` y `perfiles.id`. Se buscan los perfiles individualmente.
+
+### 16.3 Configuración (`/admin/configuracion`)
+**Archivos:**
+- `src/app/(app)/admin/configuracion/page.tsx` — Server component (lee `configuracion_app`)
+- `src/app/(app)/admin/configuracion/_components/settings-form.tsx` — Client form
+- `src/app/(app)/admin/configuracion/actions.ts` — `actualizarConfiguracionAction` (Zod validation + upsert)
+
+**Parámetros configurables:**
+| Clave | Tipo | Descripción |
+|-------|------|-------------|
+| `modo_penalizacion` | select | `dinero` o `puntos` |
+| `monto_penalizacion` | number | Monto por incumplimiento |
+| `tasa_canjeo` | number | XP → reducción de deuda |
+| `costo_recuperacion_puntos` | number | XP para recuperar racha |
+| `costo_recuperacion_dinero` | number | Dinero para recuperar |
+| `max_recuperaciones_mes` | number | Límite mensual |
+| `metodo_recuperacion` | multi-select | XP, dinero, reto extra |
+| `timezone` | select | Timezone IANA del grupo |
+| `dias_libres` | day-picker | JSON array `[0]` = domingo |
+
+**Fix:** Select de shadcn se sobreponía — reemplazado por dropdown custom con z-index correcto y click-outside.
+
+### 16.4 Penalizaciones (`/admin/penalizaciones`)
+**Archivos:**
+- `src/app/(app)/admin/penalizaciones/page.tsx` — Server component (deudas del grupo)
+- `src/app/(app)/admin/penalizaciones/_components/penalties-client.tsx` — Client component
+- `src/app/(app)/admin/penalizaciones/actions.ts` — `aplicarPagoAction`, `crearPenalizacionManualAction`
+
+**Funcionalidad:**
+- Lista de deudas del grupo con nombre, monto, y estado
+- Aplicar pago (parcial o total) vía `aplicar_pago_a_usuario` RPC
+- **Crear penalización manual** — Modal: seleccionar miembro, monto, motivo
+
+### 16.5 Planes (`/admin/planes`)
+**Archivos:**
+- `src/app/(app)/admin/planes/page.tsx` — Server component (planes del grupo)
+- `src/app/(app)/admin/planes/_components/plan-management-client.tsx` — Client component
+- `src/app/(app)/admin/planes/actions.ts` — `generarPlanAction`, `eliminarPlanAction`, `programarPlanSiguienteAction`
+
+**Funcionalidad:**
+- Crear plan de lectura (seleccionar libro bíblico, minutos oración)
+- Cola inteligente: fecha inicio = día después del último plan
+- Genera capítulos diarios **omitiendo días libres** del grupo
+- Eliminar planes no activos
+- Programar siguiente plan
+
+### 16.6 Penalizaciones Group-Scoped
+
+**Migración:** `20260220003400_add_grupo_id_to_penalizaciones.sql`
+
+**Cambios:**
+- Nueva columna `penalizaciones.grupo_id` (FK → `grupos.id`)
+- Backfill: asigna `grupo_id` basado en membresía del usuario
+- Función `registrar_penalizaciones_diarias()` actualizada:
+  - Itera por grupo activo
+  - Lee `dias_libres` del grupo y salta días libres
+  - Incluye `grupo_id` en INSERT
+  - Requiere `lectura_completada AND oracion_completada` para cumplir
+
+**Impacto:** Deudas ahora son por grupo. Un usuario en múltiples grupos solo ve deudas del grupo activo.
+
+### 16.7 Layout y Navegación (Cambios)
+- **`layout.tsx`** — Admin layout ahora hereda del layout principal `(app)`
+- **`pill-nav.tsx`** — Referencia a admin actualizada
+- **`desktop-sidebar.tsx`** — Link a admin agregado
+- **`glass-header.tsx`** — Título dinámico para rutas de admin
+- **`menu-panel.tsx`** — Enlace admin en menú lateral
+

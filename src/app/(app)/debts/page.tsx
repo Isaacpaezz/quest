@@ -8,12 +8,17 @@ export default async function DeudasPage() {
     if (!user) redirect('/login')
 
     // Obtener datos en paralelo
-    const [perfilRes, penalizacionesRes, canjeosRes, configRes, progressRes] = await Promise.all([
-        supabase.from('perfiles').select('id, nombre_usuario, xp, nivel, max_streak, grupo_activo_id').eq('id', user.id).single(),
-        supabase.from('penalizaciones').select('id, usuario_id, fecha_incumplimiento, monto, monto_pagado, estado')
-            .eq('usuario_id', user.id)
-            .eq('estado', 'pendiente')
-            .order('fecha_incumplimiento', { ascending: false }),
+    const perfilRes = await supabase.from('perfiles').select('id, nombre_usuario, xp, nivel, max_streak, grupo_activo_id').eq('id', user.id).single()
+    const grupoId = perfilRes.data?.grupo_activo_id
+
+    const penalizacionesQuery = supabase.from('penalizaciones').select('id, usuario_id, fecha_incumplimiento, monto, monto_pagado, estado, grupo_id')
+        .eq('usuario_id', user.id)
+        .eq('estado', 'pendiente')
+        .order('fecha_incumplimiento', { ascending: false })
+    if (grupoId) penalizacionesQuery.eq('grupo_id', grupoId)
+
+    const [penalizacionesRes, canjeosRes, configRes, progressRes] = await Promise.all([
+        penalizacionesQuery,
         supabase.from('canjeos').select('id, puntos_usados, monto_descontado, descripcion, usuario_id, created_at')
             .eq('usuario_id', user.id)
             .order('created_at', { ascending: false })

@@ -7,7 +7,7 @@ import { useTheme } from 'next-themes'
 import {
     X, Activity, Users, CalendarDays, User, Settings,
     Trophy, Award, AlertTriangle, Sun, Moon, UsersRound,
-    ChevronDown, Check,
+    ChevronDown, Check, Shield, BookOpen, DollarSign, Wrench,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { cambiarGrupoActivoAction } from '@/app/(app)/grupos/actions'
@@ -28,6 +28,10 @@ const ACCOUNT_ITEMS = [
     { href: '/perfil/soporte', label: 'Configuración', icon: Settings },
 ]
 
+const ADMIN_ITEMS = [
+    { href: '/admin', label: 'Panel Admin', icon: Shield },
+]
+
 /* ───── types ───── */
 interface MenuPanelProps {
     open: boolean
@@ -39,6 +43,7 @@ interface UserInfo {
     xp: number
     nivel: number
     grupo_activo_id: string | null
+    rol: string | null
 }
 
 interface GrupoItem {
@@ -68,7 +73,7 @@ export function MenuPanel({ open, onClose }: MenuPanelProps) {
             // Profile
             supabase
                 .from('perfiles')
-                .select('nombre_usuario, xp, nivel, grupo_activo_id')
+                .select('nombre_usuario, xp, nivel, grupo_activo_id, rol')
                 .eq('id', user.id)
                 .single()
                 .then(async ({ data }) => {
@@ -77,12 +82,12 @@ export function MenuPanel({ open, onClose }: MenuPanelProps) {
                     if (data.grupo_activo_id) {
                         const { data: miembro } = await supabase
                             .from('miembros_grupo')
-                            .select('xp, nivel')
+                            .select('xp, nivel, rol')
                             .eq('usuario_id', user.id)
                             .eq('grupo_id', data.grupo_activo_id)
                             .single()
                         if (miembro) {
-                            setUserInfo({ ...data, xp: miembro.xp, nivel: miembro.nivel } as UserInfo)
+                            setUserInfo({ ...data, xp: miembro.xp, nivel: miembro.nivel, rol: miembro.rol } as UserInfo)
                             return
                         }
                     }
@@ -378,6 +383,30 @@ export function MenuPanel({ open, onClose }: MenuPanelProps) {
                             renderItem(item, i === ACCOUNT_ITEMS.length - 1),
                         )}
                     </div>
+
+                    {/* Admin section (only if admin) */}
+                    {userInfo?.rol === 'admin' && (
+                        <>
+                            {/* Divider */}
+                            <div style={{ height: 1, backgroundColor: divider, margin: '4px 24px' }} />
+
+                            {/* Section label */}
+                            <div style={{ padding: '12px 24px 4px 24px' }}>
+                                <span
+                                    className="text-[11px] font-bold font-sans uppercase tracking-[1px]"
+                                    style={{ color: textSecondary }}
+                                >
+                                    Administración
+                                </span>
+                            </div>
+
+                            <div style={{ padding: '0 0 8px 0' }}>
+                                {ADMIN_ITEMS.map((item, i) =>
+                                    renderItem(item, i === ADMIN_ITEMS.length - 1),
+                                )}
+                            </div>
+                        </>
+                    )}
                 </div>
 
                 {/* ─── Bottom: theme toggle + version ─── */}

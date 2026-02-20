@@ -9,7 +9,7 @@ import { MenuPanel } from './menu-panel'
 
 // Routes that count as "active" for the Menu tab
 const MENU_ROUTES = [
-    '/feed', '/community', '/history', '/perfil', '/challenges', '/badges', '/debts',
+    '/feed', '/community', '/history', '/perfil', '/challenges', '/badges', '/debts', '/admin',
 ]
 
 // Routes that are the two explicit nav tabs

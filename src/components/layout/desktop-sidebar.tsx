@@ -51,6 +51,7 @@ export async function DesktopSidebar() {
           <div className="pt-4">
             <h2 className="px-2 text-xs font-semibold tracking-wider text-muted-foreground uppercase">Administración</h2>
             <Link href="/admin/planes" className="flex items-center gap-3 px-2 py-2 rounded-md text-sm font-medium hover:bg-muted"><ListChecks className="h-5 w-5" /> Planes de Lectura</Link>
+            <Link href="/admin/miembros" className="flex items-center gap-3 px-2 py-2 rounded-md text-sm font-medium hover:bg-muted"><Users className="h-5 w-5" /> Miembros</Link>
             <Link href="/admin/penalizaciones" className="flex items-center gap-3 px-2 py-2 rounded-md text-sm font-medium hover:bg-muted"><ShieldX className="h-5 w-5" /> Penalizaciones</Link>
             <Link href="/admin/configuracion" className="flex items-center gap-3 px-2 py-2 rounded-md text-sm font-medium hover:bg-muted"><Settings className="h-5 w-5" /> Configuración</Link>
           </div>

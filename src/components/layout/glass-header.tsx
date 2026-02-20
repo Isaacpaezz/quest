@@ -14,6 +14,11 @@ const ROUTE_TITLES: Record<string, string> = {
     '/badges': 'Badges',
     '/debts': 'Deudas',
     '/history': 'Historial',
+    '/admin': 'Admin',
+    '/admin/planes': 'Planes',
+    '/admin/miembros': 'Miembros',
+    '/admin/penalizaciones': 'Penalizaciones',
+    '/admin/configuracion': 'Configuración',
 }
 
 const ROUTE_SUBTITLES: Record<string, string> = {

@@ -6,21 +6,34 @@ Todas las versiones y cambios notables del proyecto.
 
 ## [0.15.0] - 2026-02-19
 
-### 🐛 Correcciones
-- **Rachas corregidas** — Ahora requieren lectura **Y** oración (antes bastaba con una)
-- **Rachas por grupo** — Solo cuenta progreso de planes del grupo activo (antes era global)
-- **Fechas consecutivas** — Verifica que los días sean realmente consecutivos, no solo filas en secuencia
-- **Día libre** — El día libre configurado por el admin no rompe la racha
-- **Racha vigente hasta medianoche** — Si hoy no has completado, muestra la racha de ayer
-
 ### ✨ Nuevo
-- **Utilidad compartida `calculateStreak()`** en `src/lib/streak.ts` — Elimina lógica duplicada en 4 páginas
-- **Historial: progreso comunitario** — El historial ahora muestra barras duales (individual + comunidad) por plan
-- **Perfil: enlace admin simplificado** — Un solo enlace "Panel Admin" en vez de 3 enlaces separados
+- **Panel de Admin completo** — 4 pantallas de administración bajo `/admin`
+  - **Dashboard:** Grid de 4 stats (miembros, deuda, XP promedio, racha promedio), alertas inteligentes, acciones rápidas
+  - **Miembros:** Lista con nombre/nivel/XP/racha/deuda, cambiar roles, eliminar miembros, código de invitación
+  - **Configuración:** 9 parámetros (modo_penalizacion, monto, tasa_canjeo, timezone, dias_libres, métodos recuperación)
+  - **Penalizaciones:** Ver deudas del grupo, aplicar pagos, crear penalización manual
+  - **Planes:** Crear/eliminar planes de lectura, cola inteligente, omite días libres
+- **Día libre configurable** — El admin elige qué días de la semana son libres (antes hardcodeado a domingo)
+- **`getDiasLibres()` helper** en `grupo-helpers.ts` — Lee días libres del grupo desde `configuracion_app`
+- **Utilidad compartida `calculateStreak()`** en `src/lib/streak.ts` — Acepta `diasLibres[]`, elimina lógica duplicada en 4 páginas
+- **Historial: progreso comunitario** — Barras duales (individual + comunidad) por plan
+- **Perfil: enlace admin simplificado** — Un solo enlace "Panel Admin"
+
+### 🐛 Correcciones
+- **Rachas corregidas** — Requieren lectura **Y** oración (antes bastaba con una)
+- **Rachas por grupo** — Solo cuenta progreso de planes del grupo activo (antes era global)
+- **Fechas consecutivas** — Verifica que los días sean realmente consecutivos
+- **Racha vigente hasta medianoche** — Si hoy no has completado, muestra la racha de ayer
+- **Penalizaciones por grupo** — Nueva columna `grupo_id` en tabla `penalizaciones` (antes sumaba deudas de todos los grupos)
+- **Miembros "no hay miembros"** — Perfiles se buscan individualmente (join no funcionaba sin FK explícita)
+- **Select se sobrepone** — Dropdown custom con z-index y click-outside (reemplaza `<Select>` shadcn)
 
 ### 🔧 Cambios
+- Admin relocado de `src/app/(admin)/` a `src/app/(app)/admin/` (comparte layout principal)
 - `community/page.tsx`: Reemplazó RPC global `get_all_user_streaks` por query scoped al grupo
-- `admin/page.tsx`, `admin/miembros/page.tsx`, `home/page.tsx`: Usan `calculateStreak()` compartido
+- Layout: `pill-nav`, `desktop-sidebar`, `glass-header`, `menu-panel` actualizados con links a admin
+- Migración: `20260220003400_add_grupo_id_to_penalizaciones.sql`
+- Tipos de BD regenerados (`database.ts`)
 
 ---
 
