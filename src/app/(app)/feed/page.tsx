@@ -11,19 +11,26 @@ export default async function FeedPage() {
   if (!user) redirect('/login')
 
   // Obtener miembros del grupo activo para scoping
-  const { miembros } = await getMiembrosGrupoActivo(supabase)
+  const { grupoId, miembros } = await getMiembrosGrupoActivo(supabase)
 
-  // Obtener actividades filtradas por miembros del grupo
-  const { data: activities } = await supabase
+  // Obtener actividades filtradas por grupo activo
+  let activitiesQuery = supabase
     .from('actividad_comunidad')
     .select(`
       id, creado_en, tipo_actividad, referencia_contenido, resumen_actividad,
       likes_count, comentarios_count, usuario_id,
       perfiles ( nombre_usuario )
     `)
-    .in('usuario_id', miembros)
     .order('creado_en', { ascending: false })
     .limit(100)
+
+  if (grupoId) {
+    activitiesQuery = activitiesQuery.eq('grupo_id', grupoId)
+  } else {
+    activitiesQuery = activitiesQuery.in('usuario_id', miembros)
+  }
+
+  const { data: activities } = await activitiesQuery
 
   // Obtener las reacciones del usuario actual
   const { data: userReactions } = await supabase

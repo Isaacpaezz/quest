@@ -17,9 +17,9 @@ Este documento describe todas las features implementadas en Quest hasta la fecha
 ### Funcionalidad
 - Muestra la lectura bíblica del día (capítulo actual del plan activo)
 - Botones de check-in: **Lectura ✅** y **Oración ✅**
-- Al completar cada check-in → +50 XP via `otorgar_xp()` RPC
+- Al completar cada check-in → XP configurable por grupo via `getXpConfig()` (ver `docs/developer/xp-system.md`)
 - **Notificaciones XP:** Toast animado al ganar XP, animación fullscreen al subir de nivel
-- XP configurable en `src/lib/xp-helpers.ts`: bonus racha (+10), devocional completo (+15), oración 10min (+20)
+- XP configurable desde admin: lectura, oración, bonus oración, devocional completo, racha, retos
 - Muestra racha actual (días consecutivos)
 - Progreso del plan (ej: "Semana 15 de 52")
 - Mini-cards de retos con invitaciones pendientes
@@ -42,10 +42,16 @@ export function calculateStreak(progressEntries, todayStr): number
 
 **Usado en:** `home/page.tsx`, `community/page.tsx`, `admin/page.tsx`, `admin/miembros/page.tsx`
 
-**Scoping por grupo:** Las páginas admin y community filtran progreso via inner join:
+**Scoping por grupo:** Home, admin y community filtran progreso via inner join:
 ```
 progreso_usuario → capitulos_diarios!inner → planes_lectura!inner(grupo_id)
 ```
+
+Queries scoped por grupo:
+- **Lecturas/Oraciones HOY** — `actividad_comunidad` filtrado por `grupo_id`
+- **Racha actual** — `progreso_usuario` filtrado via `capitulos_diarios → planes_lectura → grupo_id`
+- **Progreso semanal** — Misma estrategia de join para mostrar solo días del grupo activo
+- **Plan activo** — `planes_lectura` filtrado por `grupo_id`
 
 ---
 
@@ -53,13 +59,25 @@ progreso_usuario → capitulos_diarios!inner → planes_lectura!inner(grupo_id)
 
 **Ruta:** `/oracion`  
 **Archivos clave:**
-- `src/app/(app)/oracion/page.tsx`
-- `src/app/(app)/oracion/_components/`
+- `src/app/(app)/oracion/page.tsx` — Server component, lee config de bonus del grupo
+- `src/app/(app)/oracion/_components/oracion-client.tsx` — Client component con timer de dos fases
 
 ### Funcionalidad
-- Timer con cuenta regresiva configurable
+- **Timer de dos fases:**
+  - **Fase base:** cuenta hasta `minutosRequeridos` con versículos bíblicos rotativos
+  - **Fase bonus:** continúa tras completar el mínimo, con visual dorado y mensajes motivacionales
 - Registra `segundos_oracion_acumulados` en `progreso_usuario`
-- Marca `oracion_completada = true` al finalizar
+- Marca `oracion_completada = true` al completar la fase base
+- **Bonus XP:** configurable por grupo (`xp_oracion_bonus_minutos`, `xp_oracion_bonus`)
+- **Mensajes motivacionales:** 8 prompts rotativos durante bonus (alabanza, adoración, intercesión...)
+- **Mensaje diario:** 31 mensajes que rotan por día del mes al completar el bonus
+- **Guardado periódico:** cada 30 segundos durante el bonus + al completar/salir
+- Persistencia en `localStorage` para mantener estado entre recargas
+
+### Configuración del bonus
+- `xp_oracion_bonus_minutos` — Minutos requeridos para bonus (default: 10)
+- `xp_oracion_bonus` — XP otorgados por bonus (default: 20)
+- Leídos desde `configuracion_app` del grupo via `getConfigGrupo()`
 
 ---
 
@@ -75,12 +93,21 @@ progreso_usuario → capitulos_diarios!inner → planes_lectura!inner(grupo_id)
 
 ### Funcionalidad
 - Lista de actividades de la comunidad (lecturas, oraciones completadas, **victorias**)
+- **Scoped por grupo:** filtra `actividad_comunidad` por `grupo_id` del grupo activo
+- **Indicador de bonus:** oraciones con bonus muestran 🔥 con icono Flame dorado
+- **Duplicados prevenidos:** solo una entrada de oración por usuario por día en el feed
 - **Realtime:** nuevas actividades aparecen instantáneamente via Supabase Realtime (INSERT + UPDATE)
 - **Reacciones múltiples:** ❤️ 🙏 🔥 ⚡ (tap rápido = ❤️, long-press = picker completo)
 - **Comentarios:** sección expandible con form, lista y delete (carga lazy)
 - **Victorias auto-compartidas:** al subir de nivel, se publica con diseño dorado 🏆
 - Timestamps relativos ("hace 2h", "ayer")
 - Optimistic UI para reacciones y comentarios
+
+### Scoping por grupo
+- `actividad_comunidad` tiene columna `grupo_id` (FK → `grupos`)
+- Todas las inserciones (lectura, oración, victoria) incluyen `grupo_id`
+- Feed filtra por `grupo_id` del grupo activo
+- Bonus de oración actualiza la entrada existente en vez de crear nueva
 
 ### Supabase Realtime
 - Canal `feed-realtime` suscribe a `actividad_comunidad` (INSERT + UPDATE)
@@ -407,6 +434,14 @@ Pantallas de administración relocalizadas de `src/app/(admin)/admin/` a `src/ap
 |-------|------|-------------|
 | `modo_penalizacion` | select | `dinero` o `puntos` |
 | `monto_penalizacion` | number | Monto por incumplimiento |
+| `xp_lectura` | number | XP al completar lectura |
+| `xp_oracion` | number | XP al completar oración |
+| `xp_oracion_bonus` | number | XP bonus por oración larga |
+| `xp_oracion_bonus_minutos` | number | Minutos mínimos para bonus |
+| `xp_devocional_completo` | number | XP por lectura + oración |
+| `xp_reto_completado` | number | XP al completar reto |
+| `xp_racha_multiplicador` | number | XP × días consecutivos |
+| `xp_racha_cap` | number | Máximo XP por racha |
 | `tasa_canjeo` | number | XP → reducción de deuda |
 | `costo_recuperacion_puntos` | number | XP para recuperar racha |
 | `costo_recuperacion_dinero` | number | Dinero para recuperar |

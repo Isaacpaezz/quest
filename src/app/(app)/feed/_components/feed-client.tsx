@@ -334,10 +334,18 @@ function ActivityItem({ act, userReactions: initialReactions, currentUserId, isD
               <Trophy className="size-3.5 shrink-0" style={{ color: accentGold }} />
             ) : isLectura ? (
               <BookOpen className="size-3.5 shrink-0" style={{ color: accentBlue }} />
+            ) : String(act.referencia_contenido || '').includes('Bonus') ? (
+              <Flame className="size-3.5 shrink-0" style={{ color: accentGold }} />
             ) : (
               <Timer className="size-3.5 shrink-0" style={{ color: accentPurple }} />
             )}
-            <span className="text-[12px] font-sans" style={{ color: isVictoria ? accentGold : subClr }}>
+            <span className="text-[12px] font-sans" style={{
+              color: isVictoria
+                ? accentGold
+                : String(act.referencia_contenido || '').includes('Bonus')
+                  ? accentGold
+                  : subClr
+            }}>
               {isVictoria
                 ? `🏆 ${act.resumen_actividad || `¡${act.referencia_contenido}!`}`
                 : isLectura

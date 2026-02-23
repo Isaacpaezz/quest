@@ -4,6 +4,36 @@ Todas las versiones y cambios notables del proyecto.
 
 ---
 
+## [0.16.0] - 2026-02-22
+
+### ✨ Nuevo
+- **Timer de oración con bonus** — Dos fases: base + bonus dorado con mensajes motivacionales rotativos
+  - 8 prompts de bonus (alabanza, adoración, intercesión, peticiones, agradecimiento...)
+  - 31 mensajes diarios que rotan por día del mes
+  - Guardado periódico cada 30s + al completar/salir
+- **XP configurable por grupo** — 8 parámetros editables desde el panel de admin
+  - `xp_lectura`, `xp_oracion`, `xp_oracion_bonus`, `xp_oracion_bonus_minutos`
+  - `xp_devocional_completo`, `xp_reto_completado`, `xp_racha_multiplicador`, `xp_racha_cap`
+- **Indicador de bonus en feed** — Oración con bonus muestra 🔥 con icono Flame dorado
+- **Prevención de duplicados** — XP y actividades del feed no se duplican al guardar múltiples veces
+
+### 🐛 Correcciones
+- **Feed scoped por grupo** — Nueva columna `grupo_id` en `actividad_comunidad`, feed filtra por grupo activo
+- **Home stats por grupo** — Lecturas/Oraciones HOY filtran por `grupo_id` (antes mostraba de todos los grupos)
+- **Racha por grupo** — Streak scoped via `capitulos_diarios → planes_lectura → grupo_id`
+- **Progreso semanal por grupo** — Solo muestra días completados del grupo seleccionado
+- **Oración scoped por grupo** — `/oracion` filtra plan por `grupo_id` (antes fallaba con múltiples planes activos)
+
+### 🔧 Cambios
+- `actividad_comunidad`: nueva columna `grupo_id` (FK → `grupos`) con índice
+- `oracion-client.tsx` reescrito con sistema de fases, prompts motivacionales, y guardado dual
+- `home/actions.ts`: guarda `grupo_id` en feed, previene duplicados de oración
+- `xp-helpers.ts`: incluye `grupo_id` al publicar victorias
+- Documentación developer y user actualizadas
+
+---
+
+
 ## [0.15.0] - 2026-02-19
 
 ### ✨ Nuevo

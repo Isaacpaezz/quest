@@ -5,7 +5,7 @@ import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 import { ActionState } from '@/types/definitions'
 import { getToday } from '@/lib/utils'
-import { getTimezone } from '@/lib/grupo-helpers'
+import { getTimezone, getGrupoActivo } from '@/lib/grupo-helpers'
 import { pushService } from '@/lib/web-push'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { getXpConfig, grantXp, calculateStreakBonus } from '@/lib/xp-helpers'
@@ -64,12 +64,14 @@ export async function registrarProgresoLecturaAction(prevState: ActionState, for
     return { error: 'Hubo un error en la base de datos. Inténtalo de nuevo.' }
   }
 
-  // NUEVO: Registrar evento en el feed de actividad
+  // Registrar evento en el feed de actividad
+  const grupoIdForFeed = await getGrupoActivo(supabase)
   await supabase.from('actividad_comunidad').insert({
     usuario_id: user.id,
     tipo_actividad: 'lectura_completada',
     referencia_contenido: capituloReferencia,
-    resumen_actividad: resumen, // AÑADIDO
+    resumen_actividad: resumen,
+    grupo_id: grupoIdForFeed,
   })
 
   // Enviar notificaciones push a otros miembros suscritos (no al emisor)
@@ -150,29 +152,40 @@ export async function registrarProgresoLecturaAction(prevState: ActionState, for
   let totalXp = 0
   let lastResult: { nuevo_xp: number; nuevo_nivel: number; subio_nivel: boolean } | null = null
 
-  // 1. XP por lectura completada
-  lastResult = await grantXp(supabase, user.id, config.lectura_completada, 'lectura_completada', String(capituloId), grupoId)
-  totalXp += config.lectura_completada
-
-  // 2. Streak bonus
-  const { data: streakData } = await supabase.rpc('get_all_user_streaks')
-  const userStreak = streakData?.find((s: { user_id: string; streak_count: number }) => s.user_id === user.id)?.streak_count ?? 0
-  const streakBonus = calculateStreakBonus(userStreak, config)
-  if (streakBonus > 0) {
-    lastResult = await grantXp(supabase, user.id, streakBonus, 'racha_bonus', `streak_${userStreak}`, grupoId)
-    totalXp += streakBonus
-  }
-
-  // 3. Devocional completo bonus (lectura + oración same day)
-  const { data: progressToday } = await supabase
-    .from('progreso_usuario')
-    .select('oracion_completada')
+  // Guard: check if reading XP was already granted for this chapter
+  const { data: xpYaOtorgado } = await supabase
+    .from('historial_xp')
+    .select('id')
     .eq('usuario_id', user.id)
-    .eq('fecha_progreso', fechaHoy)
-    .single()
-  if (progressToday?.oracion_completada) {
-    lastResult = await grantXp(supabase, user.id, config.devocional_completo, 'devocional_completo', undefined, grupoId)
-    totalXp += config.devocional_completo
+    .eq('motivo', 'lectura_completada')
+    .eq('referencia_id', String(capituloId))
+    .limit(1)
+
+  if (!xpYaOtorgado?.length) {
+    // 1. XP por lectura completada
+    lastResult = await grantXp(supabase, user.id, config.lectura_completada, 'lectura_completada', String(capituloId), grupoId)
+    totalXp += config.lectura_completada
+
+    // 2. Streak bonus
+    const { data: streakData } = await supabase.rpc('get_all_user_streaks')
+    const userStreak = streakData?.find((s: { user_id: string; streak_count: number }) => s.user_id === user.id)?.streak_count ?? 0
+    const streakBonus = calculateStreakBonus(userStreak, config)
+    if (streakBonus > 0) {
+      lastResult = await grantXp(supabase, user.id, streakBonus, 'racha_bonus', `streak_${userStreak}`, grupoId)
+      totalXp += streakBonus
+    }
+
+    // 3. Devocional completo bonus (lectura + oración same day)
+    const { data: progressToday } = await supabase
+      .from('progreso_usuario')
+      .select('oracion_completada')
+      .eq('usuario_id', user.id)
+      .eq('fecha_progreso', fechaHoy)
+      .single()
+    if (progressToday?.oracion_completada) {
+      lastResult = await grantXp(supabase, user.id, config.devocional_completo, 'devocional_completo', undefined, grupoId)
+      totalXp += config.devocional_completo
+    }
   }
 
   revalidatePath('/home')
@@ -213,16 +226,50 @@ export async function actualizarProgresoOracionAction(datos: { segundosAcumulado
     return { error: 'Error en la base de datos.' };
   }
 
-  // NUEVO: Registrar evento SOLO si la oración se ha completado
+  // Registrar evento SOLO si la oración se ha completado y no hay entrada duplicada hoy
   if (oracionCompletada) {
-    await supabase.from('actividad_comunidad').insert({
-      usuario_id: user.id,
-      tipo_actividad: 'oracion_completada',
-      // Añadimos un resumen para que la actividad muestre un texto similar
-      // al de las lecturas cuando se complete la oración.
-      referencia_contenido: 'Tiempo de Oración',
-      resumen_actividad: 'Ha completado su tiempo de oración de hoy.'
-    })
+    // Check if we already posted a prayer activity today
+    const todayStart = new Date(`${fechaHoy}T00:00:00`).toISOString()
+    const todayEnd = new Date(`${fechaHoy}T23:59:59.999`).toISOString()
+    const { data: existingActivity } = await supabase
+      .from('actividad_comunidad')
+      .select('id, referencia_contenido')
+      .eq('usuario_id', user.id)
+      .eq('tipo_actividad', 'oracion_completada')
+      .gte('creado_en', todayStart)
+      .lte('creado_en', todayEnd)
+      .limit(1)
+
+    // Detect bonus: check if seconds exceed bonus threshold
+    const grupoIdForConfig = await getGrupoActivo(supabase)
+    let bonusAchieved = false
+    if (grupoIdForConfig) {
+      const { getConfigGrupo } = await import('@/lib/grupo-helpers')
+      const config = await getConfigGrupo(supabase, grupoIdForConfig)
+      const bonusMinutos = Number(config['xp_oracion_bonus_minutos']) || 10
+      bonusAchieved = segundosAcumulados >= bonusMinutos * 60
+    }
+
+    if (!existingActivity?.length) {
+      // First prayer completion today — insert
+      await supabase.from('actividad_comunidad').insert({
+        usuario_id: user.id,
+        tipo_actividad: 'oracion_completada',
+        referencia_contenido: bonusAchieved ? 'Tiempo de Oración + Bonus 🔥' : 'Tiempo de Oración',
+        resumen_actividad: bonusAchieved
+          ? 'Ha completado su tiempo de oración con bonus extra.'
+          : 'Ha completado su tiempo de oración de hoy.',
+        grupo_id: grupoIdForConfig,
+      })
+    } else if (bonusAchieved && !existingActivity[0].referencia_contenido?.includes('Bonus')) {
+      // Already posted, but bonus just achieved — update the existing entry
+      await supabase.from('actividad_comunidad')
+        .update({
+          referencia_contenido: 'Tiempo de Oración + Bonus 🔥',
+          resumen_actividad: 'Ha completado su tiempo de oración con bonus extra.',
+        })
+        .eq('id', existingActivity[0].id)
+    }
 
     // Enviar notificaciones push a otros miembros suscritos (no al emisor)
     try {
@@ -291,26 +338,38 @@ export async function actualizarProgresoOracionAction(datos: { segundosAcumulado
   if (oracionCompletada) {
     const config = await getXpConfig(supabase, user.id)
 
-    // 1. XP por oración completada
-    lastResult = await grantXp(supabase, user.id, config.oracion_completada, 'oracion_completada', String(capituloId), grupoId)
-    totalXp += config.oracion_completada
-
-    // 2. Bonus si oración > 10 minutos (600 segundos)
-    if (segundosAcumulados >= 600) {
-      lastResult = await grantXp(supabase, user.id, config.oracion_bonus_10min, 'oracion_bonus_10min', undefined, grupoId)
-      totalXp += config.oracion_bonus_10min
-    }
-
-    // 3. Devocional completo bonus (lectura + oración same day)
-    const { data: progressToday } = await supabase
-      .from('progreso_usuario')
-      .select('lectura_completada')
+    // Guard: check if prayer XP was already granted for this chapter
+    const { data: xpOracionYaOtorgado } = await supabase
+      .from('historial_xp')
+      .select('id')
       .eq('usuario_id', user.id)
-      .eq('fecha_progreso', fechaHoy)
-      .single()
-    if (progressToday?.lectura_completada) {
-      lastResult = await grantXp(supabase, user.id, config.devocional_completo, 'devocional_completo', undefined, grupoId)
-      totalXp += config.devocional_completo
+      .eq('motivo', 'oracion_completada')
+      .eq('referencia_id', String(capituloId))
+      .limit(1)
+
+    if (!xpOracionYaOtorgado?.length) {
+      // 1. XP por oración completada
+      lastResult = await grantXp(supabase, user.id, config.oracion_completada, 'oracion_completada', String(capituloId), grupoId)
+      totalXp += config.oracion_completada
+
+      // 2. Bonus si oración supera el umbral configurable (default: 10 minutos)
+      const umbralSegundos = (config.oracion_bonus_minutos || 10) * 60
+      if (segundosAcumulados >= umbralSegundos) {
+        lastResult = await grantXp(supabase, user.id, config.oracion_bonus_10min, 'oracion_bonus_10min', undefined, grupoId)
+        totalXp += config.oracion_bonus_10min
+      }
+
+      // 3. Devocional completo bonus (lectura + oración same day)
+      const { data: progressToday } = await supabase
+        .from('progreso_usuario')
+        .select('lectura_completada')
+        .eq('usuario_id', user.id)
+        .eq('fecha_progreso', fechaHoy)
+        .single()
+      if (progressToday?.lectura_completada) {
+        lastResult = await grantXp(supabase, user.id, config.devocional_completo, 'devocional_completo', undefined, grupoId)
+        totalXp += config.devocional_completo
+      }
     }
   }
 

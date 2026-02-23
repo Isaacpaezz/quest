@@ -6,6 +6,7 @@ export interface XpConfig {
   lectura_completada: number
   oracion_completada: number
   oracion_bonus_10min: number
+  oracion_bonus_minutos: number
   racha_multiplicador: number
   racha_cap: number
   devocional_completo: number
@@ -13,11 +14,12 @@ export interface XpConfig {
   reto_grupal_base: number
 }
 
-// Default solo config (used as fallback if DB read fails)
+// Default config (used as fallback if DB read fails or user has no group)
 const DEFAULT_XP_CONFIG: XpConfig = {
   lectura_completada: 50,
   oracion_completada: 30,
   oracion_bonus_10min: 20,
+  oracion_bonus_minutos: 10,
   racha_multiplicador: 10,
   racha_cap: 100,
   devocional_completo: 25,
@@ -25,14 +27,58 @@ const DEFAULT_XP_CONFIG: XpConfig = {
   reto_grupal_base: 100,
 }
 
+// Mapping: configuracion_app.clave → XpConfig property
+const CONFIG_KEY_MAP: Record<string, keyof XpConfig> = {
+  xp_lectura: 'lectura_completada',
+  xp_oracion: 'oracion_completada',
+  xp_oracion_bonus: 'oracion_bonus_10min',
+  xp_oracion_bonus_minutos: 'oracion_bonus_minutos',
+  xp_devocional_completo: 'devocional_completo',
+  xp_racha_multiplicador: 'racha_multiplicador',
+  xp_racha_cap: 'racha_cap',
+  xp_reto_completado: 'reto_personal',
+  xp_reto_grupal_base: 'reto_grupal_base',
+}
+
 // ─── Get XP Config ───────────────────────────────────────────────────────────
-// For now uses 'solo' preset. When grupos (3F) are implemented,
-// this will read the user's active group config.
+// Reads XP configuration from the user's active group (configuracion_app).
+// Falls back to xp_presets → DEFAULT_XP_CONFIG if no group or config found.
 export async function getXpConfig(
   supabase: SupabaseClient<Database>,
-  _userId?: string // reserved for future grupo-aware config
+  userId?: string
 ): Promise<XpConfig> {
   try {
+    // 1. Try to read from group's configuracion_app
+    if (userId) {
+      const { data: perfil } = await supabase
+        .from('perfiles')
+        .select('grupo_activo_id')
+        .eq('id', userId)
+        .single()
+
+      if (perfil?.grupo_activo_id) {
+        const { data: configs } = await supabase
+          .from('configuracion_app')
+          .select('clave, valor')
+          .eq('grupo_id', perfil.grupo_activo_id)
+
+        if (configs?.length) {
+          const result = { ...DEFAULT_XP_CONFIG }
+          for (const { clave, valor } of configs) {
+            const key = CONFIG_KEY_MAP[clave]
+            if (key) {
+              const num = Number(valor)
+              if (!isNaN(num)) {
+                result[key] = num
+              }
+            }
+          }
+          return result
+        }
+      }
+    }
+
+    // 2. Fallback: read from xp_presets (solo mode)
     const { data } = await supabase
       .from('xp_presets')
       .select('config')
@@ -40,7 +86,7 @@ export async function getXpConfig(
       .single()
 
     if (data?.config && typeof data.config === 'object') {
-      return data.config as unknown as XpConfig
+      return { ...DEFAULT_XP_CONFIG, ...(data.config as unknown as Partial<XpConfig>) }
     }
   } catch {
     // fallback to default
@@ -90,6 +136,7 @@ export async function grantXp(
           tipo_actividad: 'victoria' as Database['public']['Enums']['tipo_actividad'],
           referencia_contenido: `Nivel ${xpResult.nuevo_nivel}`,
           resumen_actividad: `¡Ha alcanzado el nivel ${xpResult.nuevo_nivel}! 🎉`,
+          grupo_id: grupoId || null,
         })
       } catch (victoryErr) {
         // Don't fail the XP grant if victory post fails

@@ -180,6 +180,61 @@ export function SettingsForm({ settings }: { settings: Record<string, string> })
           </div>
         </div>
 
+        {/* Puntos XP por Actividad */}
+        <div
+          className="p-5 rounded-[20px]"
+          style={{ backgroundColor: cardBg, border: `1px solid ${cardBorder}` }}
+        >
+          <h2 className="text-[15px] font-bold font-sans mb-2" style={{ color: textPrimary }}>Puntos XP por Actividad</h2>
+          <p className="mb-4 text-[12px] font-sans" style={{ color: textSecondary }}>
+            Configura cuántos puntos de experiencia se otorgan por cada actividad.
+          </p>
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <span className="text-[12px] font-sans" style={{ color: labelColor }}>XP por lectura</span>
+                <ThemedInput name="xp_lectura" type="number" defaultValue={settings.xp_lectura || '40'} required isDark={isDark} />
+              </div>
+              <div>
+                <span className="text-[12px] font-sans" style={{ color: labelColor }}>XP por oración</span>
+                <ThemedInput name="xp_oracion" type="number" defaultValue={settings.xp_oracion || '30'} required isDark={isDark} />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <span className="text-[12px] font-sans" style={{ color: labelColor }}>XP bonus oración larga</span>
+                <ThemedInput name="xp_oracion_bonus" type="number" defaultValue={settings.xp_oracion_bonus || '20'} required isDark={isDark} />
+              </div>
+              <div>
+                <span className="text-[12px] font-sans" style={{ color: labelColor }}>Minutos para bonus</span>
+                <ThemedInput name="xp_oracion_bonus_minutos" type="number" defaultValue={settings.xp_oracion_bonus_minutos || '10'} required isDark={isDark} />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <span className="text-[12px] font-sans" style={{ color: labelColor }}>XP devocional completo</span>
+                <ThemedInput name="xp_devocional_completo" type="number" defaultValue={settings.xp_devocional_completo || '25'} required isDark={isDark} />
+              </div>
+              <div>
+                <span className="text-[12px] font-sans" style={{ color: labelColor }}>XP reto completado</span>
+                <ThemedInput name="xp_reto_completado" type="number" defaultValue={settings.xp_reto_completado || '100'} required isDark={isDark} />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <span className="text-[12px] font-sans" style={{ color: labelColor }}>Multiplicador racha</span>
+                <ThemedInput name="xp_racha_multiplicador" type="number" defaultValue={settings.xp_racha_multiplicador || '10'} required isDark={isDark} />
+                <p className="mt-1 text-[11px] font-sans" style={{ color: textSecondary }}>XP × días consecutivos</p>
+              </div>
+              <div>
+                <span className="text-[12px] font-sans" style={{ color: labelColor }}>Máximo XP racha</span>
+                <ThemedInput name="xp_racha_cap" type="number" defaultValue={settings.xp_racha_cap || '100'} required isDark={isDark} />
+                <p className="mt-1 text-[11px] font-sans" style={{ color: textSecondary }}>Límite de bonus por racha</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* Canjeo y Recuperación */}
         <div
           className="p-5 rounded-[20px]"

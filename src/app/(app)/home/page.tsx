@@ -76,8 +76,11 @@ export default async function DashboardPage() {
     .order('creado_en', { ascending: false })
     .limit(500)
 
-  // Solo filtrar si el usuario tiene grupo activo con miembros
-  if (memberIds.length > 0) {
+  // Filtrar por grupo activo usando grupo_id
+  if (grupoId) {
+    readersQuery = readersQuery.eq('grupo_id', grupoId)
+    prayersQuery = prayersQuery.eq('grupo_id', grupoId)
+  } else if (memberIds.length > 0) {
     readersQuery = readersQuery.in('usuario_id', memberIds)
     prayersQuery = prayersQuery.in('usuario_id', memberIds)
   }
@@ -103,14 +106,20 @@ export default async function DashboardPage() {
       : ((prayersArray[0] as Record<string, unknown>)['perfiles'] as Record<string, unknown>)?.['nombre_usuario'] as string)
     : null
 
-  // 4. Calculate streak: count consecutive days with progress before today
+  // 4. Calculate streak: count consecutive days with progress before today (scoped to active group)
   let streakCount = 0
-  const { data: recentProgress } = await supabase
+  let recentProgressQuery = supabase
     .from('progreso_usuario')
-    .select('fecha_progreso, lectura_completada, oracion_completada')
+    .select('fecha_progreso, lectura_completada, oracion_completada, capitulo_id, capitulos_diarios!inner(plan_id, planes_lectura!inner(grupo_id))')
     .eq('usuario_id', user.id)
     .order('fecha_progreso', { ascending: false })
     .limit(60)
+
+  if (grupoIdForPlan) {
+    recentProgressQuery = recentProgressQuery.eq('capitulos_diarios.planes_lectura.grupo_id', grupoIdForPlan)
+  }
+
+  const { data: recentProgress } = await recentProgressQuery
 
   if (recentProgress) {
     const diasLibres = await getDiasLibres(supabase, grupoIdForPlan)
@@ -150,12 +159,19 @@ export default async function DashboardPage() {
   const mondayStr = fmt(monday)
   const sundayStr = fmt(sunday)
 
-  const { data: weekProgress } = await supabase
+  // Get chapter IDs for the active group's plan to scope weekly progress
+  let weekProgressQuery = supabase
     .from('progreso_usuario')
-    .select('fecha_progreso, lectura_completada, oracion_completada')
+    .select('fecha_progreso, lectura_completada, oracion_completada, capitulo_id, capitulos_diarios!inner(plan_id, planes_lectura!inner(grupo_id))')
     .eq('usuario_id', user.id)
     .gte('fecha_progreso', mondayStr)
     .lte('fecha_progreso', sundayStr)
+
+  if (grupoIdForPlan) {
+    weekProgressQuery = weekProgressQuery.eq('capitulos_diarios.planes_lectura.grupo_id', grupoIdForPlan)
+  }
+
+  const { data: weekProgress } = await weekProgressQuery
 
   const DAYS_LABELS = ['L', 'M', 'M', 'J', 'V', 'S', 'D']
   const weeklyProgressData = DAYS_LABELS.map((label, i) => {

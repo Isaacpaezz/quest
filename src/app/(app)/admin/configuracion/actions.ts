@@ -15,6 +15,15 @@ const SettingsSchema = z.object({
   metodo_recuperacion: z.string(), // JSON array of strings
   timezone: z.string().min(1, 'La zona horaria es requerida.'),
   dias_libres: z.string(), // JSON array of day numbers
+  // XP config
+  xp_lectura: z.coerce.number().min(0),
+  xp_oracion: z.coerce.number().min(0),
+  xp_oracion_bonus: z.coerce.number().min(0),
+  xp_oracion_bonus_minutos: z.coerce.number().min(1),
+  xp_devocional_completo: z.coerce.number().min(0),
+  xp_reto_completado: z.coerce.number().min(0),
+  xp_racha_multiplicador: z.coerce.number().min(0),
+  xp_racha_cap: z.coerce.number().min(0),
 })
 
 export async function actualizarConfiguracionAction(prevState: ActionState, formData: FormData): Promise<ActionState> {
@@ -53,6 +62,14 @@ export async function actualizarConfiguracionAction(prevState: ActionState, form
     metodo_recuperacion: formData.get('metodo_recuperacion'),
     timezone: formData.get('timezone'),
     dias_libres: formData.get('dias_libres'),
+    xp_lectura: formData.get('xp_lectura'),
+    xp_oracion: formData.get('xp_oracion'),
+    xp_oracion_bonus: formData.get('xp_oracion_bonus'),
+    xp_oracion_bonus_minutos: formData.get('xp_oracion_bonus_minutos'),
+    xp_devocional_completo: formData.get('xp_devocional_completo'),
+    xp_reto_completado: formData.get('xp_reto_completado'),
+    xp_racha_multiplicador: formData.get('xp_racha_multiplicador'),
+    xp_racha_cap: formData.get('xp_racha_cap'),
   })
 
   if (!validatedFields.success) {
@@ -72,6 +89,15 @@ export async function actualizarConfiguracionAction(prevState: ActionState, form
     { clave: 'metodo_recuperacion', valor: data.metodo_recuperacion, grupo_id: grupoId },
     { clave: 'timezone', valor: data.timezone, grupo_id: grupoId },
     { clave: 'dias_libres', valor: data.dias_libres, grupo_id: grupoId },
+    // XP config
+    { clave: 'xp_lectura', valor: data.xp_lectura.toString(), grupo_id: grupoId },
+    { clave: 'xp_oracion', valor: data.xp_oracion.toString(), grupo_id: grupoId },
+    { clave: 'xp_oracion_bonus', valor: data.xp_oracion_bonus.toString(), grupo_id: grupoId },
+    { clave: 'xp_oracion_bonus_minutos', valor: data.xp_oracion_bonus_minutos.toString(), grupo_id: grupoId },
+    { clave: 'xp_devocional_completo', valor: data.xp_devocional_completo.toString(), grupo_id: grupoId },
+    { clave: 'xp_reto_completado', valor: data.xp_reto_completado.toString(), grupo_id: grupoId },
+    { clave: 'xp_racha_multiplicador', valor: data.xp_racha_multiplicador.toString(), grupo_id: grupoId },
+    { clave: 'xp_racha_cap', valor: data.xp_racha_cap.toString(), grupo_id: grupoId },
   ]
 
   const { error } = await supabase
