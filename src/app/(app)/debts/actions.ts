@@ -17,18 +17,19 @@ export async function canjearPuntosAction(
   const puntos = Number(formData.get('puntos'))
   if (!puntos || puntos < 1) return { error: 'Cantidad de puntos inválida' }
 
-  // Obtener tasa_canjeo de configuración
+  // Obtener grupo activo para deducir XP del grupo
+  const { data: perfil } = await supabase.from('perfiles').select('grupo_activo_id').eq('id', user.id).single()
+  const grupoId = perfil?.grupo_activo_id ?? undefined
+
+  // Obtener tasa_canjeo de configuración (filter by group)
   const { data: configData } = await supabase
     .from('configuracion_app')
     .select('valor')
     .eq('clave', 'tasa_canjeo')
+    .eq('grupo_id', grupoId)
     .single()
 
   const tasaCanjeo = configData ? Number(configData.valor) : 100
-
-  // Obtener grupo activo para deducir XP del grupo
-  const { data: perfil } = await supabase.from('perfiles').select('grupo_activo_id').eq('id', user.id).single()
-  const grupoId = perfil?.grupo_activo_id ?? undefined
 
   // Llamar función RPC con grupo_id
   const { data, error } = await supabase.rpc('canjear_puntos', {
@@ -59,18 +60,19 @@ export async function recuperarRachaAction(
 
   const rachaPrevia = Number(formData.get('racha_previa')) || 0
 
-  // Obtener costo de recuperación desde config
+  // Obtener grupo activo
+  const { data: perfil } = await supabase.from('perfiles').select('grupo_activo_id, xp').eq('id', user.id).single()
+  const grupoId = perfil?.grupo_activo_id ?? undefined
+
+  // Obtener costo de recuperación desde config (filter by group)
   const { data: configData } = await supabase
     .from('configuracion_app')
     .select('valor')
     .eq('clave', 'costo_recuperar_racha_xp')
+    .eq('grupo_id', grupoId)
     .single()
 
   const costoXp = configData ? Number(configData.valor) : 200
-
-  // Obtener grupo activo
-  const { data: perfil } = await supabase.from('perfiles').select('grupo_activo_id, xp').eq('id', user.id).single()
-  const grupoId = perfil?.grupo_activo_id ?? undefined
 
   // Verificar suficiente XP (from group if in group, else global)
   let xpDisponible = perfil?.xp || 0
@@ -88,19 +90,36 @@ export async function recuperarRachaAction(
     return { error: `Necesitas al menos ${costoXp} XP para recuperar tu racha.` }
   }
 
-  // Descontar XP del global
-  await supabase
+  // Descontar XP del global (optimistic locking to prevent race conditions)
+  const { data: updatedPerfil } = await supabase
     .from('perfiles')
     .update({ xp: (perfil?.xp || 0) - costoXp })
     .eq('id', user.id)
+    .eq('xp', perfil?.xp || 0)
+    .select()
 
-  // Descontar XP del grupo si aplica
+  if (!updatedPerfil?.length) {
+    return { error: 'Hubo un conflicto al actualizar XP. Intenta de nuevo.' }
+  }
+
+  // Descontar XP del grupo si aplica (optimistic locking)
   if (grupoId) {
-    await supabase
+    const { data: updatedMiembro } = await supabase
       .from('miembros_grupo')
       .update({ xp: xpDisponible - costoXp })
       .eq('usuario_id', user.id)
       .eq('grupo_id', grupoId)
+      .eq('xp', xpDisponible)
+      .select()
+
+    if (!updatedMiembro?.length) {
+      // Rollback perfiles XP deduction
+      await supabase
+        .from('perfiles')
+        .update({ xp: perfil?.xp || 0 })
+        .eq('id', user.id)
+      return { error: 'Hubo un conflicto al actualizar XP del grupo. Intenta de nuevo.' }
+    }
   }
 
   // Registrar recuperación

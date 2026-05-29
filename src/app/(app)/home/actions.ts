@@ -110,8 +110,19 @@ export async function registrarProgresoLecturaAction(prevState: ActionState, for
       .eq('fecha_progreso', fechaHoy)
       .single()
     if (progressToday?.oracion_completada) {
-      lastResult = await grantXp(supabase, user.id, config.devocional_completo, 'devocional_completo', undefined, grupoId)
-      totalXp += config.devocional_completo
+      // Guard: check if devocional XP was already granted today
+      const { data: devocionalYaOtorgado } = await supabase
+        .from('historial_xp')
+        .select('id')
+        .eq('usuario_id', user.id)
+        .eq('motivo', 'devocional_completo')
+        .eq('referencia_id', fechaHoy)
+        .limit(1)
+
+      if (!devocionalYaOtorgado?.length) {
+        lastResult = await grantXp(supabase, user.id, config.devocional_completo, 'devocional_completo', fechaHoy, grupoId)
+        totalXp += config.devocional_completo
+      }
     }
 
     // Enviar notificación push a miembros del grupo (solo en primera lectura)
@@ -259,8 +270,19 @@ export async function actualizarProgresoOracionAction(datos: { segundosAcumulado
         .eq('fecha_progreso', fechaHoy)
         .single()
       if (progressToday?.lectura_completada) {
-        lastResult = await grantXp(supabase, user.id, config.devocional_completo, 'devocional_completo', undefined, grupoId)
-        totalXp += config.devocional_completo
+        // Guard: check if devocional XP was already granted today
+        const { data: devocionalYaOtorgado } = await supabase
+          .from('historial_xp')
+          .select('id')
+          .eq('usuario_id', user.id)
+          .eq('motivo', 'devocional_completo')
+          .eq('referencia_id', fechaHoy)
+          .limit(1)
+
+        if (!devocionalYaOtorgado?.length) {
+          lastResult = await grantXp(supabase, user.id, config.devocional_completo, 'devocional_completo', fechaHoy, grupoId)
+          totalXp += config.devocional_completo
+        }
       }
 
       // Enviar notificación push a miembros del grupo (solo en primera oración del día)

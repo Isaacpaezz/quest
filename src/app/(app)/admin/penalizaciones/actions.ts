@@ -26,6 +26,18 @@ export async function aplicarPagoAction(usuarioId: string, monto: number): Promi
     return { error: 'No tienes permiso para realizar esta acción.' }
   }
 
+  // Verify target user is in admin's group
+  const { data: targetMember } = await supabase
+    .from('miembros_grupo')
+    .select('usuario_id')
+    .eq('usuario_id', usuarioId)
+    .eq('grupo_id', grupoId)
+    .single()
+
+  if (!targetMember) {
+    return { error: 'Este usuario no pertenece a tu grupo.' }
+  }
+
   if (monto <= 0) return { error: 'El monto debe ser positivo.' }
 
   const { error } = await supabase.rpc('aplicar_pago_a_usuario', {
@@ -63,6 +75,18 @@ export async function crearPenalizacionManualAction(usuarioId: string, monto: nu
 
   if (miembro?.rol !== 'admin') {
     return { error: 'No tienes permiso para realizar esta acción.' }
+  }
+
+  // Verify target user is in admin's group
+  const { data: targetMember } = await supabase
+    .from('miembros_grupo')
+    .select('usuario_id')
+    .eq('usuario_id', usuarioId)
+    .eq('grupo_id', grupoId)
+    .single()
+
+  if (!targetMember) {
+    return { error: 'Este usuario no pertenece a tu grupo.' }
   }
 
   if (monto <= 0) return { error: 'El monto debe ser positivo.' }
