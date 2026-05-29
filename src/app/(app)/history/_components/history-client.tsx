@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { useTheme } from 'next-themes'
 import { BookOpen, ChevronDown, Users, User } from 'lucide-react'
 
 type ProgressEntry = {
@@ -30,14 +29,12 @@ function MonthCalendar({
   maintenanceDates,
   year,
   month,
-  isDark,
 }: {
   completedDates: Set<string>
   pendingDates: Set<string>
   maintenanceDates: Set<string>
   year: number
   month: number
-  isDark: boolean
 }) {
   const today = new Date()
   const daysInMonth = new Date(year, month + 1, 0).getDate()
@@ -49,12 +46,12 @@ function MonthCalendar({
   const blanks = Array.from({ length: firstDayMondayBased }, (_, i) => i)
 
   const weekDays = ['L', 'M', 'X', 'J', 'V', 'S', 'D']
-  const accentClr = isDark ? '#2DDAB0' : '#1AAF8B'
-  const pendingClr = isDark ? '#FFB84D' : '#E69500'
-  const maintenanceClr = isDark ? '#7B8CDE' : '#5B6BC0'
-  const dotBg = isDark ? '#1E2330' : '#E0E3EB'
-  const textClr = isDark ? '#5A6075' : '#8C9099'
-  const todayBdr = isDark ? '#3D4560' : '#C0C5D5'
+  const accentClr = 'hsl(var(--primary))'
+  const pendingClr = '#FFB84D'
+  const maintenanceClr = '#7B8CDE'
+  const dotBg = 'hsl(var(--muted))'
+  const textClr = 'hsl(var(--muted-foreground))'
+  const todayBdr = 'hsl(var(--border))'
 
   return (
     <div>
@@ -81,8 +78,8 @@ function MonthCalendar({
           let bg = dotBg
           let color = textClr
           if (isMaintenance) { bg = maintenanceClr; color = '#FFFFFF' }
-          else if (done) { bg = accentClr; color = isDark ? '#080A10' : '#FFFFFF' }
-          else if (pending) { bg = pendingClr; color = isDark ? '#080A10' : '#FFFFFF' }
+          else if (done) { bg = accentClr; color = 'hsl(var(--primary-foreground))' }
+          else if (pending) { bg = pendingClr; color = '#FFFFFF' }
 
           return (
             <div
@@ -156,21 +153,19 @@ export function HistoryClient({
   maintenanceDates?: string[]
 }) {
   const maintenanceDatesSet = new Set(maintenanceDatesProp || [])
-  const { resolvedTheme } = useTheme()
-  const isDark = resolvedTheme !== 'light'
 
   const now = new Date()
   const [viewMonth, setViewMonth] = useState(now.getMonth())
   const [viewYear, setViewYear] = useState(now.getFullYear())
 
-  const cardBg = isDark ? 'rgba(21,25,37,0.60)' : 'rgba(255,255,255,0.88)'
-  const border = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)'
-  const textClr = isDark ? '#FFFFFF' : '#111318'
-  const subClr = isDark ? '#5A6075' : '#8C9099'
-  const accentClr = isDark ? '#2DDAB0' : '#1AAF8B'
-  const sectionLbl = isDark ? '#7A8090' : '#6B7080'
+  const cardBg = 'hsl(var(--bg-surface) / 0.60)'
+  const border = 'hsl(var(--border))'
+  const textClr = 'hsl(var(--foreground))'
+  const subClr = 'hsl(var(--muted-foreground))'
+  const accentClr = 'hsl(var(--primary))'
+  const sectionLbl = 'hsl(var(--quest-text-secondary))'
   const communityClr = '#6C63FF'
-  const trackClr = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)'
+  const trackClr = 'hsl(var(--muted))'
 
   // Separate active vs completed plans
   const activePlanes = planes.filter(p => p.estado === 'activo')
@@ -272,7 +267,7 @@ export function HistoryClient({
               onClick={() => setShowMonthPicker(!showMonthPicker)}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[13px] font-sans font-medium"
               style={{
-                backgroundColor: isDark ? 'rgba(30,35,48,0.80)' : 'rgba(0,0,0,0.05)',
+                backgroundColor: 'hsl(var(--muted))',
                 color: subClr,
               }}
             >
@@ -283,7 +278,7 @@ export function HistoryClient({
               <div
                 className="absolute right-0 top-full mt-1 rounded-xl p-1 z-50 max-h-[240px] overflow-y-auto min-w-[180px] shadow-lg"
                 style={{
-                  backgroundColor: isDark ? '#1A1E2A' : '#FFFFFF',
+                  backgroundColor: 'hsl(var(--bg-surface))',
                   border: `1px solid ${border}`,
                 }}
               >
@@ -299,8 +294,8 @@ export function HistoryClient({
                       }}
                       className="w-full text-left px-3 py-2 rounded-lg text-[13px] font-sans capitalize"
                       style={{
-                        backgroundColor: isActive ? (isDark ? 'rgba(45,218,176,0.12)' : 'rgba(26,175,139,0.10)') : 'transparent',
-                        color: isActive ? accentClr : (isDark ? '#FFFFFF' : '#111318'),
+                        backgroundColor: isActive ? 'hsl(var(--primary) / 0.12)' : 'transparent',
+                        color: isActive ? accentClr : 'hsl(var(--foreground))',
                         fontWeight: isActive ? 600 : 400,
                       }}
                     >
@@ -318,7 +313,6 @@ export function HistoryClient({
           maintenanceDates={maintenanceDatesSet}
           year={viewYear}
           month={viewMonth}
-          isDark={isDark}
         />
       </div>
 
@@ -367,7 +361,6 @@ export function HistoryClient({
               <PlanCard
                 key={plan.id}
                 plan={plan}
-                isDark={isDark}
                 cardBg={cardBg}
                 border={border}
                 textClr={textClr}
@@ -398,7 +391,6 @@ export function HistoryClient({
               <PlanCard
                 key={plan.id}
                 plan={plan}
-                isDark={isDark}
                 cardBg={cardBg}
                 border={border}
                 textClr={textClr}
@@ -418,7 +410,6 @@ export function HistoryClient({
 // ── Plan card with dual progress bars ──────────────────────────────────────
 function PlanCard({
   plan,
-  isDark,
   cardBg,
   border,
   textClr,
@@ -428,7 +419,6 @@ function PlanCard({
   trackClr,
 }: {
   plan: PlanWithProgress
-  isDark: boolean
   cardBg: string
   border: string
   textClr: string
@@ -456,7 +446,7 @@ function PlanCard({
         <div className="flex items-center gap-3 flex-1 min-w-0">
           <div
             className="size-10 rounded-xl flex items-center justify-center shrink-0"
-            style={{ backgroundColor: isDark ? 'rgba(45,218,176,0.12)' : 'rgba(26,175,139,0.10)' }}
+            style={{ backgroundColor: 'hsl(var(--primary) / 0.12)' }}
           >
             <BookOpen className="size-5" style={{ color: accentClr }} />
           </div>
@@ -473,7 +463,7 @@ function PlanCard({
           <div
             className="shrink-0 px-2.5 py-1 rounded-full text-[10px] font-[600] font-sans"
             style={{
-              backgroundColor: isDark ? 'rgba(45,218,176,0.15)' : 'rgba(26,175,139,0.12)',
+              backgroundColor: 'hsl(var(--primary) / 0.15)',
               color: accentClr,
             }}
           >

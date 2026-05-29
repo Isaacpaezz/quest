@@ -1,7 +1,6 @@
 'use client'
 
 import { useActionState, useState } from 'react'
-import { useTheme } from 'next-themes'
 import { DollarSign, Flame, AlertTriangle, ArrowRight, CheckCircle2, History } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -35,8 +34,6 @@ export function DeudasClient({
     streakIsBroken: boolean
     previousStreak: number
 }) {
-    const { resolvedTheme } = useTheme()
-    const isDark = resolvedTheme !== 'light'
     const [showRecuperar, setShowRecuperar] = useState(false)
     const [canjeoState, canjeoAction, canjeoPending] = useActionState(canjearPuntosAction, {})
 
@@ -47,16 +44,16 @@ export function DeudasClient({
     if (canjeoState?.message) toast.success(canjeoState.message)
     if (canjeoState?.error) toast.error(canjeoState.error)
 
-    // ── Colors ────────────────────────────────────────────────────────────────
-    const cardBg = isDark ? 'rgba(21,25,37,0.60)' : 'rgba(255,255,255,0.88)'
-    const border = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)'
-    const textClr = isDark ? '#FFFFFF' : '#111318'
-    const subClr = isDark ? '#5A6075' : '#8C9099'
-    const accentClr = isDark ? '#2DDAB0' : '#1AAF8B'
-    const sectionLbl = isDark ? '#7A8090' : '#6B7080'
-    const barTrack = isDark ? '#1E2330' : '#E0E3EB'
-    const inputBg = isDark ? 'rgba(10,12,18,0.60)' : 'rgba(255,255,255,0.80)'
-    const inputBdr = isDark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.08)'
+    // ── Colors (CSS variables) ────────────────────────────────────────────────
+    const cardBg = 'hsl(var(--bg-surface) / 0.60)'
+    const border = 'hsl(var(--border))'
+    const textClr = 'hsl(var(--foreground))'
+    const subClr = 'hsl(var(--muted-foreground))'
+    const accentClr = 'hsl(var(--primary))'
+    const sectionLbl = 'hsl(var(--quest-text-secondary))'
+    const barTrack = 'hsl(var(--muted))'
+    const inputBg = 'hsl(var(--bg-surface) / 0.80)'
+    const inputBdr = 'hsl(var(--input))'
 
     const debtClr = totalDeuda > 0 ? '#FF6B6B' : accentClr
     const hasDebt = totalDeuda > 0
@@ -80,11 +77,11 @@ export function DeudasClient({
                 className="rounded-[24px] p-5"
                 style={{
                     backgroundColor: hasDebt
-                        ? isDark ? 'rgba(255,107,107,0.10)' : 'rgba(255,107,107,0.06)'
-                        : isDark ? 'rgba(45,218,176,0.10)' : 'rgba(26,175,139,0.06)',
+                        ? 'rgba(255,107,107,0.08)'
+                        : 'hsl(var(--primary) / 0.08)',
                     border: `1px solid ${hasDebt
-                        ? isDark ? 'rgba(255,107,107,0.20)' : 'rgba(255,107,107,0.12)'
-                        : isDark ? 'rgba(45,218,176,0.20)' : 'rgba(26,175,139,0.12)'}`,
+                        ? 'rgba(255,107,107,0.16)'
+                        : 'hsl(var(--primary) / 0.16)'}`,
                 }}
             >
                 <div className="flex items-center gap-3 mb-1">
@@ -181,8 +178,8 @@ export function DeudasClient({
                         onClick={() => setShowRecuperar(true)}
                         className="w-full h-12 rounded-[14px] flex items-center justify-center gap-2 font-[600] font-sans text-[14px] transition-opacity"
                         style={{
-                            backgroundColor: isDark ? 'rgba(255,107,53,0.12)' : 'rgba(255,107,53,0.08)',
-                            border: `1px solid ${isDark ? 'rgba(255,107,53,0.20)' : 'rgba(255,107,53,0.12)'}`,
+                            backgroundColor: 'rgba(255,107,53,0.10)',
+                            border: '1px solid rgba(255,107,53,0.16)',
                             color: '#FF6B35',
                         }}
                     >
