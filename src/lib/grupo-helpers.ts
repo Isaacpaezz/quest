@@ -103,3 +103,54 @@ export async function getDiasLibres(
   }
 }
 
+/**
+ * Returns dates in the lookback range that have NO chapter assigned in any plan of the group.
+ * These are "gap days" between plans where users couldn't complete anything.
+ * Used by calculateStreak to skip these days without breaking the streak.
+ *
+ * @param supabase - Supabase client
+ * @param todayStr - Today's date as 'YYYY-MM-DD'
+ * @param grupoId - Group ID to scope plans
+ * @param lookbackDays - How many days to look back (default: 60)
+ */
+export async function getDatesWithoutPlan(
+  supabase: TypedSupabaseClient,
+  todayStr: string,
+  grupoId?: string | null,
+  lookbackDays: number = 60
+): Promise<string[]> {
+  if (!grupoId) return []
+
+  const today = new Date(todayStr + 'T12:00:00')
+  const startDate = new Date(today)
+  startDate.setDate(startDate.getDate() - lookbackDays)
+
+  const fmt = (d: Date) => d.toISOString().split('T')[0]
+  const startStr = fmt(startDate)
+
+  // Get all dates that HAVE a chapter assigned in any plan of this group
+  const { data: chapters } = await supabase
+    .from('capitulos_diarios')
+    .select('fecha_lectura, planes_lectura!inner(grupo_id)')
+    .eq('planes_lectura.grupo_id', grupoId)
+    .gte('fecha_lectura', startStr)
+    .lte('fecha_lectura', todayStr)
+
+  const datesWithPlan = new Set(
+    (chapters || []).map(c => c.fecha_lectura)
+  )
+
+  // Generate all dates in range and find the ones without chapters
+  const excludedDates: string[] = []
+  const current = new Date(startDate)
+  while (current <= today) {
+    const dateStr = fmt(current)
+    if (!datesWithPlan.has(dateStr)) {
+      excludedDates.push(dateStr)
+    }
+    current.setDate(current.getDate() + 1)
+  }
+
+  return excludedDates
+}
+

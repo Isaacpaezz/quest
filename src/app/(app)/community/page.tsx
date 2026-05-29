@@ -4,7 +4,7 @@ import { CommunityClient } from './_components/community-client'
 import { Tables } from '@/types/database'
 import { CommunityMember } from '@/types/definitions'
 import { getToday } from '@/lib/utils'
-import { getMiembrosGrupoActivo, getTimezone, getDiasLibres } from '@/lib/grupo-helpers'
+import { getMiembrosGrupoActivo, getTimezone, getDiasLibres, getDatesWithoutPlan } from '@/lib/grupo-helpers'
 import { calculateStreak } from '@/lib/streak'
 
 export default async function CommunityPage() {
@@ -61,10 +61,11 @@ export default async function CommunityPage() {
 
   // Calculate group-scoped streaks using shared utility
   const diasLibres = await getDiasLibres(supabase, grupoId)
+  const excludedDates = await getDatesWithoutPlan(supabase, today, grupoId)
   const streakMap: Record<string, number> = {}
   for (const uid of miembros) {
     const userProgress = streakProgress.filter(p => p.usuario_id === uid)
-    streakMap[uid] = calculateStreak(userProgress, today, diasLibres)
+    streakMap[uid] = calculateStreak(userProgress, today, diasLibres, excludedDates)
   }
 
   const penaltyDates = pendingPenalties.map(p => p.fecha_incumplimiento);

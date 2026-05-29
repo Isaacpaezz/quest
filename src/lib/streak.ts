@@ -5,12 +5,14 @@
  * - A day counts if lectura_completada AND oracion_completada are both true
  * - Dates must be actually consecutive (no gaps allowed)
  * - Free days (dias_libres) are skipped — they don't break the streak
+ * - Excluded dates (no active plan) are skipped — they don't break the streak
  * - Starts counting from today backwards; if today isn't done, counts from yesterday
  * - The streak is preserved until midnight (if today isn't completed, yesterday's streak is shown)
  * 
  * @param progressEntries - Progress entries (any order, will be deduplicated by date)
  * @param todayStr - Today's date as 'YYYY-MM-DD'
  * @param diasLibres - Array of free day numbers (0=Sunday, 6=Saturday). Configured per group by admin.
+ * @param excludedDates - Array of specific dates ('YYYY-MM-DD') to skip (e.g., days without an active plan).
  */
 export function calculateStreak(
   progressEntries: Array<{
@@ -19,7 +21,8 @@ export function calculateStreak(
     oracion_completada: boolean
   }>,
   todayStr?: string,
-  diasLibres: number[] = []
+  diasLibres: number[] = [],
+  excludedDates: string[] = []
 ): number {
   if (progressEntries.length === 0) return 0
 
@@ -33,6 +36,8 @@ export function calculateStreak(
   }
 
   if (completedDates.size === 0) return 0
+
+  const excludedSet = new Set(excludedDates)
 
   // Start from today and walk backwards
   const today = todayStr ? new Date(todayStr + 'T12:00:00') : new Date()
@@ -60,6 +65,12 @@ export function calculateStreak(
 
     // Skip free days — they don't count and don't break streak
     if (diasLibres.includes(dayOfWeek)) {
+      currentDate.setDate(currentDate.getDate() - 1)
+      continue
+    }
+
+    // Skip excluded dates (days without active plan) — they don't count and don't break streak
+    if (excludedSet.has(dateKey)) {
       currentDate.setDate(currentDate.getDate() - 1)
       continue
     }

@@ -2,7 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { DashboardClient } from './_components/dashboard-client'
 import { getToday } from '@/lib/utils'
-import { getMiembrosGrupoActivo, getTimezone, getDiasLibres } from '@/lib/grupo-helpers'
+import { getMiembrosGrupoActivo, getTimezone, getDiasLibres, getDatesWithoutPlan } from '@/lib/grupo-helpers'
 import { calculateStreak } from '@/lib/streak'
 
 /**
@@ -123,7 +123,12 @@ export default async function DashboardPage() {
 
   if (recentProgress) {
     const diasLibres = await getDiasLibres(supabase, grupoIdForPlan)
-    streakCount = calculateStreak(recentProgress, today, diasLibres)
+
+    // Calculate excluded dates: days without any chapter assigned in the group's plans
+    // Look back 60 days to cover the full streak range
+    const excludedDates = await getDatesWithoutPlan(supabase, today, grupoIdForPlan)
+
+    streakCount = calculateStreak(recentProgress, today, diasLibres, excludedDates)
   }
 
   // Update max_streak: global (perfiles) + per-group (miembros_grupo)

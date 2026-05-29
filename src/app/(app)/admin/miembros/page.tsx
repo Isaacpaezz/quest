@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation'
 import { MiembrosClient } from './_components/miembros-client'
 import { calculateStreak } from '@/lib/streak'
 import { getTodayInVenezuela } from '@/lib/utils'
-import { getDiasLibres } from '@/lib/grupo-helpers'
+import { getDiasLibres, getDatesWithoutPlan } from '@/lib/grupo-helpers'
 
 export default async function MiembrosPage() {
     const supabase = await createClient()
@@ -47,10 +47,11 @@ export default async function MiembrosPage() {
     // Calculate streaks per user (consecutive dates, skipping free days)
     const today = getTodayInVenezuela()
     const diasLibres = await getDiasLibres(supabase, grupoId)
+    const excludedDates = await getDatesWithoutPlan(supabase, today, grupoId)
     const streakMap: Record<string, number> = {}
     for (const uid of memberIds) {
         const userProgress = progress.filter(p => p.usuario_id === uid)
-        streakMap[uid] = calculateStreak(userProgress, today, diasLibres)
+        streakMap[uid] = calculateStreak(userProgress, today, diasLibres, excludedDates)
     }
 
     // Calculate debts per user
