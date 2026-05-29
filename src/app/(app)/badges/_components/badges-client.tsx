@@ -1,6 +1,5 @@
 'use client'
 
-import { useTheme } from 'next-themes'
 import { Lock, Flame } from 'lucide-react'
 import Link from 'next/link'
 
@@ -36,9 +35,6 @@ const LEVEL_NAMES: Record<number, string> = {
 }
 
 export function BadgesClient({ badges, perfil, maxStreak = 0, currentStreak = 0 }: { badges: Badge[]; perfil: Perfil; maxStreak?: number; currentStreak?: number }) {
-    const { resolvedTheme } = useTheme()
-    const isDark = resolvedTheme !== 'light'
-
     const xp = perfil?.xp || 0
     const nivel = perfil?.nivel || 1
     const currentThreshold = LEVEL_THRESHOLDS[nivel - 1] || 0
@@ -49,13 +45,13 @@ export function BadgesClient({ badges, perfil, maxStreak = 0, currentStreak = 0 
 
     const desbloqueados = badges.filter(b => b.desbloqueado)
 
-    const cardBg = isDark ? 'rgba(21,25,37,0.60)' : 'rgba(255,255,255,0.88)'
-    const border = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)'
-    const textClr = isDark ? '#FFFFFF' : '#111318'
-    const subClr = isDark ? '#5A6075' : '#8C9099'
-    const accentClr = isDark ? '#2DDAB0' : '#1AAF8B'
-    const sectionLbl = isDark ? '#7A8090' : '#6B7080'
-    const barTrack = isDark ? '#1E2330' : '#E0E3EB'
+    const cardBg = 'hsl(var(--bg-surface) / 0.60)'
+    const border = 'hsl(var(--border))'
+    const textClr = 'hsl(var(--foreground))'
+    const subClr = 'hsl(var(--muted-foreground))'
+    const accentClr = 'hsl(var(--primary))'
+    const sectionLbl = 'hsl(var(--quest-text-secondary))'
+    const barTrack = 'hsl(var(--muted))'
 
     return (
         <div className="flex flex-col gap-6">
@@ -104,8 +100,8 @@ export function BadgesClient({ badges, perfil, maxStreak = 0, currentStreak = 0 
             <div
                 className="rounded-[24px] p-5"
                 style={{
-                    backgroundColor: isDark ? 'rgba(255,107,53,0.06)' : 'rgba(255,107,53,0.04)',
-                    border: `1px solid ${isDark ? 'rgba(255,107,53,0.12)' : 'rgba(255,107,53,0.08)'}`,
+                    backgroundColor: 'rgba(255,107,53,0.05)',
+                    border: '1px solid rgba(255,107,53,0.10)',
                 }}
             >
                 <div className="flex items-center justify-between mb-3">
@@ -172,7 +168,7 @@ export function BadgesClient({ badges, perfil, maxStreak = 0, currentStreak = 0 
                             key={badge.id}
                             className="rounded-[20px] p-4 flex flex-col items-center gap-2 text-center relative"
                             style={{
-                                backgroundColor: unlocked ? cardBg : isDark ? 'rgba(21,25,37,0.30)' : 'rgba(240,241,244,0.60)',
+                                backgroundColor: unlocked ? cardBg : 'hsl(var(--bg-surface) / 0.30)',
                                 border: `1px solid ${unlocked ? border : 'transparent'}`,
                                 opacity: unlocked ? 1 : 0.55,
                             }}
