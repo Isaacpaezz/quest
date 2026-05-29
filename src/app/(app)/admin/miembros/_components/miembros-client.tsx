@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useTheme } from 'next-themes'
 import { cambiarRolAction, eliminarMiembroAction } from '../actions'
 import { toast } from 'sonner'
 import { Shield, ShieldOff, UserMinus, Crown, ChevronLeft, Flame, DollarSign, Share2, Copy } from 'lucide-react'
@@ -28,16 +27,12 @@ export function MiembrosClient({
     currentUserId: string
     inviteCode: string | null
 }) {
-    const { resolvedTheme } = useTheme()
-    const [mounted, setMounted] = useState(false)
-    useEffect(() => setMounted(true), [])
-    const isDark = !mounted ? true : resolvedTheme === 'dark'
 
-    const cardBg = isDark ? 'rgba(21,25,37,0.44)' : 'rgba(255,255,255,0.91)'
-    const cardBorder = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.031)'
-    const textPrimary = isDark ? '#FFFFFF' : '#111318'
-    const textSecondary = isDark ? '#5A6075' : '#8C9099'
-    const accent = isDark ? '#2DDAB0' : '#1AAF8B'
+    const cardBg = 'hsl(var(--bg-surface) / 0.44)'
+    const cardBorder = 'hsl(var(--border))'
+    const textPrimary = 'hsl(var(--foreground))'
+    const textSecondary = 'hsl(var(--muted-foreground))'
+    const accent = 'hsl(var(--primary))'
 
     const handleRolChange = async (miembroId: string, nuevoRol: string) => {
         const result = await cambiarRolAction(miembroId, nuevoRol)
@@ -86,8 +81,8 @@ export function MiembrosClient({
                         onClick={handleInvite}
                         className="flex items-center gap-2 px-4 py-2 rounded-xl text-[13px] font-semibold font-sans transition-all active:scale-[0.97]"
                         style={{
-                            backgroundColor: isDark ? 'rgba(45,218,176,0.10)' : 'rgba(26,175,139,0.08)',
-                            border: `1px solid ${isDark ? 'rgba(45,218,176,0.20)' : 'rgba(26,175,139,0.15)'}`,
+                            backgroundColor: 'hsl(var(--primary) / 0.10)',
+                            border: '1px solid hsl(var(--primary) / 0.18)',
                             color: accent,
                         }}
                     >
@@ -118,7 +113,7 @@ export function MiembrosClient({
                         }}
                         className="p-2 rounded-xl transition-all active:scale-[0.95]"
                         style={{
-                            backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)',
+                            backgroundColor: 'hsl(var(--input))',
                         }}
                     >
                         <Copy className="size-4" style={{ color: textSecondary }} />
@@ -152,7 +147,7 @@ export function MiembrosClient({
                                     <div className="flex items-center gap-3">
                                         <div
                                             className="flex h-10 w-10 items-center justify-center rounded-full shrink-0"
-                                            style={{ backgroundColor: isDark ? '#1E2330' : '#E8EBF0' }}
+                                            style={{ backgroundColor: 'hsl(var(--muted))' }}
                                         >
                                             <span className="font-display text-sm font-bold" style={{ color: textSecondary }}>
                                                 {nombre.charAt(0).toUpperCase()}

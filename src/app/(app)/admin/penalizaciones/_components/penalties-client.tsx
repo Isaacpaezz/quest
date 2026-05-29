@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { useTheme } from 'next-themes'
 import { toast } from 'sonner'
 import { aplicarPagoAction, crearPenalizacionManualAction } from '@/app/(app)/admin/penalizaciones/actions'
 import { Toaster } from '@/components/ui/sonner'
@@ -26,22 +25,18 @@ export function PenaltiesClient({ users: initialUsers, allMembers }: { users: Us
   const [selectedUser, setSelectedUser] = useState<UserDebt | null>(null)
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
-  const { resolvedTheme } = useTheme()
-  const [mounted, setMounted] = useState(false)
   const amountRef = useRef<HTMLInputElement>(null)
   const manualAmountRef = useRef<HTMLInputElement>(null)
   const manualMotivoRef = useRef<HTMLInputElement>(null)
   const [manualUserId, setManualUserId] = useState('')
 
-  useEffect(() => setMounted(true), [])
-  const isDark = !mounted ? true : resolvedTheme === 'dark'
-  const cardBg = isDark ? 'rgba(21,25,37,0.44)' : 'rgba(255,255,255,0.91)'
-  const cardBorder = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.031)'
-  const textPrimary = isDark ? '#FFFFFF' : '#111318'
-  const textSecondary = isDark ? '#5A6075' : '#8C9099'
-  const modalBg = isDark ? '#151925' : '#FFFFFF'
-  const accent = isDark ? '#2DDAB0' : '#1AAF8B'
-  const labelColor = isDark ? '#9CA0B5' : '#6B7080'
+  const cardBg = 'hsl(var(--bg-surface) / 0.44)'
+  const cardBorder = 'hsl(var(--border))'
+  const textPrimary = 'hsl(var(--foreground))'
+  const textSecondary = 'hsl(var(--muted-foreground))'
+  const modalBg = 'hsl(var(--bg-surface))'
+  const accent = 'hsl(var(--primary))'
+  const labelColor = 'hsl(var(--muted-foreground))'
 
   const handleApplyPayment = async () => {
     if (!selectedUser || !amountRef.current) return
@@ -81,8 +76,8 @@ export function PenaltiesClient({ users: initialUsers, allMembers }: { users: Us
   }
 
   const inputStyle = {
-    backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)',
-    border: `1px solid ${isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)'}`,
+    backgroundColor: 'hsl(var(--input))',
+    border: '1px solid hsl(var(--border))',
     color: textPrimary,
   }
 
@@ -100,8 +95,8 @@ export function PenaltiesClient({ users: initialUsers, allMembers }: { users: Us
             onClick={() => setShowCreateModal(true)}
             className="flex items-center gap-2 px-4 py-2 rounded-xl text-[13px] font-semibold font-sans transition-all active:scale-[0.97]"
             style={{
-              backgroundColor: isDark ? 'rgba(255,107,107,0.10)' : 'rgba(255,107,107,0.08)',
-              border: `1px solid ${isDark ? 'rgba(255,107,107,0.20)' : 'rgba(255,107,107,0.15)'}`,
+              backgroundColor: 'rgba(255,107,107,0.09)',
+              border: '1px solid rgba(255,107,107,0.18)',
               color: '#FF6B6B',
             }}
           >
@@ -212,7 +207,7 @@ export function PenaltiesClient({ users: initialUsers, allMembers }: { users: Us
                   onClick={() => amountRef.current!.value = selectedUser.deuda_total.toString()}
                   className="flex-1 h-11 rounded-xl text-[13px] font-semibold font-sans transition-all active:scale-[0.97]"
                   style={{
-                    backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
+                    backgroundColor: 'hsl(var(--muted))',
                     color: textPrimary,
                   }}
                 >
@@ -224,7 +219,7 @@ export function PenaltiesClient({ users: initialUsers, allMembers }: { users: Us
                   className="flex-1 h-11 rounded-xl text-[13px] font-semibold font-sans transition-all active:scale-[0.97] disabled:opacity-50"
                   style={{
                     backgroundColor: accent,
-                    color: isDark ? '#0A0D14' : '#FFFFFF',
+                    color: 'hsl(var(--primary-foreground))',
                   }}
                 >
                   {isLoading ? 'Aplicando...' : 'Aplicar Pago'}
