@@ -72,6 +72,11 @@ export async function generarPlanAction(prevState: ActionState, formData: FormDa
     ? JSON.parse(diasLibresConfig.valor)
     : []
 
+  // Guard: if all 7 days are free, no chapters can ever be scheduled
+  if (diasLibres.length >= 7) {
+    return { errors: { _form: ['No se puede generar un plan si todos los días están configurados como días libres. Desmarca al menos un día en la configuración del grupo.'] } }
+  }
+
   // Calcular fecha de inicio automática (cola inteligente)
   const { data: ultimoPlan } = await supabase
     .from('planes_lectura')
@@ -133,7 +138,12 @@ export async function generarPlanAction(prevState: ActionState, formData: FormDa
 
   for (let i = 1; i <= libro.capitulos; i++) {
     // Skip free days — timezone-aware day-of-week via Intl.DateTimeFormat
+    // Safety counter prevents infinite loop (max 365 iterations)
+    let skipIterations = 0
     while (diasLibres.includes(getDayOfWeekInTimezone(currentDate, timezone))) {
+      if (++skipIterations > 365) {
+        return { errors: { _form: ['Error interno: se excedió el límite de días libres consecutivos. Revisa la configuración de días libres del grupo.'] } }
+      }
       currentDate.setUTCDate(currentDate.getUTCDate() + 1)
     }
 

@@ -22,6 +22,12 @@ export default async function PlanesPage() {
     .eq('grupo_id', grupoId)
     .order('fecha_inicio', { ascending: true })
 
+  // Fetch totalMiembros once (same for every plan in this group)
+  const { count: totalMiembros } = await supabase
+    .from('miembros_grupo')
+    .select('*', { count: 'exact', head: true })
+    .eq('grupo_id', grupoId)
+
   const planesConProgreso = await Promise.all(
     (planes ?? []).map(async (plan) => {
       const { count: totalCapitulos } = await supabase
@@ -34,11 +40,6 @@ export default async function PlanesPage() {
         .select('*, capitulos_diarios!inner(*)', { count: 'exact', head: true })
         .eq('capitulos_diarios.plan_id', plan.id)
         .eq('lectura_completada', true)
-
-      const { count: totalMiembros } = await supabase
-        .from('miembros_grupo')
-        .select('*', { count: 'exact', head: true })
-        .eq('grupo_id', grupoId)
 
       return {
         ...plan,

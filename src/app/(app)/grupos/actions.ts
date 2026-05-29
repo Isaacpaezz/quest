@@ -40,29 +40,33 @@ export async function crearGrupoAction(
     rol: 'admin',
   })
 
-  // Copiar config default al nuevo grupo
-  const { data: defaultConfig } = await supabase
-    .from('configuracion_app')
-    .select('clave, valor')
-    .not('grupo_id', 'is', null)
-    .limit(20)
+  // Insertar configuración default para el nuevo grupo
+  const defaultConfig = [
+    { clave: 'timezone', valor: 'America/Caracas' },
+    { clave: 'monto_penalizacion', valor: '5' },
+    { clave: 'tasa_canjeo', valor: '100' },
+    { clave: 'dias_libres', valor: '[]' },
+    { clave: 'metodo_recuperacion', valor: '"xp"' },
+    { clave: 'modo_penalizacion', valor: 'dinero' },
+    { clave: 'costo_recuperacion_puntos', valor: '200' },
+    { clave: 'costo_recuperacion_dinero', valor: '5' },
+    { clave: 'max_recuperaciones_mes', valor: '3' },
+    { clave: 'xp_lectura', valor: '50' },
+    { clave: 'xp_oracion', valor: '30' },
+    { clave: 'xp_oracion_bonus', valor: '20' },
+    { clave: 'xp_oracion_bonus_minutos', valor: '10' },
+    { clave: 'xp_devocional_completo', valor: '25' },
+    { clave: 'xp_reto_completado', valor: '100' },
+    { clave: 'xp_racha_multiplicador', valor: '10' },
+    { clave: 'xp_racha_cap', valor: '100' },
+  ]
 
-  if (defaultConfig && defaultConfig.length > 0) {
-    // Tomar las claves únicas de cualquier grupo existente como template
-    const clavesSeen = new Set<string>()
-    const configInserts = defaultConfig
-      .filter(c => {
-        if (clavesSeen.has(c.clave)) return false
-        clavesSeen.add(c.clave)
-        return true
-      })
-      .map(c => ({
-        clave: c.clave,
-        valor: c.valor,
-        grupo_id: grupo.id,
-      }))
-    await supabase.from('configuracion_app').insert(configInserts)
-  }
+  const configInserts = defaultConfig.map(c => ({
+    clave: c.clave,
+    valor: c.valor,
+    grupo_id: grupo.id,
+  }))
+  await supabase.from('configuracion_app').insert(configInserts)
 
   // Establecer como grupo activo
   await supabase

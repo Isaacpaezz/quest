@@ -61,26 +61,24 @@ export default async function MiembrosPage() {
         debtMap[d.usuario_id] = (debtMap[d.usuario_id] || 0) + (Number(d.monto) - Number(d.monto_pagado || 0))
     }
 
-    // Fetch profile names
-    const miembros = await Promise.all(
-        rawMiembros.map(async (m) => {
-            let nombre_usuario = 'Sin nombre'
-            if (m.usuario_id) {
-                const { data: p } = await supabase
-                    .from('perfiles')
-                    .select('nombre_usuario')
-                    .eq('id', m.usuario_id)
-                    .single()
-                nombre_usuario = p?.nombre_usuario ?? 'Sin nombre'
-            }
-            return {
-                ...m,
-                perfiles: { nombre_usuario },
-                racha: streakMap[m.usuario_id ?? ''] ?? 0,
-                deuda: debtMap[m.usuario_id ?? ''] ?? 0,
-            }
-        })
-    )
+    // Fetch profile names in bulk (avoids N+1 queries)
+    const profileMap: Record<string, string> = {}
+    if (memberIds.length > 0) {
+        const { data: perfiles } = await supabase
+            .from('perfiles')
+            .select('id, nombre_usuario')
+            .in('id', memberIds)
+        for (const p of perfiles ?? []) {
+            profileMap[p.id] = p.nombre_usuario ?? 'Sin nombre'
+        }
+    }
+
+    const miembros = rawMiembros.map((m) => ({
+        ...m,
+        perfiles: { nombre_usuario: profileMap[m.usuario_id ?? ''] ?? 'Sin nombre' },
+        racha: streakMap[m.usuario_id ?? ''] ?? 0,
+        deuda: debtMap[m.usuario_id ?? ''] ?? 0,
+    }))
 
     return (
         <MiembrosClient

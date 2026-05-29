@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useTheme } from 'next-themes'
 import { BookOpen, ChevronDown, Users, User } from 'lucide-react'
 
@@ -217,6 +217,19 @@ export function HistoryClient({
   const prevMonthName = new Date(viewYear, viewMonth - 1).toLocaleDateString('es-ES', { month: 'long' })
 
   const [showMonthPicker, setShowMonthPicker] = useState(false)
+  const monthPickerRef = useRef<HTMLDivElement>(null)
+
+  // Close month picker on click outside
+  useEffect(() => {
+    if (!showMonthPicker) return
+    function handleClickOutside(e: MouseEvent) {
+      if (monthPickerRef.current && !monthPickerRef.current.contains(e.target as Node)) {
+        setShowMonthPicker(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [showMonthPicker])
 
   // Build list of available months from progress data
   const availableMonths: { month: number; year: number; label: string }[] = []
@@ -254,7 +267,7 @@ export function HistoryClient({
           <span className="font-display text-[16px] font-bold capitalize" style={{ color: textClr }}>
             {monthName}
           </span>
-          <div className="relative">
+          <div className="relative" ref={monthPickerRef}>
             <button
               onClick={() => setShowMonthPicker(!showMonthPicker)}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[13px] font-sans font-medium"
