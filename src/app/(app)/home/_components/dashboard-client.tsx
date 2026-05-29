@@ -63,7 +63,9 @@ export function DashboardClient({ dailyMission, userProgress, readingStats, pray
   const misionesCompletadas = (lecturaCompletada ? 1 : 0) + (oracionCompletada ? 1 : 0)
 
   // Glass card style (CSS variables — theme-aware)
-  const card = 'rounded-3xl border border-border bg-[hsl(var(--bg-surface)/0.7)] p-5 shadow-[var(--quest-shadow-card)]'
+  const cardBg = 'hsl(var(--bg-surface) / 0.70)'
+  const cardBorder = 'hsl(var(--border))'
+  const cardShadow = 'var(--quest-shadow-card)'
 
   const textPrimary = 'text-foreground'
   const textSecondary = 'text-muted-foreground'
@@ -91,13 +93,19 @@ export function DashboardClient({ dailyMission, userProgress, readingStats, pray
       {/* ── Mission Cards ── */}
       <div className="space-y-6">
         {!chapterInfo ? (
-          <div className={card + ' flex flex-col items-center justify-center text-center'}>
+          <div
+            className="rounded-3xl p-5 flex flex-col items-center justify-center text-center"
+            style={{ backgroundColor: cardBg, border: `1px solid ${cardBorder}`, boxShadow: cardShadow }}
+          >
             <Sparkles className="mb-4 h-12 w-12 text-muted-foreground" />
             <h3 className={`font-sora text-lg font-semibold ${textPrimary}`}>Día de Descanso</h3>
             <p className={`text-sm ${textSecondary}`}>No hay una lectura asignada para hoy.</p>
           </div>
         ) : (
-          <div className={card}>
+          <div
+            className="rounded-3xl p-5"
+            style={{ backgroundColor: cardBg, border: `1px solid ${cardBorder}`, boxShadow: cardShadow }}
+          >
             {/* Section Label */}
             <div className="mb-4 flex items-center gap-3">
               <div className="h-0.5 w-6 rounded-full" style={{ background: accentTeal }} />
@@ -150,7 +158,8 @@ export function DashboardClient({ dailyMission, userProgress, readingStats, pray
               {!oracionCompletada ? (
                 <button
                   onClick={() => router.push('/oracion')}
-                  className="flex h-12 flex-1 items-center justify-center gap-2 rounded-[14px] border border-border font-semibold transition-all active:scale-95 bg-[hsl(var(--muted))] text-foreground"
+                  className="flex h-12 flex-1 items-center justify-center gap-2 rounded-[14px] font-semibold transition-all active:scale-95 text-foreground"
+                  style={{ border: `1px solid ${cardBorder}`, backgroundColor: 'hsl(var(--muted))' }}
                 >
                   <Sparkles className="h-4 w-4" />
                   Orar
@@ -178,7 +187,10 @@ export function DashboardClient({ dailyMission, userProgress, readingStats, pray
           </div>
           <div className="grid grid-cols-2 gap-3">
             {/* Stat 1: Lecturas */}
-            <div className={card}>
+            <div
+              className="rounded-3xl p-5"
+              style={{ backgroundColor: cardBg, border: `1px solid ${cardBorder}`, boxShadow: cardShadow }}
+            >
               <div className={`font-sora text-[36px] font-bold ${textPrimary}`} style={{ letterSpacing: -2 }}>
                 {readingStats?.count ?? 0}
               </div>
@@ -192,7 +204,10 @@ export function DashboardClient({ dailyMission, userProgress, readingStats, pray
               </div>
             </div>
             {/* Stat 2: Oraciones */}
-            <div className={card}>
+            <div
+              className="rounded-3xl p-5"
+              style={{ backgroundColor: cardBg, border: `1px solid ${cardBorder}`, boxShadow: cardShadow }}
+            >
               <div className={`font-sora text-[36px] font-bold ${textPrimary}`} style={{ letterSpacing: -2 }}>
                 {prayerStats?.count ?? 0}
               </div>
@@ -209,7 +224,10 @@ export function DashboardClient({ dailyMission, userProgress, readingStats, pray
         </div>
 
         {/* ── Weekly Progress ── */}
-        <div className={card}>
+        <div
+          className="rounded-3xl p-5"
+          style={{ backgroundColor: cardBg, border: `1px solid ${cardBorder}`, boxShadow: cardShadow }}
+        >
           <div className="mb-4 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="h-0.5 w-6 rounded-full" style={{ background: accentTeal }} />
