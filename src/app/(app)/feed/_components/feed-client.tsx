@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useTransition, useRef, useEffect } from 'react'
-import { useTheme } from 'next-themes'
 import { Newspaper, Heart, MessageCircle, BookOpen, Timer, Flame, ChevronDown, Send, Trash2, Trophy } from 'lucide-react'
 import { EmptyState } from '@/components/shared/empty-state'
 import { toggleReactionAction, postCommentAction, getCommentsAction, deleteCommentAction } from '../actions'
@@ -62,13 +61,11 @@ function ReactionPicker({
   totalLikes,
   onReact,
   isPending,
-  isDark,
 }: {
   userReactions: Set<ReactionType>
   totalLikes: number
   onReact: (type: ReactionType) => void
   isPending: boolean
-  isDark: boolean
 }) {
   const [showPicker, setShowPicker] = useState(false)
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -88,7 +85,7 @@ function ReactionPicker({
   }, [showPicker])
 
   const hasAnyReaction = userReactions.size > 0
-  const subClr = isDark ? '#5A6075' : '#8C9099'
+  const subClr = 'hsl(var(--muted-foreground))'
 
   const handleLongPressStart = () => {
     timerRef.current = setTimeout(() => {
@@ -143,8 +140,8 @@ function ReactionPicker({
         <div
           className="absolute -top-12 left-0 z-50 flex items-center gap-1 rounded-full px-2 py-1.5 shadow-lg"
           style={{
-            backgroundColor: isDark ? '#1E2330' : '#FFFFFF',
-            border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)'}`,
+            backgroundColor: 'hsl(var(--bg-surface))',
+            border: '1px solid hsl(var(--border))',
           }}
         >
           {REACTION_TYPES.map(({ type, emoji }) => (
@@ -157,7 +154,7 @@ function ReactionPicker({
               className="flex size-8 items-center justify-center rounded-full transition-transform hover:scale-125 active:scale-90"
               style={{
                 backgroundColor: userReactions.has(type)
-                  ? (isDark ? 'rgba(123,143,255,0.2)' : 'rgba(84,104,255,0.1)')
+                  ? 'hsl(var(--primary) / 0.15)'
                   : 'transparent',
               }}
               title={REACTION_TYPES.find(r => r.type === type)?.label}
@@ -172,11 +169,10 @@ function ReactionPicker({
 }
 
 // ─── ActivityItem ────────────────────────────────────────────────────────────
-function ActivityItem({ act, userReactions: initialReactions, currentUserId, isDark }: {
+function ActivityItem({ act, userReactions: initialReactions, currentUserId }: {
   act: FeedActivity
   userReactions: Set<ReactionType>
   currentUserId: string
-  isDark: boolean
 }) {
   const [userReactions, setUserReactions] = useState<Set<ReactionType>>(initialReactions)
   const [likeCount, setLikeCount] = useState(Number(act.likes_count) || 0)
@@ -195,13 +191,13 @@ function ActivityItem({ act, userReactions: initialReactions, currentUserId, isD
   useEffect(() => { setLikeCount(Number(act.likes_count) || 0) }, [act.likes_count])
   useEffect(() => { setCommentCount(Number(act.comentarios_count) || 0) }, [act.comentarios_count])
 
-  const cardBg = isDark ? 'rgba(21,25,37,0.60)' : 'rgba(255,255,255,0.88)'
-  const border = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)'
-  const textClr = isDark ? '#FFFFFF' : '#111318'
-  const subClr = isDark ? '#5A6075' : '#8C9099'
-  const dotClr = isDark ? '#2B3045' : '#E8EBF0'
-  const accentBlue = isDark ? '#7B8FFF' : '#5468FF'
-  const accentPurple = isDark ? '#B97BFF' : '#8A4FFF'
+  const cardBg = 'hsl(var(--bg-surface) / 0.60)'
+  const border = 'hsl(var(--border))'
+  const textClr = 'hsl(var(--foreground))'
+  const subClr = 'hsl(var(--muted-foreground))'
+  const dotClr = 'hsl(var(--muted))'
+  const accentBlue = '#7B8FFF'
+  const accentPurple = '#B97BFF'
 
   // Extract name
   const perfiles = act.perfiles
@@ -216,7 +212,7 @@ function ActivityItem({ act, userReactions: initialReactions, currentUserId, isD
   const tipo = String(act.tipo_actividad || '')
   const isLectura = tipo === 'lectura_completada'
   const isVictoria = tipo === 'victoria'
-  const accentGold = isDark ? '#FFD700' : '#DAA520'
+  const accentGold = '#FFD700'
 
   // Reaction handler
   function handleReaction(type: ReactionType) {
@@ -302,9 +298,9 @@ function ActivityItem({ act, userReactions: initialReactions, currentUserId, isD
       className="flex flex-col rounded-[20px] p-4 transition-all duration-300"
       style={{
         backgroundColor: isVictoria
-          ? (isDark ? 'rgba(255,215,0,0.06)' : 'rgba(255,215,0,0.08)')
+          ? 'rgba(255,215,0,0.07)'
           : cardBg,
-        border: `1px solid ${isVictoria ? (isDark ? 'rgba(255,215,0,0.2)' : 'rgba(218,165,32,0.25)') : border}`,
+        border: `1px solid ${isVictoria ? 'rgba(255,215,0,0.22)' : border}`,
       }}
     >
       {/* Main row */}
@@ -373,9 +369,9 @@ function ActivityItem({ act, userReactions: initialReactions, currentUserId, isD
                 <div
                   className="mt-2 rounded-xl px-3 py-2.5 text-[12px] leading-relaxed font-sans"
                   style={{
-                    backgroundColor: isDark ? 'rgba(123,143,255,0.08)' : 'rgba(84,104,255,0.06)',
+                    backgroundColor: 'hsl(var(--primary) / 0.08)',
                     borderLeft: `2px solid ${accentBlue}`,
-                    color: isDark ? '#A0ACD0' : '#5A6070',
+                    color: 'hsl(var(--muted-foreground))',
                   }}
                 >
                   {act.resumen_actividad}
@@ -391,7 +387,6 @@ function ActivityItem({ act, userReactions: initialReactions, currentUserId, isD
               totalLikes={likeCount}
               onReact={handleReaction}
               isPending={isPending}
-              isDark={isDark}
             />
 
             <button
@@ -423,7 +418,7 @@ function ActivityItem({ act, userReactions: initialReactions, currentUserId, isD
               placeholder="Escribe un comentario..."
               className="flex-1 rounded-full px-4 py-2 text-[13px] font-sans outline-none transition-colors"
               style={{
-                backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
+                backgroundColor: 'hsl(var(--input))',
                 color: textClr,
                 border: `1px solid ${border}`,
               }}
@@ -478,7 +473,7 @@ function ActivityItem({ act, userReactions: initialReactions, currentUserId, isD
                     )}
                   </div>
                 </div>
-                <p className="text-[12px] font-sans leading-relaxed mt-0.5" style={{ color: isDark ? '#A0ACD0' : '#5A6070' }}>
+                <p className="text-[12px] font-sans leading-relaxed mt-0.5" style={{ color: 'hsl(var(--muted-foreground))' }}>
                   {comment.contenido}
                 </p>
               </div>
@@ -510,15 +505,12 @@ export function FeedClient({
   timezone: string
   grupoId?: string | null
 }) {
-  const { resolvedTheme } = useTheme()
-  const isDark = resolvedTheme !== 'light'
-
   // Realtime feed updates
-  const { groupedActivities } = useRealtimeFeed(initialGroupedActivities, { memberIds, timezone, grupoId })
+  const { groupedActivities } = useRealtimeFeed(initialGroupedActivities, { memberIds, timezone, groupId })
   const activityDates = Object.keys(groupedActivities)
 
-  const sectionLbl = isDark ? '#7A8090' : '#6B7080'
-  const dateClr = isDark ? '#5A6075' : '#8C9099'
+  const sectionLbl = 'hsl(var(--quest-text-secondary))'
+  const dateClr = 'hsl(var(--muted-foreground))'
 
   // Build per-activity reaction sets
   function getUserReactions(activityId: number): Set<ReactionType> {
@@ -544,15 +536,15 @@ export function FeedClient({
                 <div
                   className="size-12 rounded-full flex items-center justify-center text-[15px] font-bold font-display relative"
                   style={{
-                    backgroundColor: isDark ? '#1E2330' : '#E8EBF0',
-                    color: isDark ? '#2DDAB0' : '#1AAF8B',
-                    boxShadow: `0 0 0 2px ${isDark ? 'rgba(45,218,176,0.35)' : 'rgba(26,175,139,0.35)'}`,
+                    backgroundColor: 'hsl(var(--muted))',
+                    color: 'hsl(var(--primary))',
+                    boxShadow: '0 0 0 2px hsl(var(--primary) / 0.35)',
                   }}
                 >
                   {hero.nombre_usuario[0]?.toUpperCase()}
                   <Flame className="absolute -bottom-1 -right-1 size-3.5" style={{ color: '#FF6B35' }} />
                 </div>
-                <span className="text-[10px] font-sans" style={{ color: isDark ? '#5A6075' : '#8C9099' }}>
+                <span className="text-[10px] font-sans text-muted-foreground">
                   {hero.nombre_usuario.split(' ')[0]}
                 </span>
               </div>
@@ -581,7 +573,6 @@ export function FeedClient({
               <ActivityItem
                 key={act.id}
                 act={act}
-                isDark={isDark}
                 userReactions={getUserReactions(act.id)}
                 currentUserId={currentUserId}
               />
