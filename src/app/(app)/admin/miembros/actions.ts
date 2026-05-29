@@ -39,6 +39,7 @@ export async function cambiarRolAction(miembroId: string, nuevoRol: string): Pro
     .from('miembros_grupo')
     .update({ rol: nuevoRol })
     .eq('id', miembroId)
+    .eq('grupo_id', grupoId)
 
   if (error) {
     console.error('Error al cambiar rol:', error)
@@ -90,6 +91,7 @@ export async function eliminarMiembroAction(miembroId: string): Promise<ActionSt
     .from('miembros_grupo')
     .delete()
     .eq('id', miembroId)
+    .eq('grupo_id', grupoId)
 
   if (error) {
     console.error('Error al eliminar miembro:', error)
