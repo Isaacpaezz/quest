@@ -15,6 +15,11 @@
   --bg-glass: 0 0% 100% / 0.91;
   /* #FFFFFFE8 */
 
+  /* Glass / surface tokens for layout shell */
+  --glass-bg: 0 0% 100% / 0.91;
+  --glass-border: 0 0% 0% / 0.06;
+  --surface-elevated: 0 0% 100%;
+
   /* Cards */
   --card: 0 0% 100%;
   --card-foreground: 228 28% 8%;
@@ -72,6 +77,11 @@
   /* #151925 */
   --bg-glass: 224 26% 11% / 0.44;
   /* #15192570 */
+
+  /* Glass / surface tokens for layout shell */
+  --glass-bg: 224 26% 8% / 0.94;
+  --glass-border: 0 0% 100% / 0.06;
+  --surface-elevated: 224 26% 7%;
 
   /* Cards */
   --card: 224 26% 11%;
@@ -153,6 +163,13 @@
     @apply bg-background text-foreground;
     font-family: var(--font-inter), 'Inter', system-ui, sans-serif;
   }
+
+  button,
+  a,
+  [role="button"] {
+    @apply active:scale-[0.97];
+    transition: transform 150ms ease;
+  }
 }
 
 @layer utilities {
@@ -174,6 +191,22 @@
 
   .dark .quest-bg {
     background: radial-gradient(120% 140% at 50% 30%, #1A1E2A 0%, #10131C 45%, #080A10 100%);
+  }
+
+  /* Touch feedback utilities */
+  .touch-press {
+    @apply active:scale-[0.97];
+    transition: transform 150ms ease;
+  }
+
+  .touch-press-sm {
+    @apply active:scale-[0.98];
+    transition: transform 100ms ease;
+  }
+
+  .touch-lift {
+    @apply active:scale-[1.02];
+    transition: transform 150ms ease;
   }
 
   /* XP Toast & Level-Up Animations */
