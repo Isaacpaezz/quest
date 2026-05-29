@@ -1,44 +1,9 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { UserProfile } from './_components/user-profile'
-import { Tables } from '@/types/database'
-
-// Helper para calcular la racha
-function calculateStreak(progress: Tables<'progreso_usuario'>[]): number {
-  if (progress.length === 0) return 0;
-
-  let streak = 0;
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-
-  // Comprobar si el último día completado es hoy o ayer
-  const lastProgressDate = new Date(progress[0].fecha_progreso);
-  lastProgressDate.setHours(0, 0, 0, 0);
-  
-  const diffDays = (today.getTime() - lastProgressDate.getTime()) / (1000 * 3600 * 24);
-
-  if (diffDays > 1) {
-    return 0; // Se rompió la racha
-  }
-
-  streak = 1;
-  let previousDate = lastProgressDate;
-
-  for (let i = 1; i < progress.length; i++) {
-    const currentDate = new Date(progress[i].fecha_progreso);
-    currentDate.setHours(0, 0, 0, 0);
-    const dayDifference = (previousDate.getTime() - currentDate.getTime()) / (1000 * 3600 * 24);
-
-    if (dayDifference === 1) {
-      streak++;
-      previousDate = currentDate;
-    } else {
-      break; // La racha se rompió
-    }
-  }
-
-  return streak;
-}
+import { calculateStreak } from '@/lib/streak'
+import { getTimezone, getDiasLibres, getDatesWithoutPlan } from '@/lib/grupo-helpers'
+import { getToday } from '@/lib/utils'
 
 export default async function ProfilePage() {
   const supabase = await createClient()
@@ -46,29 +11,54 @@ export default async function ProfilePage() {
   if (!user) redirect('/login')
 
   // Obtener todos los datos necesarios en paralelo
-  const [profileRes, progressHistoryRes, totalMissionsRes] = await Promise.all([
-    supabase.from('perfiles').select('*').eq('id', user.id).single(),
-    supabase.from('progreso_usuario').select('*')
+  const [profileRes, progressHistoryRes, totalMissionsRes, xpHistoryRes] = await Promise.all([
+    supabase.from('perfiles').select('id, nombre_usuario, xp, nivel, max_streak, rol, creado_en, grupo_activo_id').eq('id', user.id).single(),
+    supabase.from('progreso_usuario').select('fecha_progreso, lectura_completada, oracion_completada, segundos_oracion_acumulados')
       .eq('usuario_id', user.id)
-      .eq('lectura_completada', true)
-      .eq('oracion_completada', true)
       .order('fecha_progreso', { ascending: false }),
-    supabase.from('progreso_usuario').select('*', { count: 'exact', head: true })
+    supabase.from('progreso_usuario').select('fecha_progreso', { count: 'exact', head: true })
       .eq('usuario_id', user.id)
       .eq('lectura_completada', true)
-      .eq('oracion_completada', true)
+      .eq('oracion_completada', true),
+    supabase.from('historial_xp')
+      .select('id, cantidad, motivo, created_at')
+      .eq('usuario_id', user.id)
+      .order('created_at', { ascending: false })
+      .limit(20),
   ]);
 
-  const profile = profileRes.data;
+  let profile = profileRes.data;
+  // Override with group-specific XP if user has active group
+  if (profile?.grupo_activo_id) {
+    const { data: miembro } = await supabase
+      .from('miembros_grupo')
+      .select('xp, nivel')
+      .eq('usuario_id', user.id)
+      .eq('grupo_id', profile.grupo_activo_id)
+      .single()
+    if (miembro) {
+      profile = { ...profile, xp: miembro.xp, nivel: miembro.nivel }
+    }
+  }
   const progressHistory = progressHistoryRes.data || [];
   const totalMissions = totalMissionsRes.count || 0;
-  
-  const currentStreak = calculateStreak(progressHistory);
+  const xpHistory = xpHistoryRes.data || [];
+
+  // Calculate streak using timezone-aware shared utility
+  const tz = await getTimezone(supabase)
+  const today = getToday(tz)
+  const grupoId = profile?.grupo_activo_id ?? null
+  const diasLibres = await getDiasLibres(supabase, grupoId)
+  const excludedDates = await getDatesWithoutPlan(supabase, today, grupoId)
+  const currentStreak = calculateStreak(progressHistory, today, diasLibres, excludedDates, tz);
+
+  const totalPrayerSeconds = progressHistory.reduce((acc, curr) => acc + (curr.segundos_oracion_acumulados || 0), 0);
 
   const stats = {
     streak: currentStreak,
     totalMissions: totalMissions,
+    totalPrayerSeconds: totalPrayerSeconds
   }
 
-  return <UserProfile profile={profile} stats={stats} />
+  return <UserProfile profile={profile} stats={stats} xpHistory={xpHistory} />
 }

@@ -1,0 +1,88 @@
+import { createClient } from '@/lib/supabase/server'
+import { redirect } from 'next/navigation'
+import { DeudasClient } from './_components/deudas-client'
+
+export default async function DeudasPage() {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) redirect('/login')
+
+    // Obtener datos en paralelo
+    const perfilRes = await supabase.from('perfiles').select('id, nombre_usuario, xp, nivel, max_streak, grupo_activo_id').eq('id', user.id).single()
+    const grupoId = perfilRes.data?.grupo_activo_id
+
+    const penalizacionesQuery = supabase.from('penalizaciones').select('id, usuario_id, fecha_incumplimiento, monto, monto_pagado, estado, grupo_id')
+        .eq('usuario_id', user.id)
+        .eq('estado', 'pendiente')
+        .order('fecha_incumplimiento', { ascending: false })
+    if (grupoId) penalizacionesQuery.eq('grupo_id', grupoId)
+
+    const [penalizacionesRes, canjeosRes, configRes, progressRes] = await Promise.all([
+        penalizacionesQuery,
+        supabase.from('canjeos').select('id, puntos_usados, monto_descontado, descripcion, usuario_id, created_at')
+            .eq('usuario_id', user.id)
+            .order('created_at', { ascending: false })
+            .limit(10),
+        supabase.from('configuracion_app')
+            .select('clave, valor')
+            .in('clave', ['tasa_canjeo', 'costo_recuperar_racha_xp']),
+        // Fetch recent progress to calculate current streak
+        supabase.from('progreso_usuario')
+            .select('fecha_progreso, lectura_completada, oracion_completada')
+            .eq('usuario_id', user.id)
+            .order('fecha_progreso', { ascending: false })
+            .limit(60),
+    ])
+
+    // Calculate current streak (same logic as home page)
+    let currentStreak = 0
+    if (progressRes.data) {
+        for (const prog of progressRes.data) {
+            if (prog.lectura_completada || prog.oracion_completada) {
+                currentStreak++
+            } else {
+                break
+            }
+        }
+    }
+
+    const maxStreak = perfilRes.data?.max_streak || 0
+    const streakIsBroken = currentStreak === 0 && maxStreak > 0
+
+    const configMap: Record<string, string> = {}
+    for (const c of configRes.data || []) {
+        configMap[c.clave] = c.valor
+    }
+
+    // Override XP with group-specific if user has active group
+    let perfilData = perfilRes.data
+    if (perfilData?.grupo_activo_id) {
+        const { data: miembroXp } = await supabase
+            .from('miembros_grupo')
+            .select('xp, nivel')
+            .eq('usuario_id', user.id)
+            .eq('grupo_id', perfilData.grupo_activo_id)
+            .single()
+        if (miembroXp) {
+            perfilData = { ...perfilData, xp: miembroXp.xp, nivel: miembroXp.nivel }
+        }
+    }
+
+    return (
+        <div>
+            <header className="mb-6">
+                <h1 className="font-display text-2xl font-bold text-slate-900">Deudas</h1>
+                <p className="text-sm text-slate-500">Gestiona penalizaciones y canjea puntos.</p>
+            </header>
+            <DeudasClient
+                perfil={perfilData}
+                penalizaciones={penalizacionesRes.data || []}
+                canjeos={canjeosRes.data || []}
+                tasaCanjeo={Number(configMap['tasa_canjeo'] || 100)}
+                costoRecuperarRacha={Number(configMap['costo_recuperar_racha_xp'] || 200)}
+                streakIsBroken={streakIsBroken}
+                previousStreak={maxStreak}
+            />
+        </div>
+    )
+}
