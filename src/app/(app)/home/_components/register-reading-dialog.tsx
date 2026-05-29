@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { useTheme } from 'next-themes'
 import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { X } from 'lucide-react'
 import { toast } from 'sonner'
@@ -18,8 +17,6 @@ type Props = {
 export function RegisterReadingDialog({ open, onOpenChange, chapterId, chapterReference, onXpGained }: Props) {
   const [reflection, setReflection] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const { resolvedTheme } = useTheme()
-  const isDark = resolvedTheme === 'dark'
 
   const handleSubmit = async () => {
     if (!reflection.trim()) {
@@ -61,14 +58,14 @@ export function RegisterReadingDialog({ open, onOpenChange, chapterId, chapterRe
     }
   }
 
-  // Theme colors
-  const bg = isDark ? '#151925' : '#FFFFFF'
-  const border = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)'
-  const tp = isDark ? '#FFFFFF' : '#111318'
-  const ts = isDark ? '#5A6075' : '#8C9099'
-  const teal = isDark ? '#2DDAB0' : '#1AAF8B'
-  const inputBg = isDark ? '#1A1E28' : '#F5F6F8'
-  const inputBorder = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'
+  // Theme colors (CSS variables — auto dark/light)
+  const bg = 'hsl(var(--bg-surface))'
+  const border = 'hsl(var(--border))'
+  const tp = 'hsl(var(--foreground))'
+  const ts = 'hsl(var(--muted-foreground))'
+  const teal = 'hsl(var(--primary))'
+  const inputBg = 'hsl(var(--muted))'
+  const inputBorder = 'hsl(var(--input))'
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -78,9 +75,7 @@ export function RegisterReadingDialog({ open, onOpenChange, chapterId, chapterRe
           background: bg,
           borderColor: border,
           borderRadius: 28,
-          boxShadow: isDark
-            ? '0 24px 80px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.04)'
-            : '0 24px 80px rgba(0,0,0,0.12), 0 0 0 1px rgba(0,0,0,0.04)',
+          boxShadow: '0 24px 80px rgba(0,0,0,0.15), 0 0 0 1px hsl(var(--border))',
         }}
       >
         {/* Close Button */}
@@ -88,7 +83,7 @@ export function RegisterReadingDialog({ open, onOpenChange, chapterId, chapterRe
           onClick={() => onOpenChange(false)}
           className="absolute right-4 top-4 z-10 flex h-8 w-8 items-center justify-center rounded-full transition-all active:scale-90"
           style={{
-            background: isDark ? '#1E2330' : '#F0F1F3',
+            background: 'hsl(var(--muted))',
           }}
         >
           <X className="h-4 w-4" style={{ color: ts }} />
@@ -114,7 +109,7 @@ export function RegisterReadingDialog({ open, onOpenChange, chapterId, chapterRe
           {/* Question */}
           <p
             className="mb-5 text-[14px] leading-relaxed"
-            style={{ color: isDark ? '#FFFFFF90' : '#111318A0' }}
+            style={{ color: 'hsl(var(--foreground) / 0.60)' }}
           >
             ¿Qué te enseñó Dios en este capítulo? Escribe una breve nota para guardar en tu historial.
           </p>
@@ -148,11 +143,9 @@ export function RegisterReadingDialog({ open, onOpenChange, chapterId, chapterRe
             disabled={isSubmitting}
             className="flex h-[50px] w-full items-center justify-center rounded-[14px] text-[15px] font-semibold transition-all active:scale-[0.97] disabled:opacity-50"
             style={{
-              background: isDark
-                ? 'linear-gradient(135deg, #2DDAB0, #1AAF8B)'
-                : 'linear-gradient(135deg, #1AAF8B, #17917A)',
-              color: isDark ? '#080A10' : '#FFFFFF',
-              boxShadow: `0 4px 24px ${teal}40`,
+              background: 'linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary) / 0.80))',
+              color: 'hsl(var(--primary-foreground))',
+              boxShadow: `0 4px 24px hsl(var(--primary) / 0.25)`,
             }}
           >
             {isSubmitting ? (
