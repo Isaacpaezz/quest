@@ -128,7 +128,7 @@ export default async function DashboardPage() {
     // Look back 60 days to cover the full streak range
     const excludedDates = await getDatesWithoutPlan(supabase, today, grupoIdForPlan)
 
-    streakCount = calculateStreak(recentProgress, today, diasLibres, excludedDates)
+    streakCount = calculateStreak(recentProgress, today, diasLibres, excludedDates, tz)
   }
 
   // Update max_streak: global (perfiles) + per-group (miembros_grupo)

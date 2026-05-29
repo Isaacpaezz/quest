@@ -1,9 +1,9 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { AdminDashboardClient } from './_components/admin-dashboard-client'
-import { getTodayInVenezuela } from '@/lib/utils'
+import { getToday } from '@/lib/utils'
 import { calculateStreak } from '@/lib/streak'
-import { getDiasLibres, getDatesWithoutPlan } from '@/lib/grupo-helpers'
+import { getDiasLibres, getDatesWithoutPlan, getTimezone } from '@/lib/grupo-helpers'
 
 export default async function AdminDashboardPage() {
   const supabase = await createClient()
@@ -78,13 +78,14 @@ export default async function AdminDashboardPage() {
     const progress = progressRes.data ?? []
 
     // Calculate streak per user (consecutive dates, skipping free days)
-    const today = getTodayInVenezuela()
+    const tz = await getTimezone(supabase)
+    const today = getToday(tz)
     const diasLibres = await getDiasLibres(supabase, grupoId)
     const excludedDates = await getDatesWithoutPlan(supabase, today, grupoId)
     const streakMap: Record<string, number> = {}
     for (const uid of memberIds) {
       const userProgress = progress.filter(p => p.usuario_id === uid)
-      streakMap[uid] = calculateStreak(userProgress, today, diasLibres, excludedDates)
+      streakMap[uid] = calculateStreak(userProgress, today, diasLibres, excludedDates, tz)
     }
 
     const streakValues = Object.values(streakMap)

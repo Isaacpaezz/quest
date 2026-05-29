@@ -1,43 +1,9 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { UserProfile } from './_components/user-profile'
-
-// Helper para calcular la racha
-function calculateStreak(progress: { fecha_progreso: string }[]): number {
-  if (progress.length === 0) return 0;
-
-  let streak = 0;
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-
-  // Comprobar si el último día completado es hoy o ayer
-  const lastProgressDate = new Date(progress[0].fecha_progreso);
-  lastProgressDate.setHours(0, 0, 0, 0);
-
-  const diffDays = (today.getTime() - lastProgressDate.getTime()) / (1000 * 3600 * 24);
-
-  if (diffDays > 1) {
-    return 0; // Se rompió la racha
-  }
-
-  streak = 1;
-  let previousDate = lastProgressDate;
-
-  for (let i = 1; i < progress.length; i++) {
-    const currentDate = new Date(progress[i].fecha_progreso);
-    currentDate.setHours(0, 0, 0, 0);
-    const dayDifference = (previousDate.getTime() - currentDate.getTime()) / (1000 * 3600 * 24);
-
-    if (dayDifference === 1) {
-      streak++;
-      previousDate = currentDate;
-    } else {
-      break; // La racha se rompió
-    }
-  }
-
-  return streak;
-}
+import { calculateStreak } from '@/lib/streak'
+import { getTimezone, getDiasLibres, getDatesWithoutPlan } from '@/lib/grupo-helpers'
+import { getToday } from '@/lib/utils'
 
 export default async function ProfilePage() {
   const supabase = await createClient()
@@ -47,10 +13,8 @@ export default async function ProfilePage() {
   // Obtener todos los datos necesarios en paralelo
   const [profileRes, progressHistoryRes, totalMissionsRes, xpHistoryRes] = await Promise.all([
     supabase.from('perfiles').select('id, nombre_usuario, xp, nivel, max_streak, rol, creado_en, grupo_activo_id').eq('id', user.id).single(),
-    supabase.from('progreso_usuario').select('fecha_progreso, segundos_oracion_acumulados')
+    supabase.from('progreso_usuario').select('fecha_progreso, lectura_completada, oracion_completada, segundos_oracion_acumulados')
       .eq('usuario_id', user.id)
-      .eq('lectura_completada', true)
-      .eq('oracion_completada', true)
       .order('fecha_progreso', { ascending: false }),
     supabase.from('progreso_usuario').select('fecha_progreso', { count: 'exact', head: true })
       .eq('usuario_id', user.id)
@@ -80,7 +44,13 @@ export default async function ProfilePage() {
   const totalMissions = totalMissionsRes.count || 0;
   const xpHistory = xpHistoryRes.data || [];
 
-  const currentStreak = calculateStreak(progressHistory);
+  // Calculate streak using timezone-aware shared utility
+  const tz = await getTimezone(supabase)
+  const today = getToday(tz)
+  const grupoId = profile?.grupo_activo_id ?? null
+  const diasLibres = await getDiasLibres(supabase, grupoId)
+  const excludedDates = await getDatesWithoutPlan(supabase, today, grupoId)
+  const currentStreak = calculateStreak(progressHistory, today, diasLibres, excludedDates, tz);
 
   const totalPrayerSeconds = progressHistory.reduce((acc, curr) => acc + (curr.segundos_oracion_acumulados || 0), 0);
 

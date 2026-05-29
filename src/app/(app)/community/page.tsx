@@ -65,7 +65,7 @@ export default async function CommunityPage() {
   const streakMap: Record<string, number> = {}
   for (const uid of miembros) {
     const userProgress = streakProgress.filter(p => p.usuario_id === uid)
-    streakMap[uid] = calculateStreak(userProgress, today, diasLibres, excludedDates)
+    streakMap[uid] = calculateStreak(userProgress, today, diasLibres, excludedDates, tz)
   }
 
   const penaltyDates = pendingPenalties.map(p => p.fecha_incumplimiento);
