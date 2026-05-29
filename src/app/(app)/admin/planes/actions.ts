@@ -5,6 +5,7 @@ import { LIBROS_BIBLIA } from '@/lib/bible-data'
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { ActionState } from '@/types/definitions'
+import { requireAdmin } from '@/lib/admin-helpers'
 
 const PlanSchema = z.object({
   nombre_libro: z.string().min(1, 'Debes seleccionar un libro.'),
@@ -48,6 +49,13 @@ export async function generarPlanAction(prevState: ActionState, formData: FormDa
 
   const grupoId = perfil?.grupo_activo_id
   if (!grupoId) return { errors: { _form: ['No tienes un grupo activo.'] } }
+
+  // Verify admin role
+  try {
+    await requireAdmin(supabase, grupoId)
+  } catch (error) {
+    return { errors: { _form: [error instanceof Error ? error.message : 'No tienes permiso para realizar esta acción.'] } }
+  }
 
   // Obtener días libres del grupo (JS convention: 0=domingo, 6=sábado)
   const { data: diasLibresConfig } = await supabase
@@ -129,15 +137,40 @@ export async function generarPlanAction(prevState: ActionState, formData: FormDa
 export async function eliminarPlanAction(planId: number): Promise<ActionState> {
   const supabase = await createClient()
 
+  // Get user's active group for admin check
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'No autenticado.' }
+
+  const { data: perfil } = await supabase
+    .from('perfiles')
+    .select('grupo_activo_id')
+    .eq('id', user.id)
+    .single()
+
+  const grupoId = perfil?.grupo_activo_id
+  if (!grupoId) return { error: 'No tienes un grupo activo.' }
+
+  // Verify admin role
+  try {
+    await requireAdmin(supabase, grupoId)
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : 'No tienes permiso para realizar esta acción.' }
+  }
+
   // Verificar que el plan no esté activo
   const { data: plan } = await supabase
     .from('planes_lectura')
-    .select('estado')
+    .select('estado, grupo_id')
     .eq('id', planId)
     .single()
 
   if (!plan) return { error: 'Plan no encontrado.' }
   if (plan.estado === 'activo') return { error: 'No puedes eliminar un plan activo.' }
+
+  // Verify plan belongs to user's group
+  if (plan.grupo_id !== grupoId) {
+    return { error: 'No tienes permiso para realizar esta acción.' }
+  }
 
   // Eliminar capítulos primero, luego el plan
   await supabase.from('capitulos_diarios').delete().eq('plan_id', planId)
@@ -157,6 +190,39 @@ export async function eliminarPlanAction(planId: number): Promise<ActionState> {
  */
 export async function programarPlanSiguienteAction(planId: number): Promise<ActionState> {
   const supabase = await createClient()
+
+  // Get user's active group for admin check
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'No autenticado.' }
+
+  const { data: perfil } = await supabase
+    .from('perfiles')
+    .select('grupo_activo_id')
+    .eq('id', user.id)
+    .single()
+
+  const grupoId = perfil?.grupo_activo_id
+  if (!grupoId) return { error: 'No tienes un grupo activo.' }
+
+  // Verify admin role
+  try {
+    await requireAdmin(supabase, grupoId)
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : 'No tienes permiso para realizar esta acción.' }
+  }
+
+  // Verify plan belongs to user's group
+  const { data: plan } = await supabase
+    .from('planes_lectura')
+    .select('grupo_id')
+    .eq('id', planId)
+    .single()
+
+  if (!plan) return { error: 'Plan no encontrado.' }
+  if (plan.grupo_id !== grupoId) {
+    return { error: 'No tienes permiso para realizar esta acción.' }
+  }
+
   const { error } = await supabase.rpc('programar_plan_siguiente', {
     plan_id_a_programar: planId,
   })

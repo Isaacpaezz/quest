@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { ActionState } from '@/types/definitions'
+import { requireAdmin } from '@/lib/admin-helpers'
 
 /**
  * Cambiar rol de un miembro (admin ↔ miembro)
@@ -13,7 +14,27 @@ export async function cambiarRolAction(miembroId: string, nuevoRol: string): Pro
   }
 
   const supabase = await createClient()
-  
+
+  // Get user's active group for admin check
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'No autenticado.' }
+
+  const { data: perfil } = await supabase
+    .from('perfiles')
+    .select('grupo_activo_id')
+    .eq('id', user.id)
+    .single()
+
+  const grupoId = perfil?.grupo_activo_id
+  if (!grupoId) return { error: 'No tienes un grupo activo.' }
+
+  // Verify admin role
+  try {
+    await requireAdmin(supabase, grupoId)
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : 'No tienes permiso para realizar esta acción.' }
+  }
+
   const { error } = await supabase
     .from('miembros_grupo')
     .update({ rol: nuevoRol })
@@ -33,8 +54,26 @@ export async function cambiarRolAction(miembroId: string, nuevoRol: string): Pro
  */
 export async function eliminarMiembroAction(miembroId: string): Promise<ActionState> {
   const supabase = await createClient()
+
+  // Get user's active group for admin check
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'No autenticado.' }
+
+  const { data: perfil } = await supabase
+    .from('perfiles')
+    .select('grupo_activo_id')
+    .eq('id', user.id)
+    .single()
+
+  const grupoId = perfil?.grupo_activo_id
+  if (!grupoId) return { error: 'No tienes un grupo activo.' }
+
+  // Verify admin role
+  try {
+    await requireAdmin(supabase, grupoId)
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : 'No tienes permiso para realizar esta acción.' }
+  }
 
   // No permitir eliminarse a sí mismo
   const { data: miembro } = await supabase
