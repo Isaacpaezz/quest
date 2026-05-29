@@ -7,10 +7,11 @@ import { useTheme } from 'next-themes'
 import {
     X, Activity, Users, CalendarDays, User, Settings,
     Trophy, Award, AlertTriangle, Sun, Moon, UsersRound,
-    ChevronDown, Check, Shield, BookOpen, DollarSign, Wrench,
+    ChevronDown, Check, Shield,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { cambiarGrupoActivoAction } from '@/app/(app)/grupos/actions'
+import { useHaptics } from '@/hooks/use-haptics'
 
 /* ───── menu sections ───── */
 const NAV_ITEMS = [
@@ -57,11 +58,17 @@ export function MenuPanel({ open, onClose }: MenuPanelProps) {
     const router = useRouter()
     const { resolvedTheme, setTheme } = useTheme()
     const isDark = resolvedTheme !== 'light'
+    const { impactLight, impactMedium } = useHaptics()
 
     const [userInfo, setUserInfo] = useState<UserInfo | null>(null)
     const [grupos, setGrupos] = useState<GrupoItem[]>([])
     const [showGroupPicker, setShowGroupPicker] = useState(false)
     const [isSwitching, startTransition] = useTransition()
+
+    // Fire haptic on open
+    useEffect(() => {
+        if (open) impactMedium()
+    }, [open, impactMedium])
 
     // Fetch user profile + groups
     useEffect(() => {
@@ -132,9 +139,13 @@ export function MenuPanel({ open, onClose }: MenuPanelProps) {
         if (!open) setShowGroupPicker(false)
     }, [open])
 
-    const toggleTheme = () => setTheme(isDark ? 'light' : 'dark')
+    const toggleTheme = () => {
+        impactLight()
+        setTheme(isDark ? 'light' : 'dark')
+    }
 
     const handleSwitchGroup = (grupoId: string) => {
+        impactLight()
         startTransition(async () => {
             await cambiarGrupoActivoAction(grupoId)
             setUserInfo(prev => prev ? { ...prev, grupo_activo_id: grupoId } : prev)
@@ -142,18 +153,6 @@ export function MenuPanel({ open, onClose }: MenuPanelProps) {
             router.refresh()
         })
     }
-
-    /* ─── colors ─── */
-    const panelBg = isDark ? '#0A0C12' : '#FFFFFF'
-    const headerGradient = isDark
-        ? 'linear-gradient(135deg, #0E2A23 0%, #0A1628 50%, #151929 100%)'
-        : 'linear-gradient(135deg, #E8FAF5 0%, #E0EEFF 50%, #F0F1F4 100%)'
-    const textPrimary = isDark ? '#FFFFFF' : '#111318'
-    const textSecondary = isDark ? '#7A8194' : '#8C9099'
-    const iconDefault = isDark ? '#5A6075' : '#9CA0B5'
-    const iconActive = isDark ? '#2DDAB0' : '#1AAF8B'
-    const divider = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)'
-    const hoverBg = isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)'
 
     const initials = userInfo?.nombre_usuario
         ? userInfo.nombre_usuario.slice(0, 2).toUpperCase()
@@ -171,21 +170,24 @@ export function MenuPanel({ open, onClose }: MenuPanelProps) {
             <div key={href}>
                 <Link
                     href={href}
-                    onClick={onClose}
-                    className="flex items-center gap-4 transition-colors active:scale-[0.99]"
+                    onClick={() => {
+                        impactLight()
+                        onClose()
+                    }}
+                    className="flex items-center gap-4 transition-colors touch-press"
                     style={{
                         padding: '14px 24px',
-                        backgroundColor: isActive ? hoverBg : 'transparent',
+                        backgroundColor: isActive ? 'hsl(var(--accent))' : 'transparent',
                     }}
                 >
                     <Icon
                         className="size-[20px] shrink-0"
-                        style={{ color: isActive ? iconActive : iconDefault }}
+                        style={{ color: isActive ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))' }}
                     />
                     <span
                         className="text-[15px] font-sans"
                         style={{
-                            color: isActive ? iconActive : textPrimary,
+                            color: isActive ? 'hsl(var(--primary))' : 'hsl(var(--foreground))',
                             fontWeight: isActive ? 600 : 400,
                         }}
                     >
@@ -193,7 +195,10 @@ export function MenuPanel({ open, onClose }: MenuPanelProps) {
                     </span>
                 </Link>
                 {!isLast && (
-                    <div style={{ height: 1, backgroundColor: divider, margin: '0 24px' }} />
+                    <div
+                        className="h-px"
+                        style={{ backgroundColor: 'hsl(var(--border))', margin: '0 24px' }}
+                    />
                 )}
             </div>
         )
@@ -212,13 +217,13 @@ export function MenuPanel({ open, onClose }: MenuPanelProps) {
                 onClick={onClose}
             />
 
-            {/* Panel — slides from left like the reference */}
+            {/* Panel — slides from left */}
             <div
                 className="fixed inset-y-0 left-0 z-50 flex flex-col"
                 style={{
                     width: '85%',
                     maxWidth: 360,
-                    backgroundColor: panelBg,
+                    backgroundColor: 'hsl(var(--bg-surface))',
                     boxShadow: open ? '8px 0 32px rgba(0,0,0,0.3)' : 'none',
                     transform: open ? 'translateX(0)' : 'translateX(-100%)',
                     transition: 'transform 0.32s cubic-bezier(0.32, 0, 0.08, 1)',
@@ -228,17 +233,22 @@ export function MenuPanel({ open, onClose }: MenuPanelProps) {
                 <div
                     className="relative shrink-0"
                     style={{
-                        background: headerGradient,
+                        background: isDark
+                            ? 'linear-gradient(135deg, #0E2A23 0%, #0A1628 50%, #151929 100%)'
+                            : 'linear-gradient(135deg, #E8FAF5 0%, #E0EEFF 50%, #F0F1F4 100%)',
                         padding: '48px 24px 20px 24px',
                     }}
                 >
                     {/* Close button */}
                     <button
-                        onClick={onClose}
-                        className="absolute top-12 right-4 flex items-center justify-center size-8 rounded-full transition-opacity hover:opacity-70 active:scale-95"
+                        onClick={() => {
+                            impactLight()
+                            onClose()
+                        }}
+                        className="absolute top-12 right-4 flex items-center justify-center size-8 rounded-full transition-opacity hover:opacity-70 touch-press"
                         style={{ backgroundColor: isDark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.06)' }}
                     >
-                        <X className="size-4" style={{ color: textPrimary }} />
+                        <X className="size-4" style={{ color: 'hsl(var(--foreground))' }} />
                     </button>
 
                     <div className="flex items-center gap-4">
@@ -265,13 +275,13 @@ export function MenuPanel({ open, onClose }: MenuPanelProps) {
                         <div className="flex flex-col min-w-0">
                             <span
                                 className="text-[17px] font-bold font-sans truncate"
-                                style={{ color: textPrimary }}
+                                style={{ color: 'hsl(var(--foreground))' }}
                             >
                                 {userInfo?.nombre_usuario ?? 'Cargando…'}
                             </span>
                             <span
                                 className="text-[13px] font-sans"
-                                style={{ color: isDark ? '#2DDAB0' : '#1AAF8B' }}
+                                style={{ color: 'hsl(var(--primary))' }}
                             >
                                 Nivel {userInfo?.nivel ?? '—'} · {userInfo?.xp ?? 0} XP
                             </span>
@@ -282,24 +292,30 @@ export function MenuPanel({ open, onClose }: MenuPanelProps) {
                     {grupos.length > 0 && (
                         <div className="mt-3 relative">
                             <button
-                                onClick={() => setShowGroupPicker(!showGroupPicker)}
-                                className="flex items-center gap-2 w-full rounded-[10px] px-3 py-2 active:scale-[0.98] transition-transform"
+                                onClick={() => {
+                                    impactLight()
+                                    setShowGroupPicker(!showGroupPicker)
+                                }}
+                                className="flex items-center gap-2 w-full rounded-[10px] px-3 py-2 touch-press transition-transform"
                                 style={{
                                     backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
-                                    border: `1px solid ${isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)'}`,
+                                    border: `1px solid hsl(var(--border))`,
                                 }}
                             >
-                                <UsersRound className="size-3.5 shrink-0" style={{ color: isDark ? '#2DDAB0' : '#1AAF8B' }} />
+                                <UsersRound
+                                    className="size-3.5 shrink-0"
+                                    style={{ color: 'hsl(var(--primary))' }}
+                                />
                                 <span
                                     className="text-[12px] font-sans font-[600] truncate flex-1 text-left"
-                                    style={{ color: textPrimary }}
+                                    style={{ color: 'hsl(var(--foreground))' }}
                                 >
                                     {activeGroup?.nombre ?? 'Sin grupo'}
                                 </span>
                                 <ChevronDown
                                     className="size-3.5 shrink-0 transition-transform duration-200"
                                     style={{
-                                        color: textSecondary,
+                                        color: 'hsl(var(--muted-foreground))',
                                         transform: showGroupPicker ? 'rotate(180deg)' : 'rotate(0deg)',
                                     }}
                                 />
@@ -310,8 +326,8 @@ export function MenuPanel({ open, onClose }: MenuPanelProps) {
                                 <div
                                     className="absolute left-0 right-0 mt-1 rounded-[12px] overflow-hidden z-10"
                                     style={{
-                                        backgroundColor: isDark ? '#151929' : '#FFFFFF',
-                                        border: `1px solid ${isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'}`,
+                                        backgroundColor: 'hsl(var(--surface-elevated))',
+                                        border: `1px solid hsl(var(--border))`,
                                         boxShadow: '0 8px 24px rgba(0,0,0,0.2)',
                                     }}
                                 >
@@ -320,27 +336,35 @@ export function MenuPanel({ open, onClose }: MenuPanelProps) {
                                         return (
                                             <button
                                                 key={grupo.id}
-                                                onClick={() => !isActive && handleSwitchGroup(grupo.id)}
+                                                onClick={() => {
+                                                    if (!isActive) {
+                                                        impactLight()
+                                                        handleSwitchGroup(grupo.id)
+                                                    }
+                                                }}
                                                 disabled={isSwitching}
                                                 className="flex items-center gap-2.5 w-full px-3 py-2.5 text-left transition-colors disabled:opacity-50"
                                                 style={{
                                                     backgroundColor: isActive
-                                                        ? (isDark ? 'rgba(45,218,176,0.08)' : 'rgba(26,175,139,0.06)')
+                                                        ? 'hsl(var(--primary) / 0.08)'
                                                         : 'transparent',
                                                     borderBottom: i < grupos.length - 1
-                                                        ? `1px solid ${isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.04)'}`
+                                                        ? '1px solid hsl(var(--border))'
                                                         : 'none',
                                                 }}
                                             >
                                                 {isActive ? (
-                                                    <Check className="size-3.5 shrink-0" style={{ color: isDark ? '#2DDAB0' : '#1AAF8B' }} />
+                                                    <Check
+                                                        className="size-3.5 shrink-0"
+                                                        style={{ color: 'hsl(var(--primary))' }}
+                                                    />
                                                 ) : (
                                                     <div className="size-3.5 shrink-0" />
                                                 )}
                                                 <span
                                                     className="text-[12px] font-sans truncate"
                                                     style={{
-                                                        color: isActive ? (isDark ? '#2DDAB0' : '#1AAF8B') : textPrimary,
+                                                        color: isActive ? 'hsl(var(--primary))' : 'hsl(var(--foreground))',
                                                         fontWeight: isActive ? 600 : 400,
                                                     }}
                                                 >
@@ -365,13 +389,16 @@ export function MenuPanel({ open, onClose }: MenuPanelProps) {
                     </div>
 
                     {/* Divider */}
-                    <div style={{ height: 1, backgroundColor: divider, margin: '4px 24px' }} />
+                    <div
+                        className="h-px"
+                        style={{ backgroundColor: 'hsl(var(--border))', margin: '4px 24px' }}
+                    />
 
                     {/* Section label */}
                     <div style={{ padding: '12px 24px 4px 24px' }}>
                         <span
                             className="text-[11px] font-bold font-sans uppercase tracking-[1px]"
-                            style={{ color: textSecondary }}
+                            style={{ color: 'hsl(var(--muted-foreground))' }}
                         >
                             Cuenta
                         </span>
@@ -388,13 +415,16 @@ export function MenuPanel({ open, onClose }: MenuPanelProps) {
                     {userInfo?.rol === 'admin' && (
                         <>
                             {/* Divider */}
-                            <div style={{ height: 1, backgroundColor: divider, margin: '4px 24px' }} />
+                            <div
+                                className="h-px"
+                                style={{ backgroundColor: 'hsl(var(--border))', margin: '4px 24px' }}
+                            />
 
                             {/* Section label */}
                             <div style={{ padding: '12px 24px 4px 24px' }}>
                                 <span
                                     className="text-[11px] font-bold font-sans uppercase tracking-[1px]"
-                                    style={{ color: textSecondary }}
+                                    style={{ color: 'hsl(var(--muted-foreground))' }}
                                 >
                                     Administración
                                 </span>
@@ -412,12 +442,15 @@ export function MenuPanel({ open, onClose }: MenuPanelProps) {
                 {/* ─── Bottom: theme toggle + version ─── */}
                 <div className="shrink-0" style={{ padding: '8px 24px 32px 24px' }}>
                     {/* Divider */}
-                    <div style={{ height: 1, backgroundColor: divider, marginBottom: 12 }} />
+                    <div
+                        className="h-px"
+                        style={{ backgroundColor: 'hsl(var(--border))', marginBottom: 12 }}
+                    />
 
                     {/* Theme toggle */}
                     <button
                         onClick={toggleTheme}
-                        className="flex items-center gap-4 w-full transition-colors active:scale-[0.99]"
+                        className="flex items-center gap-4 w-full transition-colors touch-press"
                         style={{ padding: '10px 0' }}
                     >
                         {isDark ? (
@@ -427,7 +460,7 @@ export function MenuPanel({ open, onClose }: MenuPanelProps) {
                         )}
                         <span
                             className="text-[15px] font-sans"
-                            style={{ color: textPrimary, fontWeight: 400 }}
+                            style={{ color: 'hsl(var(--foreground))', fontWeight: 400 }}
                         >
                             {isDark ? 'Modo Claro' : 'Modo Oscuro'}
                         </span>
@@ -444,7 +477,7 @@ export function MenuPanel({ open, onClose }: MenuPanelProps) {
                                 className="rounded-full transition-all duration-200"
                                 style={{
                                     width: 16, height: 16,
-                                    backgroundColor: isDark ? '#2DDAB0' : '#6366F1',
+                                    backgroundColor: isDark ? 'hsl(var(--primary))' : '#6366F1',
                                     position: 'absolute', top: 3,
                                     left: isDark ? 20 : 4,
                                 }}
@@ -456,7 +489,7 @@ export function MenuPanel({ open, onClose }: MenuPanelProps) {
                     <div className="flex items-center justify-center" style={{ paddingTop: 12 }}>
                         <span
                             className="text-[11px] font-sans tracking-[0.5px]"
-                            style={{ color: textSecondary }}
+                            style={{ color: 'hsl(var(--muted-foreground))' }}
                         >
                             Quest v1.0 — Crece en tu fe, juntos
                         </span>
