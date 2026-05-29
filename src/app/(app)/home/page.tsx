@@ -2,7 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { DashboardClient } from './_components/dashboard-client'
 import { getToday } from '@/lib/utils'
-import { getMiembrosGrupoActivo, getTimezone, getDiasLibres, getDatesWithoutPlan } from '@/lib/grupo-helpers'
+import { getMiembrosGrupoActivo, getTimezone, getDiasLibres, getDatesWithoutPlan, getGroupDateBounds } from '@/lib/grupo-helpers'
 import { calculateStreak } from '@/lib/streak'
 
 /**
@@ -51,10 +51,9 @@ export default async function DashboardPage() {
     .eq('fecha_progreso', today)
     .single()
 
-  // 3. Obtener estadísticas de comunidad: quiénes leyeron HOY (zona Venezuela)
+  // 3. Obtener estadísticas de comunidad: quiénes leyeron HOY
   // Filtrar por miembros del grupo activo
-  const startOfDayIso = new Date(`${today}T00:00:00-04:00`).toISOString()
-  const endOfDayIso = new Date(`${today}T23:59:59.999-04:00`).toISOString()
+  const { start: startOfDayIso, end: endOfDayIso } = getGroupDateBounds(tz)
 
   const { grupoId, miembros: memberIds } = await getMiembrosGrupoActivo(supabase)
 
@@ -152,13 +151,14 @@ export default async function DashboardPage() {
   }
 
   // 5. Weekly progress: get Mon-Sun of current week
-  const todayDate = new Date(`${today}T12:00:00-04:00`)
-  const dayOfWeek = todayDate.getDay() // 0=Sun, 1=Mon...
+  const todayParts = today.split('-')
+  const todayDate = new Date(Date.UTC(+todayParts[0], +todayParts[1] - 1, +todayParts[2]))
+  const dayOfWeek = todayDate.getUTCDay() // 0=Sun, 1=Mon...
   const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek
   const monday = new Date(todayDate)
-  monday.setDate(todayDate.getDate() + mondayOffset)
+  monday.setUTCDate(todayDate.getUTCDate() + mondayOffset)
   const sunday = new Date(monday)
-  sunday.setDate(monday.getDate() + 6)
+  sunday.setUTCDate(monday.getUTCDate() + 6)
 
   const fmt = (d: Date) => d.toISOString().split('T')[0]
   const mondayStr = fmt(monday)
@@ -181,7 +181,7 @@ export default async function DashboardPage() {
   const DAYS_LABELS = ['L', 'M', 'M', 'J', 'V', 'S', 'D']
   const weeklyProgressData = DAYS_LABELS.map((label, i) => {
     const dayDate = new Date(monday)
-    dayDate.setDate(monday.getDate() + i)
+    dayDate.setUTCDate(monday.getUTCDate() + i)
     const dateStr = fmt(dayDate)
     const prog = weekProgress?.find(p => p.fecha_progreso === dateStr)
     return {

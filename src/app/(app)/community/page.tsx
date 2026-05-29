@@ -32,7 +32,9 @@ export default async function CommunityPage() {
       ? supabase.from('miembros_grupo').select('usuario_id, xp, nivel').eq('grupo_id', grupoId)
       : Promise.resolve({ data: null }),
     supabase.from('progreso_usuario').select('usuario_id, fecha_progreso, lectura_completada, oracion_completada, segundos_oracion_acumulados').eq('fecha_progreso', today),
-    supabase.from('penalizaciones').select('id, usuario_id, fecha_incumplimiento, monto, monto_pagado, estado').eq('estado', 'pendiente'),
+    grupoId
+      ? supabase.from('penalizaciones').select('id, usuario_id, fecha_incumplimiento, monto, monto_pagado, estado, grupo_id').eq('estado', 'pendiente').eq('grupo_id', grupoId)
+      : Promise.resolve({ data: null }),
     // Group-scoped progress for streak calculation (via capitulos_diarios → planes_lectura)
     grupoId
       ? supabase

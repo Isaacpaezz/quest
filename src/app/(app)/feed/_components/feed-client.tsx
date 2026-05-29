@@ -499,6 +499,7 @@ export function FeedClient({
   todaysHeroes,
   memberIds,
   timezone,
+  grupoId,
 }: {
   groupedActivities: Record<string, FeedActivity[]>
   likedActivityIds: Set<number>
@@ -507,12 +508,13 @@ export function FeedClient({
   todaysHeroes: Hero[]
   memberIds: string[]
   timezone: string
+  grupoId?: string | null
 }) {
   const { resolvedTheme } = useTheme()
   const isDark = resolvedTheme !== 'light'
 
   // Realtime feed updates
-  const { groupedActivities } = useRealtimeFeed(initialGroupedActivities, { memberIds, timezone })
+  const { groupedActivities } = useRealtimeFeed(initialGroupedActivities, { memberIds, timezone, grupoId })
   const activityDates = Object.keys(groupedActivities)
 
   const sectionLbl = isDark ? '#7A8090' : '#6B7080'

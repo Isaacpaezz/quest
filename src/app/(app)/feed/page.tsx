@@ -119,6 +119,7 @@ export default async function FeedPage() {
         todaysHeroes={todaysHeroes}
         memberIds={miembros}
         timezone={tz}
+        grupoId={grupoId}
       />
     </div>
   )

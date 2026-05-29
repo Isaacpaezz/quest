@@ -8,6 +8,7 @@ import { formatDateInTimezone } from '@/lib/utils'
 interface UseRealtimeFeedOptions {
   memberIds: string[]
   timezone: string
+  grupoId?: string | null
 }
 
 /**
@@ -80,6 +81,7 @@ export function useRealtimeFeed(
           event: 'INSERT',
           schema: 'public',
           table: 'actividad_comunidad',
+          ...(options.grupoId ? { filter: `grupo_id=eq.${options.grupoId}` } : {}),
         },
         async (payload) => {
           const newRow = payload.new as Record<string, unknown>
@@ -131,7 +133,7 @@ export function useRealtimeFeed(
       supabase.removeChannel(channel)
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []) // Only subscribe once on mount
+  }, [options.grupoId]) // Re-subscribe if grupoId changes
 
   return { groupedActivities, newCount }
 }
