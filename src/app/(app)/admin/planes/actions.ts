@@ -6,6 +6,9 @@ import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { ActionState } from '@/types/definitions'
 import { requireAdmin } from '@/lib/admin-helpers'
+import { getConfigGrupo } from '@/lib/grupo-helpers'
+import { getDayOfWeekInTimezone } from '@/lib/streak'
+import { DEFAULT_TIMEZONE } from '@/lib/utils'
 
 const PlanSchema = z.object({
   nombre_libro: z.string().min(1, 'Debes seleccionar un libro.'),
@@ -79,31 +82,63 @@ export async function generarPlanAction(prevState: ActionState, formData: FormDa
     .limit(1)
     .single()
 
+  // Get group timezone for date-aware calculations
+  const config = await getConfigGrupo(supabase, grupoId)
+  const timezone: string = config['timezone'] || DEFAULT_TIMEZONE
+
+  // Helper: parse 'YYYY-MM-DD' (or ISO timestamp) into noon-UTC Date
+  const parseDateUTC = (dateStr: string): Date => {
+    const [year, month, day] = dateStr.split('T')[0].split('-').map(Number)
+    return new Date(Date.UTC(year, month - 1, day, 12, 0, 0))
+  }
+
+  // Helper: format a noon-UTC Date as 'YYYY-MM-DD'
+  const formatDateUTC = (d: Date): string => {
+    const y = d.getUTCFullYear()
+    const m = String(d.getUTCMonth() + 1).padStart(2, '0')
+    const dy = String(d.getUTCDate()).padStart(2, '0')
+    return `${y}-${m}-${dy}`
+  }
+
+  // Helper: get calendar date parts in a specific timezone via Intl.DateTimeFormat
+  const getDatePartsInTimezone = (date: Date, tz: string) => {
+    const formatter = new Intl.DateTimeFormat('en-US', {
+      timeZone: tz,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    })
+    const parts = formatter.formatToParts(date)
+    const get = (type: string) => Number(parts.find(p => p.type === type)?.value ?? '1')
+    return { year: get('year'), month: get('month'), day: get('day') }
+  }
+
   let startDate: Date
   if (ultimoPlan?.fecha_fin) {
     // Día después del último plan activo/próximo
-    startDate = new Date(ultimoPlan.fecha_fin)
+    // fecha_fin is a calendar date in the group's timezone stored as 'YYYY-MM-DD'
+    startDate = parseDateUTC(ultimoPlan.fecha_fin)
     startDate.setUTCDate(startDate.getUTCDate() + 1)
   } else {
-    // No hay planes → mañana
-    startDate = new Date()
+    // No hay planes → mañana (in the group's timezone)
+    const todayParts = getDatePartsInTimezone(new Date(), timezone)
+    startDate = new Date(Date.UTC(todayParts.year, todayParts.month - 1, todayParts.day, 12, 0, 0))
     startDate.setUTCDate(startDate.getUTCDate() + 1)
-    // Normalizar a medianoche UTC
-    startDate = new Date(Date.UTC(startDate.getUTCFullYear(), startDate.getUTCMonth(), startDate.getUTCDate()))
   }
 
   // Generar capítulos diarios omitiendo días libres
+  // All dates stored as noon-UTC to avoid DST/boundary issues (same pattern as streak.ts)
   const capitulosDiarios = []
-  const currentDate = new Date(startDate)
+  const currentDate = new Date(startDate.getTime())
 
   for (let i = 1; i <= libro.capitulos; i++) {
-    // Skip free days
-    while (diasLibres.includes(currentDate.getUTCDay())) {
+    // Skip free days — timezone-aware day-of-week via Intl.DateTimeFormat
+    while (diasLibres.includes(getDayOfWeekInTimezone(currentDate, timezone))) {
       currentDate.setUTCDate(currentDate.getUTCDate() + 1)
     }
 
     capitulosDiarios.push({
-      fecha_lectura: currentDate.toISOString().split('T')[0],
+      fecha_lectura: formatDateUTC(currentDate),
       referencia_capitulo: `${libro.nombre} ${i}`,
     })
     currentDate.setUTCDate(currentDate.getUTCDate() + 1)

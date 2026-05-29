@@ -7,6 +7,7 @@ import { X, Play, Pause, Square } from 'lucide-react'
 import { toast } from 'sonner'
 import { Toaster } from '@/components/ui/sonner'
 import { actualizarProgresoOracionAction } from '@/app/(app)/home/actions'
+import { useKeepAwake } from '@/hooks/use-keep-awake'
 
 // ── Types & Constants ──────────────────────────────────────────────────
 
@@ -110,16 +111,7 @@ function lsClear() {
     try { localStorage.removeItem(LS_KEY) } catch { /* ignore */ }
 }
 
-// ── Wake Lock ──────────────────────────────────────────────────────────
-
-let _wake: WakeLockSentinel | null = null
-async function wakeOn() {
-    try { if ('wakeLock' in navigator) _wake = await navigator.wakeLock.request('screen') } catch { /* ok */ }
-}
-async function wakeOff() {
-    try { await _wake?.release() } catch { /* ok */ }
-    _wake = null
-}
+// ── Wake Lock (via useKeepAwake hook) ──────────────────────────────────
 
 // ── Compute initial seconds (localStorage wins over server prop) ──────
 
@@ -172,6 +164,9 @@ export function OracionClient({
     const rafId = useRef<number | null>(null)
     const phaseRef = useRef(getInitialPhase())
     const baseSavedRef = useRef(oracionCompletada) // tracks if base oración was already saved
+
+    // Keep screen awake while timer is running (Capacitor native + Web fallback)
+    useKeepAwake(isRunning && phase !== 'complete')
 
     const [verse] = useState(() => VERSES[Math.floor(Math.random() * VERSES.length)])
 
@@ -230,7 +225,6 @@ export function OracionClient({
             setPhase('complete')
             setIsRunning(false)
             lsClear()
-            void wakeOff()
         }
         // Otherwise: timer keeps running into bonus phase
     }, [save, bonusReachable])
@@ -245,7 +239,6 @@ export function OracionClient({
         phaseRef.current = 'complete'
         setPhase('complete')
         lsClear()
-        void wakeOff()
 
         setSaving(true)
         try {
@@ -289,7 +282,6 @@ export function OracionClient({
         runStartRef.current = Date.now()
         setIsRunning(true)
         rafId.current = requestAnimationFrame(loop)
-        void wakeOn()
     }, [phase, loop])
 
     const doPause = useCallback((): number => {
@@ -301,7 +293,6 @@ export function OracionClient({
         setIsRunning(false)
         setElapsed(cur)
         lsWrite(cur)
-        void wakeOff()
         return cur
     }, [now])
 
@@ -348,7 +339,6 @@ export function OracionClient({
     useEffect(() => {
         return () => {
             if (rafId.current !== null) cancelAnimationFrame(rafId.current)
-            void wakeOff()
         }
     }, [])
 

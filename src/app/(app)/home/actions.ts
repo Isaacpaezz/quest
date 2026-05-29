@@ -5,7 +5,7 @@ import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 import { ActionState } from '@/types/definitions'
 import { getToday } from '@/lib/utils'
-import { getTimezone, getGrupoActivo } from '@/lib/grupo-helpers'
+import { getTimezone, getGrupoActivo, getGroupDateBounds } from '@/lib/grupo-helpers'
 import { pushService } from '@/lib/web-push'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { getXpConfig, grantXp, calculateStreakBonus } from '@/lib/xp-helpers'
@@ -209,7 +209,8 @@ export async function actualizarProgresoOracionAction(datos: { segundosAcumulado
   if (!validatedFields.success) return { error: 'Datos inválidos.' };
   
   const { segundosAcumulados, capituloId, oracionCompletada } = validatedFields.data;
-  const fechaHoy = getToday(await getTimezone(supabase));
+  const tz = await getTimezone(supabase)
+  const fechaHoy = getToday(tz);
 
   const { error } = await supabase.from('progreso_usuario').upsert({
     usuario_id: user.id,
@@ -228,9 +229,8 @@ export async function actualizarProgresoOracionAction(datos: { segundosAcumulado
 
   // Registrar evento SOLO si la oración se ha completado y no hay entrada duplicada hoy
   if (oracionCompletada) {
-    // Check if we already posted a prayer activity today
-    const todayStart = new Date(`${fechaHoy}T00:00:00`).toISOString()
-    const todayEnd = new Date(`${fechaHoy}T23:59:59.999`).toISOString()
+    // Check if we already posted a prayer activity today (timezone-aware bounds)
+    const { start: todayStart, end: todayEnd } = getGroupDateBounds(tz)
     const { data: existingActivity } = await supabase
       .from('actividad_comunidad')
       .select('id, referencia_contenido')

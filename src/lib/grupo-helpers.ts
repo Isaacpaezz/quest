@@ -154,3 +154,51 @@ export async function getDatesWithoutPlan(
   return excludedDates
 }
 
+/**
+ * Returns start-of-day and end-of-day ISO strings for a given timezone.
+ * Computes the UTC offset of the timezone at the current moment, then applies it
+ * to convert local midnight to an accurate UTC ISO string.
+ *
+ * @param timezone - IANA timezone string (e.g., 'America/Caracas')
+ */
+export function getGroupDateBounds(timezone: string): { start: string; end: string } {
+  const now = new Date()
+
+  // Get current date parts in the target timezone
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: timezone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: 'numeric',
+    minute: 'numeric',
+    second: 'numeric',
+    hour12: false,
+  })
+  const parts = formatter.formatToParts(now)
+  const get = (type: string) => parts.find(p => p.type === type)?.value ?? '00'
+
+  // Current UTC time (ms)
+  const utcNow = now.getTime()
+
+  // Build a naive date from the timezone-local parts (interpreted as server-local)
+  const localStr = `${get('year')}-${get('month')}-${get('day')}T${get('hour')}:${get('minute')}:${get('second')}`
+  const localAsServer = new Date(localStr)
+
+  // Offset: how far the timezone is from UTC at this moment
+  // e.g., America/Caracas at 15:30 local → localAsServer ~ 15:30 server, utcNow ~ 19:30 UTC → offset = -4h
+  const offsetMs = localAsServer.getTime() - utcNow
+
+  // Local midnight as a naive Date
+  const midnightLocal = new Date(`${get('year')}-${get('month')}-${get('day')}T00:00:00`)
+
+  // Convert local midnight to UTC: subtract the offset
+  const startUTC = new Date(midnightLocal.getTime() - offsetMs)
+  const endUTC = new Date(startUTC.getTime() + 86400000 - 1)
+
+  return {
+    start: startUTC.toISOString(),
+    end: endUTC.toISOString(),
+  }
+}
+
