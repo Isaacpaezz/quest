@@ -6,10 +6,8 @@ import { z } from 'zod'
 import { ActionState } from '@/types/definitions'
 import { getToday } from '@/lib/utils'
 import { getTimezone, getGrupoActivo, getGroupDateBounds } from '@/lib/grupo-helpers'
-import { pushService } from '@/lib/web-push'
-import { createAdminClient } from '@/lib/supabase/admin'
+import { notifyGroupMembers } from '@/lib/push-helpers'
 import { getXpConfig, grantXp, calculateStreakBonus } from '@/lib/xp-helpers'
-import type { PushSubscription as WebPushSubscription } from 'web-push'
 
 const ReadingProgressSchema = z.object({
   resumen: z.string().min(10, 'El resumen debe tener al menos 10 caracteres.'),
@@ -74,77 +72,6 @@ export async function registrarProgresoLecturaAction(prevState: ActionState, for
     grupo_id: grupoIdForFeed,
   })
 
-  // Enviar notificaciones push a otros miembros suscritos (no al emisor)
-  try {
-    const { data: profile } = await supabase
-      .from('perfiles')
-      .select('nombre_usuario')
-      .eq('id', user.id)
-      .single()
-
-    const payload = JSON.stringify({
-      title: 'Nueva Actividad en Quest',
-      body: `${profile?.nombre_usuario || 'Alguien'} ha completado su lectura de ${capituloReferencia}.`
-    })
-
-    // Intentar usar cliente admin (service role) para leer suscripciones de otros (RLS bypass)
-    const admin = createAdminClient()
-    let subscriptions: unknown[] | null = null
-    if (admin) {
-      const { data, error: subsErr } = await admin
-        .from('suscripciones_push')
-        .select('subscription, usuario_id')
-      if (!subsErr) subscriptions = data as unknown[]
-    } else {
-      // Sin service role: usar RPC SECURITY DEFINER para obtener todas las suscripciones
-      const { data, error: rpcErr } = await supabase.rpc('get_all_push_subscriptions')
-      if (!rpcErr) subscriptions = (data as unknown[]) || []
-    }
-
-    type WebPushSub = {
-      endpoint: string
-      expirationTime?: number | null
-      keys?: { p256dh?: string | null; auth?: string | null }
-    }
-    let subs: Array<{ subscription: WebPushSub; usuario_id: string }> =
-      Array.isArray(subscriptions) ? (subscriptions as Array<{ subscription: WebPushSub; usuario_id: string }>) : []
-
-    // Fallback: si no hay suscripciones (por RLS o porque no hay nadie suscrito), te notificamos a ti para probar E2E
-    if (!subs.length) {
-      const { data: own } = await supabase
-        .from('suscripciones_push')
-        .select('subscription, usuario_id')
-        .eq('usuario_id', user.id)
-        .single()
-      if (own?.subscription) subs = [{ subscription: own.subscription as WebPushSub, usuario_id: user.id }]
-    }
-
-    if (subs.length) {
-      await Promise.all(
-        subs.map((s) =>
-          pushService
-            .sendNotification(s.subscription as unknown as WebPushSubscription, payload)
-            .catch(async (err: Error & { statusCode?: number }) => {
-              console.error('Error sending notification:', err)
-              if (err.statusCode === 410 || err.statusCode === 404) {
-                // Subscription expired or gone, remove it
-                const admin = createAdminClient()
-                if (admin) {
-                  await admin
-                    .from('suscripciones_push')
-                    .delete()
-                    .eq('usuario_id', s.usuario_id)
-                    .eq('subscription->>endpoint', s.subscription.endpoint)
-                }
-              }
-            })
-        )
-      )
-    }
-  } catch (err) {
-    console.error('Error preparando o enviando notificaciones de lectura:', err)
-  }
-
   // ─── XP System ─────────────────────────────────────────────────────────────
   const config = await getXpConfig(supabase, user.id)
   const { data: perfilXp } = await supabase.from('perfiles').select('grupo_activo_id').eq('id', user.id).single()
@@ -185,6 +112,24 @@ export async function registrarProgresoLecturaAction(prevState: ActionState, for
     if (progressToday?.oracion_completada) {
       lastResult = await grantXp(supabase, user.id, config.devocional_completo, 'devocional_completo', undefined, grupoId)
       totalXp += config.devocional_completo
+    }
+
+    // Enviar notificación push a miembros del grupo (solo en primera lectura)
+    if (grupoIdForFeed) {
+      try {
+        const { data: profile } = await supabase
+          .from('perfiles')
+          .select('nombre_usuario')
+          .eq('id', user.id)
+          .single()
+
+        await notifyGroupMembers(grupoIdForFeed, {
+          title: 'Nueva Actividad en Quest',
+          body: `${profile?.nombre_usuario || 'Alguien'} ha completado su lectura de ${capituloReferencia}.`,
+        }, user.id)
+      } catch (err) {
+        console.error('Error enviando notificaciones de lectura:', err)
+      }
     }
   }
 
@@ -228,10 +173,14 @@ export async function actualizarProgresoOracionAction(datos: { segundosAcumulado
   }
 
   // Registrar evento SOLO si la oración se ha completado y no hay entrada duplicada hoy
+  // Hoisted for use in XP guard (push notification dedup)
+  let existingActivity: { id: string; referencia_contenido: string | null }[] | null = null
+  const grupoIdForConfig = await getGrupoActivo(supabase)
+
   if (oracionCompletada) {
     // Check if we already posted a prayer activity today (timezone-aware bounds)
     const { start: todayStart, end: todayEnd } = getGroupDateBounds(tz)
-    const { data: existingActivity } = await supabase
+    const { data } = await supabase
       .from('actividad_comunidad')
       .select('id, referencia_contenido')
       .eq('usuario_id', user.id)
@@ -239,9 +188,9 @@ export async function actualizarProgresoOracionAction(datos: { segundosAcumulado
       .gte('creado_en', todayStart)
       .lte('creado_en', todayEnd)
       .limit(1)
+    existingActivity = data
 
     // Detect bonus: check if seconds exceed bonus threshold
-    const grupoIdForConfig = await getGrupoActivo(supabase)
     let bonusAchieved = false
     if (grupoIdForConfig) {
       const { getConfigGrupo } = await import('@/lib/grupo-helpers')
@@ -269,63 +218,6 @@ export async function actualizarProgresoOracionAction(datos: { segundosAcumulado
           resumen_actividad: 'Ha completado su tiempo de oración con bonus extra.',
         })
         .eq('id', existingActivity[0].id)
-    }
-
-    // Enviar notificaciones push a otros miembros suscritos (no al emisor)
-    try {
-      const { data: profile } = await supabase
-        .from('perfiles')
-        .select('nombre_usuario')
-        .eq('id', user.id)
-        .single()
-
-      const payload = JSON.stringify({
-        title: 'Nueva Actividad en Quest',
-        body: `${profile?.nombre_usuario || 'Alguien'} ha completado su tiempo de oración.`
-      })
-
-      const admin = createAdminClient()
-      let subscriptions: unknown[] | null = null
-      if (admin) {
-        const { data, error: subsErr } = await admin
-          .from('suscripciones_push')
-          .select('subscription, usuario_id')
-        if (!subsErr) subscriptions = data as unknown[]
-      } else {
-        const { data, error: rpcErr } = await supabase.rpc('get_all_push_subscriptions')
-        if (!rpcErr) subscriptions = (data as unknown[]) || []
-      }
-
-      type WebPushSub = {
-        endpoint: string
-        expirationTime?: number | null
-        keys?: { p256dh?: string | null; auth?: string | null }
-      }
-      let subs: Array<{ subscription: WebPushSub; usuario_id: string }> =
-        Array.isArray(subscriptions) ? (subscriptions as Array<{ subscription: WebPushSub; usuario_id: string }>) : []
-
-      if (!subs.length) {
-        const { data: own } = await supabase
-          .from('suscripciones_push')
-          .select('subscription, usuario_id')
-          .eq('usuario_id', user.id)
-          .single()
-        if (own?.subscription) subs = [{ subscription: own.subscription as WebPushSub, usuario_id: user.id }]
-      }
-
-      if (subs.length) {
-        await Promise.all(
-          subs.map((s) =>
-            pushService
-              .sendNotification(s.subscription as unknown as WebPushSubscription, payload)
-              .catch((err: unknown) => {
-                console.error('Error sending notification:', err)
-              })
-          )
-        )
-      }
-    } catch (err) {
-      console.error('Error preparando o enviando notificaciones de oración:', err)
     }
   }
 
@@ -369,6 +261,24 @@ export async function actualizarProgresoOracionAction(datos: { segundosAcumulado
       if (progressToday?.lectura_completada) {
         lastResult = await grantXp(supabase, user.id, config.devocional_completo, 'devocional_completo', undefined, grupoId)
         totalXp += config.devocional_completo
+      }
+
+      // Enviar notificación push a miembros del grupo (solo en primera oración del día)
+      if (grupoIdForConfig && !existingActivity?.length) {
+        try {
+          const { data: profile } = await supabase
+            .from('perfiles')
+            .select('nombre_usuario')
+            .eq('id', user.id)
+            .single()
+
+          await notifyGroupMembers(grupoIdForConfig, {
+            title: 'Nueva Actividad en Quest',
+            body: `${profile?.nombre_usuario || 'Alguien'} ha completado su tiempo de oración.`,
+          }, user.id)
+        } catch (err) {
+          console.error('Error enviando notificaciones de oración:', err)
+        }
       }
     }
   }
