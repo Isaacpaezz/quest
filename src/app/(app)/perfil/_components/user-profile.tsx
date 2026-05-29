@@ -332,58 +332,6 @@ export function UserProfile({ profile, stats, xpHistory = [] }: { profile: any; 
         </div>
       </div>
 
-      {/* ─── DEBUG: VIBRATION TEST (TEMPORAL) ─── */}
-      <div className="flex flex-col gap-2">
-        <div className="flex items-center gap-3">
-          <div className="w-6 h-[2px] rounded-sm bg-[#FF6B35]" />
-          <span
-            className="text-[11px] font-bold tracking-[2px] font-sans uppercase"
-            style={{ color: 'hsl(var(--quest-text-secondary))' }}
-          >
-            DEBUG (TEMPORAL)
-          </span>
-        </div>
-        <div
-          className="rounded-[20px] overflow-hidden"
-          style={{
-            backgroundColor: cardBg,
-            border: `1px solid ${cardBorder}`,
-          }}
-        >
-          <button
-            onClick={() => {
-              console.log('[DEBUG] Botón de vibración clickeado')
-              alert('¡El botón funciona!')
-              
-              const hasVibrate = typeof navigator !== 'undefined' && 'vibrate' in navigator
-              console.log('[DEBUG] navigator.vibrate disponible:', hasVibrate)
-              
-              if (!hasVibrate) {
-                alert('❌ navigator.vibrate NO está disponible en este browser')
-                toast.error('navigator.vibrate no está disponible en este browser')
-                return
-              }
-              
-              const result = navigator.vibrate(500)
-              console.log('[DEBUG] Resultado de vibrate:', result)
-              alert(`✅ Vibración disparada (500ms)\nResultado: ${result}\n\n¿Sentiste la vibración?`)
-              toast.success(`Vibración disparada (500ms). Resultado: ${result}`)
-            }}
-            className="flex items-center gap-3 h-[52px] px-4 w-full text-left cursor-pointer active:scale-[0.98] transition-transform"
-          >
-            <span className="text-[18px]">📳</span>
-            <span className="text-[14px] font-[500] flex-1 font-sans text-foreground">
-              Test Vibración (500ms)
-            </span>
-          </button>
-          <div className="px-4 pb-3">
-            <p className="text-[11px] font-sans text-muted-foreground">
-              API disponible: {typeof navigator !== 'undefined' && 'vibrate' in navigator ? '✅ Sí' : '❌ No'}
-            </p>
-          </div>
-        </div>
-      </div>
-
       {/* ─── ADMIN SECTION ─── */}
       {isAdmin && (
         <div className="flex flex-col gap-2">

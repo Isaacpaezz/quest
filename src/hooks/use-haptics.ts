@@ -30,10 +30,7 @@ async function impact(style: HapticImpactStyle = "light") {
       await Haptics.impact({ style: map[style] });
     } else if (typeof navigator !== "undefined" && navigator.vibrate) {
       // Web Vibration API fallback (Android PWA)
-      console.log('[haptics] Web vibrate:', VIBRATION_PATTERNS[style]);
       navigator.vibrate(VIBRATION_PATTERNS[style]);
-    } else {
-      console.log('[haptics] No vibrate available. navigator.vibrate:', typeof navigator?.vibrate);
     }
   } catch {
     // Not available — silent no-op
@@ -54,10 +51,7 @@ async function notification(type: HapticNotificationType = "success") {
       await Haptics.notification({ type: map[type] });
     } else if (typeof navigator !== "undefined" && navigator.vibrate) {
       // Web Vibration API fallback (Android PWA)
-      console.log('[haptics] Web vibrate notification:', VIBRATION_PATTERNS[type]);
       navigator.vibrate(VIBRATION_PATTERNS[type]);
-    } else {
-      console.log('[haptics] No vibrate available. navigator.vibrate:', typeof navigator?.vibrate);
     }
   } catch {
     // Not available — silent no-op
@@ -73,10 +67,7 @@ async function selection() {
       await Haptics.selectionStart();
     } else if (typeof navigator !== "undefined" && navigator.vibrate) {
       // Web Vibration API fallback (Android PWA)
-      console.log('[haptics] Web vibrate selection:', VIBRATION_PATTERNS.selection);
       navigator.vibrate(VIBRATION_PATTERNS.selection);
-    } else {
-      console.log('[haptics] No vibrate available. navigator.vibrate:', typeof navigator?.vibrate);
     }
   } catch {
     // Not available — silent no-op
