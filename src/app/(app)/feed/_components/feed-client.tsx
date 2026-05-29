@@ -1,9 +1,10 @@
 'use client'
 
 import { useState, useTransition, useRef, useEffect } from 'react'
-import { Newspaper, Heart, MessageCircle, BookOpen, Timer, Flame, ChevronDown, Send, Trash2, Trophy } from 'lucide-react'
+import { Newspaper, Heart, MessageCircle, BookOpen, Timer, Flame, ChevronDown, Send, Trash2, Trophy, HandHeart } from 'lucide-react'
 import { EmptyState } from '@/components/shared/empty-state'
 import { toggleReactionAction, postCommentAction, getCommentsAction, deleteCommentAction } from '../actions'
+import { OrarPorPeticionButton } from '@/app/(app)/peticiones/_components/orar-por-peticion-button'
 import type { FeedActivity } from '../types'
 import { toast } from 'sonner'
 import { useRealtimeFeed } from './use-realtime-feed'
@@ -212,7 +213,10 @@ function ActivityItem({ act, userReactions: initialReactions, currentUserId }: {
   const tipo = String(act.tipo_actividad || '')
   const isLectura = tipo === 'lectura_completada'
   const isVictoria = tipo === 'victoria'
+  const isPeticion = tipo === 'peticion_compartida'
+  const isPeticionRespondida = tipo === 'peticion_respondida'
   const accentGold = '#FFD700'
+  const accentRose = '#F43F5E'
 
   // Reaction handler
   function handleReaction(type: ReactionType) {
@@ -299,8 +303,20 @@ function ActivityItem({ act, userReactions: initialReactions, currentUserId }: {
       style={{
         backgroundColor: isVictoria
           ? 'rgba(255,215,0,0.07)'
-          : cardBg,
-        border: `1px solid ${isVictoria ? 'rgba(255,215,0,0.22)' : border}`,
+          : isPeticion
+            ? 'rgba(244,63,94,0.05)'
+            : isPeticionRespondida
+              ? 'rgba(59,130,246,0.07)'
+              : cardBg,
+        border: `1px solid ${
+          isVictoria
+            ? 'rgba(255,215,0,0.22)'
+            : isPeticion
+              ? 'rgba(244,63,94,0.15)'
+              : isPeticionRespondida
+                ? 'rgba(59,130,246,0.2)'
+                : border
+        }`,
       }}
     >
       {/* Main row */}
@@ -328,6 +344,10 @@ function ActivityItem({ act, userReactions: initialReactions, currentUserId }: {
           <div className="flex items-center gap-1.5 mb-3">
             {isVictoria ? (
               <Trophy className="size-3.5 shrink-0" style={{ color: accentGold }} />
+            ) : isPeticion ? (
+              <HandHeart className="size-3.5 shrink-0" style={{ color: accentRose }} />
+            ) : isPeticionRespondida ? (
+              <Trophy className="size-3.5 shrink-0" style={{ color: '#3B82F6' }} />
             ) : isLectura ? (
               <BookOpen className="size-3.5 shrink-0" style={{ color: accentBlue }} />
             ) : String(act.referencia_contenido || '').includes('Bonus') ? (
@@ -338,15 +358,23 @@ function ActivityItem({ act, userReactions: initialReactions, currentUserId }: {
             <span className="text-[12px] font-sans" style={{
               color: isVictoria
                 ? accentGold
-                : String(act.referencia_contenido || '').includes('Bonus')
-                  ? accentGold
-                  : subClr
+                : isPeticion
+                  ? accentRose
+                  : isPeticionRespondida
+                    ? '#3B82F6'
+                    : String(act.referencia_contenido || '').includes('Bonus')
+                      ? accentGold
+                      : subClr
             }}>
               {isVictoria
                 ? `🏆 ${act.resumen_actividad || `¡${act.referencia_contenido}!`}`
-                : isLectura
-                  ? `Leyó ${act.referencia_contenido || 'la lectura de hoy'}`
-                  : `Oró · ${act.referencia_contenido || 'Tiempo de Oración'}`
+                : isPeticion
+                  ? 'compartió una petición de oración'
+                  : isPeticionRespondida
+                    ? '¡Su petición fue respondida! ✨'
+                    : isLectura
+                      ? `Leyó ${act.referencia_contenido || 'la lectura de hoy'}`
+                      : `Oró · ${act.referencia_contenido || 'Tiempo de Oración'}`
               }
             </span>
           </div>
@@ -377,6 +405,39 @@ function ActivityItem({ act, userReactions: initialReactions, currentUserId }: {
                   {act.resumen_actividad}
                 </div>
               )}
+            </div>
+          )}
+
+          {/* Petition card in feed */}
+          {(isPeticion || isPeticionRespondida) && act.resumen_actividad && (
+            <div
+              className="mb-3 rounded-xl px-3 py-2.5"
+              style={{
+                backgroundColor: isPeticion ? 'rgba(244,63,94,0.06)' : 'rgba(59,130,246,0.06)',
+                border: `1px solid ${isPeticion ? 'rgba(244,63,94,0.12)' : 'rgba(59,130,246,0.12)'}`,
+              }}
+            >
+              <p className="text-[13px] font-sans font-medium" style={{ color: textClr }}>
+                {act.resumen_actividad}
+              </p>
+              <div className="flex items-center justify-between mt-2">
+                <span
+                  className="text-[11px] font-sans px-2 py-0.5 rounded-full"
+                  style={{
+                    backgroundColor: isPeticion ? 'rgba(244,63,94,0.1)' : 'rgba(59,130,246,0.1)',
+                    color: isPeticion ? accentRose : '#3B82F6',
+                  }}
+                >
+                  {isPeticion ? 'Petición' : 'Respondida'}
+                </span>
+                {isPeticion && (
+                  <OrarPorPeticionButton
+                    peticionId={String(act.referencia_contenido || '')}
+                    initialOracionesCount={0}
+                    compact
+                  />
+                )}
+              </div>
             </div>
           )}
 
