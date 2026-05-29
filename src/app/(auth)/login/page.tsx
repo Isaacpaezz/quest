@@ -2,6 +2,8 @@ import AuthForm from '@/components/auth/auth-form'
 import { Metadata } from 'next'
 import { Sparkles } from 'lucide-react'
 
+export const dynamic = 'force-dynamic'
+
 export const metadata: Metadata = {
   title: 'Iniciar Sesión | Quest',
   description: 'Inicia sesión o regístrate para comenzar tu camino de crecimiento diario',
