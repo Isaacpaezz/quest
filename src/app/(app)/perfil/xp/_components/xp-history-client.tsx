@@ -1,6 +1,5 @@
 'use client'
 
-import { useTheme } from 'next-themes'
 import { useRouter } from 'next/navigation'
 import { ChevronLeft, Star, TrendingUp, Zap } from 'lucide-react'
 import { getXpProgress } from '@/lib/xp-helpers'
@@ -54,16 +53,14 @@ function groupByDay(entries: XpEntry[]): { date: string; entries: XpEntry[]; tot
 }
 
 export function XpHistoryClient({ xp, nivel, history }: { xp: number; nivel: number; history: XpEntry[] }) {
-    const { resolvedTheme } = useTheme()
     const router = useRouter()
-    const isDark = resolvedTheme === 'dark'
     const progress = getXpProgress(xp, nivel)
     const grouped = groupByDay(history)
 
-    const cardBg = isDark ? 'rgba(21,25,37,0.44)' : 'rgba(255,255,255,0.91)'
-    const cardBorder = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.031)'
-    const tp = isDark ? '#FFFFFF' : '#111318'
-    const ts = isDark ? '#5A6075' : '#8C9099'
+    const cardBg = 'hsl(var(--bg-surface) / 0.44)'
+    const cardBorder = 'hsl(var(--border))'
+    const tp = 'hsl(var(--foreground))'
+    const ts = 'hsl(var(--muted-foreground))'
 
     return (
         <div className="flex flex-col gap-6 pb-24">
@@ -72,7 +69,7 @@ export function XpHistoryClient({ xp, nivel, history }: { xp: number; nivel: num
                 <button
                     onClick={() => router.back()}
                     className="flex h-9 w-9 items-center justify-center rounded-full transition-all active:scale-90"
-                    style={{ background: isDark ? '#1E2330' : '#F0F1F3' }}
+                    style={{ background: 'hsl(var(--muted))' }}
                 >
                     <ChevronLeft className="h-5 w-5" style={{ color: ts }} />
                 </button>
@@ -87,7 +84,7 @@ export function XpHistoryClient({ xp, nivel, history }: { xp: number; nivel: num
                 style={{
                     backgroundColor: cardBg,
                     border: `1px solid ${cardBorder}`,
-                    boxShadow: isDark ? '0 2px 16px rgba(0,0,0,0.20)' : '0 4px 40px rgba(17,19,24,0.063)',
+                    boxShadow: 'var(--quest-shadow-card)',
                 }}
             >
                 {/* Level + XP */}
@@ -95,7 +92,7 @@ export function XpHistoryClient({ xp, nivel, history }: { xp: number; nivel: num
                     <div className="flex items-center gap-2.5">
                         <div
                             className="flex h-10 w-10 items-center justify-center rounded-2xl"
-                            style={{ background: isDark ? '#1E2330' : '#F0F1F3' }}
+                            style={{ background: 'hsl(var(--muted))' }}
                         >
                             <Zap className="size-5" style={{ color: '#8B5CF6' }} />
                         </div>
@@ -116,7 +113,7 @@ export function XpHistoryClient({ xp, nivel, history }: { xp: number; nivel: num
                 </div>
 
                 {/* Progress bar */}
-                <div className="h-2.5 w-full overflow-hidden rounded-full" style={{ background: isDark ? '#1E2330' : '#E8EBF0' }}>
+                <div className="h-2.5 w-full overflow-hidden rounded-full bg-[hsl(var(--muted))]">
                     <div
                         className="h-full rounded-full transition-all duration-700"
                         style={{

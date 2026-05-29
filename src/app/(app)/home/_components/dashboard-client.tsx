@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useCallback } from 'react'
-import { useTheme } from 'next-themes'
 import { useRouter } from 'next/navigation'
 import { BookOpen, Sparkles, CheckCircle } from 'lucide-react'
 import { RegisterReadingDialog } from './register-reading-dialog'
@@ -42,8 +41,6 @@ export function DashboardClient({ dailyMission, userProgress, readingStats, pray
   const [xpToast, setXpToast] = useState<{ amount: number; show: boolean }>({ amount: 0, show: false })
   const [levelUp, setLevelUp] = useState<{ level: number; show: boolean }>({ level: 0, show: false })
   const router = useRouter()
-  const { resolvedTheme } = useTheme()
-  const isDark = resolvedTheme === 'dark'
 
   const handleXpGained = useCallback((data: { xpGanado: number; nuevoNivel?: number; subioNivel?: boolean }) => {
     // Show XP toast
@@ -65,14 +62,12 @@ export function DashboardClient({ dailyMission, userProgress, readingStats, pray
   const oracionCompletada = userProgress?.oracion_completada || false
   const misionesCompletadas = (lecturaCompletada ? 1 : 0) + (oracionCompletada ? 1 : 0)
 
-  // Glass card style
-  const card = isDark
-    ? 'rounded-3xl border border-white/[0.06] bg-[rgba(21,25,37,0.70)] p-5 shadow-[0_2px_16px_rgba(0,0,0,0.13)]'
-    : 'rounded-3xl border border-black/[0.05] bg-white/[0.92] p-5 shadow-[0_2px_16px_rgba(0,0,0,0.08)]'
+  // Glass card style (CSS variables — theme-aware)
+  const card = 'rounded-3xl border border-border bg-[hsl(var(--bg-surface)/0.7)] p-5 shadow-[var(--quest-shadow-card)]'
 
-  const textPrimary = isDark ? 'text-white' : 'text-[#111318]'
-  const textSecondary = isDark ? 'text-[#5A6075]' : 'text-[#8C9099]'
-  const accentTeal = isDark ? '#2DDAB0' : '#1AAF8B'
+  const textPrimary = 'text-foreground'
+  const textSecondary = 'text-muted-foreground'
+  const accentTeal = 'hsl(var(--primary))'
 
   // Weekly stats
   const defaultWeek = DAYS_SHORT.map(d => ({ day: d, reading: false, prayer: false }))
@@ -97,7 +92,7 @@ export function DashboardClient({ dailyMission, userProgress, readingStats, pray
       <div className="space-y-6">
         {!chapterInfo ? (
           <div className={card + ' flex flex-col items-center justify-center text-center'}>
-            <Sparkles className="mb-4 h-12 w-12" style={{ color: textSecondary }} />
+            <Sparkles className="mb-4 h-12 w-12 text-muted-foreground" />
             <h3 className={`font-sora text-lg font-semibold ${textPrimary}`}>Día de Descanso</h3>
             <p className={`text-sm ${textSecondary}`}>No hay una lectura asignada para hoy.</p>
           </div>
@@ -114,13 +109,13 @@ export function DashboardClient({ dailyMission, userProgress, readingStats, pray
               <h2 className={`font-sora text-2xl font-bold ${textPrimary}`} style={{ letterSpacing: -0.5 }}>
                 {chapterInfo.referencia_capitulo?.split(' ')[0] || 'Plan'}
               </h2>
-              <div className="rounded-lg px-2 py-1" style={{ background: isDark ? '#E5FF0018' : `${accentTeal}18` }}>
+              <div className="rounded-lg px-2 py-1" style={{ background: 'hsl(var(--primary) / 0.10)' }}>
                 <span className="text-xs font-bold" style={{ color: accentTeal }}>{completedChapters}/{totalChapters}</span>
               </div>
             </div>
 
             {/* Progress bar */}
-            <div className="mb-4 h-1 w-full overflow-hidden rounded-full" style={{ background: isDark ? '#1E2330' : '#E8EBF0' }}>
+            <div className="mb-4 h-1 w-full overflow-hidden rounded-full bg-[hsl(var(--muted))]">
               <div className="h-full rounded-full transition-all duration-500" style={{ width: `${(completedChapters / totalChapters) * 100}%`, background: accentTeal }} />
             </div>
 
@@ -138,14 +133,14 @@ export function DashboardClient({ dailyMission, userProgress, readingStats, pray
               {!lecturaCompletada ? (
                 <button
                   onClick={() => setIsReadingDialogOpen(true)}
-                  className="flex h-12 flex-1 items-center justify-center gap-2 rounded-[14px] font-semibold text-[#111318] transition-all active:scale-95"
-                  style={{ background: '#2DDAB0', boxShadow: '0 0 32px #E5FF0040' }}
+                  className="flex h-12 flex-1 items-center justify-center gap-2 rounded-[14px] font-semibold text-[hsl(var(--primary-foreground))] transition-all active:scale-95"
+                  style={{ background: 'hsl(var(--primary))', boxShadow: '0 0 32px hsl(var(--primary) / 0.25)' }}
                 >
                   <BookOpen className="h-4 w-4" />
                   Leer
                 </button>
               ) : (
-                <div className="flex h-12 flex-1 items-center justify-center gap-2 rounded-[14px] font-semibold" style={{ background: isDark ? '#2DDAB030' : '#2DDAB020' }}>
+                <div className="flex h-12 flex-1 items-center justify-center gap-2 rounded-[14px] font-semibold" style={{ background: 'hsl(var(--primary) / 0.20)' }}>
                   <CheckCircle className="h-4 w-4" style={{ color: accentTeal }} />
                   <span style={{ color: accentTeal }}>Leído ✓</span>
                 </div>
@@ -155,18 +150,13 @@ export function DashboardClient({ dailyMission, userProgress, readingStats, pray
               {!oracionCompletada ? (
                 <button
                   onClick={() => router.push('/oracion')}
-                  className="flex h-12 flex-1 items-center justify-center gap-2 rounded-[14px] border font-semibold transition-all active:scale-95"
-                  style={{
-                    background: isDark ? '#1E233070' : '#E8EBF0',
-                    borderColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)',
-                    color: isDark ? '#FFFFFF' : '#111318',
-                  }}
+                  className="flex h-12 flex-1 items-center justify-center gap-2 rounded-[14px] border border-border font-semibold transition-all active:scale-95 bg-[hsl(var(--muted))] text-foreground"
                 >
-                  <Sparkles className="h-4 w-4" style={{ color: isDark ? '#FFFFFF' : '#111318' }} />
+                  <Sparkles className="h-4 w-4" />
                   Orar
                 </button>
               ) : (
-                <div className="flex h-12 flex-1 items-center justify-center gap-2 rounded-[14px] font-semibold" style={{ background: isDark ? '#2DDAB030' : '#2DDAB020' }}>
+                <div className="flex h-12 flex-1 items-center justify-center gap-2 rounded-[14px] font-semibold" style={{ background: 'hsl(var(--primary) / 0.20)' }}>
                   <CheckCircle className="h-4 w-4" style={{ color: accentTeal }} />
                   <span style={{ color: accentTeal }}>Orado ✓</span>
                 </div>
@@ -238,7 +228,7 @@ export function DashboardClient({ dailyMission, userProgress, readingStats, pray
                     className="w-full rounded-lg transition-all duration-300"
                     style={{
                       height: barH,
-                      background: both ? accentTeal : partial ? (isDark ? '#1E2330' : '#DDE0E6') : (isDark ? '#1A1E28' : '#ECEEF2'),
+                      background: both ? accentTeal : partial ? 'hsl(var(--muted))' : 'hsl(var(--background))',
                       border: i === new Date().getDay() - 1 ? `2px solid ${accentTeal}` : 'none',
                     }}
                   />

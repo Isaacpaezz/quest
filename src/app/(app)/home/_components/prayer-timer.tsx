@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { useTheme } from 'next-themes'
 import { toast } from 'sonner'
 import { Play, Pause } from 'lucide-react'
 import { actualizarProgresoOracionAction } from '../actions'
@@ -23,8 +22,6 @@ const formatTiempo = (segundos: number) => {
 
 export function PrayerTimer({ minutosRequeridos, segundosIniciales, capituloId, oracionCompletada, onXpGained }: PrayerTimerProps) {
   const totalSegundosRequeridos = Math.max(0, minutosRequeridos * 60)
-  const { resolvedTheme } = useTheme()
-  const isDark = resolvedTheme === 'dark'
 
   const [segundosBase, setSegundosBase] = useState<number>(segundosIniciales)
   const baseRef = useRef<number>(segundosIniciales)
@@ -129,8 +126,8 @@ export function PrayerTimer({ minutosRequeridos, segundosIniciales, capituloId, 
   const tiempoTotalFormateado = formatTiempo(totalSegundosRequeridos)
   const progress = totalSegundosRequeridos > 0 ? (segundosMostrados / totalSegundosRequeridos) * 100 : 0
 
-  const textPrimary = isDark ? 'text-white' : 'text-[#111318]'
-  const textSecondary = isDark ? 'text-[#5A6075]' : 'text-[#8C9099]'
+  const textPrimary = 'text-foreground'
+  const textSecondary = 'text-muted-foreground'
 
   return (
     <div className="space-y-3">
@@ -141,7 +138,7 @@ export function PrayerTimer({ minutosRequeridos, segundosIniciales, capituloId, 
       </div>
 
       {/* Progress bar */}
-      <div className="h-1 w-full overflow-hidden rounded-full" style={{ background: isDark ? '#1E2330' : '#E8EBF0' }}>
+      <div className="h-1 w-full overflow-hidden rounded-full bg-[hsl(var(--muted))]">
         <div className="h-full rounded-full transition-all" style={{ width: `${progress}%`, background: '#2DDAB0' }} />
       </div>
 
@@ -151,9 +148,9 @@ export function PrayerTimer({ minutosRequeridos, segundosIniciales, capituloId, 
           onClick={handleToggle}
           className="flex h-12 w-full items-center justify-center gap-2 rounded-[14px] font-semibold transition-all active:scale-95"
           style={{
-            background: estaActivo ? (isDark ? '#FF6B35' : '#FF6B35') : '#2DDAB0',
-            color: estaActivo ? '#FFFFFF' : '#111318',
-            boxShadow: estaActivo ? '0 0 24px #FF6B3540' : '0 0 32px #E5FF0040',
+            background: estaActivo ? '#FF6B35' : 'hsl(var(--primary))',
+            color: estaActivo ? '#FFFFFF' : 'hsl(var(--primary-foreground))',
+            boxShadow: estaActivo ? '0 0 24px #FF6B3540' : '0 0 32px hsl(var(--primary) / 0.25)',
           }}
         >
           {estaActivo ? <Pause className="h-5 w-5" fill="white" /> : <Play className="h-5 w-5" fill="#111318" />}

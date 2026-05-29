@@ -1,7 +1,6 @@
 'use client'
 
 import { useActionState, useState, useEffect, useRef } from 'react'
-import { useTheme } from 'next-themes'
 import { LIBROS_BIBLIA } from '@/lib/bible-data'
 import { generarPlanAction, eliminarPlanAction, programarPlanSiguienteAction } from '../actions'
 import { toast } from 'sonner'
@@ -19,26 +18,24 @@ function PlanCard({
   plan,
   onDelete,
   onSchedule,
-  isDark,
   cardBg,
   cardBorder,
 }: {
   plan: Plan
   onDelete: (id: number) => void
   onSchedule: (id: number) => void
-  isDark: boolean
   cardBg: string
   cardBorder: string
 }) {
   const [expanded, setExpanded] = useState(false)
-  const textPrimary = isDark ? '#FFFFFF' : '#111318'
-  const textSecondary = isDark ? '#5A6075' : '#8C9099'
+  const textPrimary = 'hsl(var(--foreground))'
+  const textSecondary = 'hsl(var(--muted-foreground))'
 
   const estadoStyles: Record<string, { bg: string; color: string }> = {
-    activo: { bg: isDark ? 'rgba(45,218,176,0.15)' : 'rgba(26,175,139,0.10)', color: isDark ? '#2DDAB0' : '#1AAF8B' },
-    proximo: { bg: isDark ? 'rgba(251,191,36,0.15)' : 'rgba(217,119,6,0.10)', color: isDark ? '#FCD34D' : '#D97706' },
-    inactivo: { bg: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)', color: textSecondary },
-    completado: { bg: isDark ? 'rgba(99,102,241,0.15)' : 'rgba(79,70,229,0.10)', color: isDark ? '#A5B4FC' : '#4F46E5' },
+    activo: { bg: 'hsl(var(--primary) / 0.15)', color: 'hsl(var(--primary))' },
+    proximo: { bg: 'rgba(251,191,36,0.15)', color: '#FCD34D' },
+    inactivo: { bg: 'hsl(var(--muted))', color: textSecondary },
+    completado: { bg: 'rgba(99,102,241,0.15)', color: '#A5B4FC' },
   }
   const estadoLabel: Record<string, string> = { activo: 'Activo', proximo: 'Próximo', inactivo: 'Inactivo', completado: 'Completado' }
   const style = estadoStyles[plan.estado] || estadoStyles.inactivo
@@ -79,7 +76,7 @@ function PlanCard({
           {plan.estado === 'inactivo' && (
             <>
               <button onClick={() => onSchedule(plan.id)} className="p-1.5 rounded-lg" title="Programar">
-                <Play className="size-4" style={{ color: isDark ? '#2DDAB0' : '#1AAF8B' }} />
+                <Play className="size-4" style={{ color: 'hsl(var(--primary))' }} />
               </button>
               <button onClick={() => onDelete(plan.id)} className="p-1.5 rounded-lg" title="Eliminar">
                 <Trash2 className="size-4" style={{ color: '#FF6B6B' }} />
@@ -98,10 +95,10 @@ function PlanCard({
             <span>Progreso comunidad</span>
             <span>{porcentaje}%</span>
           </div>
-          <div className="mt-1 h-2 w-full overflow-hidden rounded-full" style={{ background: isDark ? '#1E2330' : '#E8EBF0' }}>
+          <div className="mt-1 h-2 w-full overflow-hidden rounded-full bg-[hsl(var(--muted))]">
             <div
               className="h-full rounded-full transition-all duration-500"
-              style={{ width: `${porcentaje}%`, background: isDark ? '#2DDAB0' : '#1AAF8B' }}
+              style={{ width: `${porcentaje}%`, background: 'hsl(var(--primary))' }}
             />
           </div>
         </div>
@@ -123,14 +120,10 @@ function PlanCard({
 
 export function PlanManagementClient({ planes }: { planes: Plan[] }) {
   const [state, formAction] = useActionState(generarPlanAction, {})
-  const { resolvedTheme } = useTheme()
-  const [mounted, setMounted] = useState(false)
   const [selectedBook, setSelectedBook] = useState('')
   const [showDropdown, setShowDropdown] = useState(false)
   const formRef = useRef<HTMLFormElement>(null)
   const dropdownRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => setMounted(true), [])
 
   useEffect(() => {
     if (state.message) { toast.success(state.message); formRef.current?.reset(); setSelectedBook('') }
@@ -147,12 +140,11 @@ export function PlanManagementClient({ planes }: { planes: Plan[] }) {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
-  const isDark = !mounted ? true : resolvedTheme === 'dark'
-  const cardBg = isDark ? 'rgba(21,25,37,0.44)' : 'rgba(255,255,255,0.91)'
-  const cardBorder = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.031)'
-  const textPrimary = isDark ? '#FFFFFF' : '#111318'
-  const textSecondary = isDark ? '#5A6075' : '#8C9099'
-  const labelColor = isDark ? '#9CA0B5' : '#6B7080'
+  const cardBg = 'hsl(var(--bg-surface) / 0.44)'
+  const cardBorder = 'hsl(var(--border))'
+  const textPrimary = 'hsl(var(--foreground))'
+  const textSecondary = 'hsl(var(--muted-foreground))'
+  const labelColor = 'hsl(var(--muted-foreground))'
 
   const handleDelete = async (planId: number) => {
     if (!confirm('¿Estás seguro de eliminar este plan?')) return
@@ -186,23 +178,23 @@ export function PlanManagementClient({ planes }: { planes: Plan[] }) {
     <div className="flex flex-col gap-6">
       {/* Back navigation */}
       <Link href="/admin" className="flex items-center gap-1">
-        <ChevronLeft className="size-4" style={{ color: isDark ? '#2DDAB0' : '#1AAF8B' }} />
-        <span className="text-[13px] font-sans" style={{ color: isDark ? '#2DDAB0' : '#1AAF8B' }}>Panel Admin</span>
+        <ChevronLeft className="size-4" style={{ color: 'hsl(var(--primary))' }} />
+        <span className="text-[13px] font-sans" style={{ color: 'hsl(var(--primary))' }}>Panel Admin</span>
       </Link>
 
       {planActivo && (
         <div>
-          <SectionHeader label="Plan Activo" color={isDark ? '#2DDAB0' : '#1AAF8B'} />
-          <PlanCard plan={planActivo} onDelete={handleDelete} onSchedule={handleSchedule} isDark={isDark} cardBg={cardBg} cardBorder={cardBorder} />
+          <SectionHeader label="Plan Activo" color={'hsl(var(--primary))'} />
+          <PlanCard plan={planActivo} onDelete={handleDelete} onSchedule={handleSchedule} cardBg={cardBg} cardBorder={cardBorder} />
         </div>
       )}
 
       {planesProximos.length > 0 && (
         <div>
-          <SectionHeader label={`Cola (${planesProximos.length})`} color={isDark ? '#FCD34D' : '#D97706'} />
+          <SectionHeader label={`Cola (${planesProximos.length})`} color={'#FCD34D'} />
           <div className="space-y-3">
             {planesProximos.map(plan => (
-              <PlanCard key={plan.id} plan={plan} onDelete={handleDelete} onSchedule={handleSchedule} isDark={isDark} cardBg={cardBg} cardBorder={cardBorder} />
+              <PlanCard key={plan.id} plan={plan} onDelete={handleDelete} onSchedule={handleSchedule} cardBg={cardBg} cardBorder={cardBorder} />
             ))}
           </div>
         </div>
@@ -213,7 +205,7 @@ export function PlanManagementClient({ planes }: { planes: Plan[] }) {
           <SectionHeader label={`Inactivos (${planesInactivos.length})`} color={textSecondary} />
           <div className="space-y-3">
             {planesInactivos.map(plan => (
-              <PlanCard key={plan.id} plan={plan} onDelete={handleDelete} onSchedule={handleSchedule} isDark={isDark} cardBg={cardBg} cardBorder={cardBorder} />
+              <PlanCard key={plan.id} plan={plan} onDelete={handleDelete} onSchedule={handleSchedule} cardBg={cardBg} cardBorder={cardBorder} />
             ))}
           </div>
         </div>
@@ -221,10 +213,10 @@ export function PlanManagementClient({ planes }: { planes: Plan[] }) {
 
       {planesCompletados.length > 0 && (
         <div>
-          <SectionHeader label={`Completados (${planesCompletados.length})`} color={isDark ? '#A5B4FC' : '#4F46E5'} />
+          <SectionHeader label={`Completados (${planesCompletados.length})`} color={'#A5B4FC'} />
           <div className="space-y-3">
             {planesCompletados.map(plan => (
-              <PlanCard key={plan.id} plan={plan} onDelete={handleDelete} onSchedule={handleSchedule} isDark={isDark} cardBg={cardBg} cardBorder={cardBorder} />
+              <PlanCard key={plan.id} plan={plan} onDelete={handleDelete} onSchedule={handleSchedule} cardBg={cardBg} cardBorder={cardBorder} />
             ))}
           </div>
         </div>
@@ -246,8 +238,8 @@ export function PlanManagementClient({ planes }: { planes: Plan[] }) {
                 onClick={() => setShowDropdown(!showDropdown)}
                 className="w-full h-11 px-4 rounded-xl text-[15px] font-sans text-left flex items-center justify-between outline-none"
                 style={{
-                  backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)',
-                  border: `1px solid ${isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)'}`,
+                  backgroundColor: 'hsl(var(--input))',
+                  border: `1px solid ${'hsl(var(--border))'}`,
                   color: selectedBook ? textPrimary : textSecondary,
                 }}
               >
@@ -259,8 +251,8 @@ export function PlanManagementClient({ planes }: { planes: Plan[] }) {
                 <div
                   className="absolute left-0 right-0 mt-1 max-h-60 overflow-y-auto rounded-xl z-50"
                   style={{
-                    backgroundColor: isDark ? '#1A1F2E' : '#FFFFFF',
-                    border: `1px solid ${isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'}`,
+                    backgroundColor: 'hsl(var(--bg-surface))',
+                    border: `1px solid ${'hsl(var(--border))'}`,
                     boxShadow: '0 8px 24px rgba(0,0,0,0.30)',
                   }}
                 >
@@ -273,15 +265,15 @@ export function PlanManagementClient({ planes }: { planes: Plan[] }) {
                       style={{
                         color: textPrimary,
                         backgroundColor: selectedBook === libro.nombre
-                          ? (isDark ? 'rgba(45,218,176,0.10)' : 'rgba(26,175,139,0.08)')
+                          ? ('hsl(var(--primary) / 0.10)')
                           : 'transparent',
                       }}
                       onMouseEnter={e => {
-                        (e.target as HTMLElement).style.backgroundColor = isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)'
+                        (e.target as HTMLElement).style.backgroundColor = 'hsl(var(--input))'
                       }}
                       onMouseLeave={e => {
                         (e.target as HTMLElement).style.backgroundColor = selectedBook === libro.nombre
-                          ? (isDark ? 'rgba(45,218,176,0.10)' : 'rgba(26,175,139,0.08)')
+                          ? ('hsl(var(--primary) / 0.10)')
                           : 'transparent'
                       }}
                     >
@@ -304,8 +296,8 @@ export function PlanManagementClient({ planes }: { planes: Plan[] }) {
               required
               className="mt-1.5 w-full h-11 px-4 rounded-xl text-[15px] font-sans outline-none"
               style={{
-                backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)',
-                border: `1px solid ${isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)'}`,
+                backgroundColor: 'hsl(var(--input))',
+                border: `1px solid ${'hsl(var(--border))'}`,
                 color: textPrimary,
               }}
             />
@@ -317,8 +309,8 @@ export function PlanManagementClient({ planes }: { planes: Plan[] }) {
             type="submit"
             className="w-full h-12 rounded-2xl text-[15px] font-semibold font-sans transition-all active:scale-[0.98]"
             style={{
-              backgroundColor: isDark ? '#2DDAB0' : '#1AAF8B',
-              color: isDark ? '#0A0D14' : '#FFFFFF',
+              backgroundColor: 'hsl(var(--primary))',
+              color: 'hsl(var(--primary-foreground))',
             }}
           >
             Agregar a la Cola

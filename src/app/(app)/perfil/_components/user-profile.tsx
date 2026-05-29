@@ -148,9 +148,9 @@ export function UserProfile({ profile, stats, xpHistory = [] }: { profile: any; 
   const prayerHours = Math.floor(stats.totalPrayerSeconds / 3600)
   const isDark = !mounted ? true : resolvedTheme === 'dark'
 
-  // ── card bg
-  const cardBg = isDark ? 'rgba(21,25,37,0.44)' : 'rgba(255,255,255,0.91)'
-  const cardBorder = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.031)'
+  // ── card bg (CSS variables)
+  const cardBg = 'hsl(var(--bg-surface) / 0.44)'
+  const cardBorder = 'hsl(var(--border))'
 
   return (
     <div className="flex flex-col gap-8">
@@ -161,19 +161,17 @@ export function UserProfile({ profile, stats, xpHistory = [] }: { profile: any; 
         style={{
           backgroundColor: cardBg,
           border: `1px solid ${cardBorder}`,
-          boxShadow: isDark
-            ? '0 2px 16px rgba(0,0,0,0.20)'
-            : '0 4px 40px rgba(17,19,24,0.063)',
+          boxShadow: 'var(--quest-shadow-card)',
         }}
       >
         {/* Avatar */}
         <div
           className="size-20 rounded-full flex items-center justify-center"
-          style={{ backgroundColor: isDark ? '#1E2330' : '#E8EBF0' }}
+          style={{ backgroundColor: 'hsl(var(--muted))' }}
         >
           <span
             className="font-display text-2xl font-bold"
-            style={{ color: isDark ? '#5A6075' : '#9CA0B5' }}
+            style={{ color: 'hsl(var(--muted-foreground))' }}
           >
             {profile?.nombre_usuario?.[0]?.toUpperCase() || '?'}
           </span>
@@ -183,13 +181,13 @@ export function UserProfile({ profile, stats, xpHistory = [] }: { profile: any; 
         <div className="flex flex-col items-center gap-1">
           <h2
             className="font-display text-[24px] font-bold tracking-[-0.5px]"
-            style={{ color: isDark ? '#FFFFFF' : '#111318' }}
+            style={{ color: 'hsl(var(--foreground))' }}
           >
             {profile?.nombre_usuario || 'Usuario'}
           </h2>
           <p
             className="text-[13px] font-sans"
-            style={{ color: isDark ? '#5A6075' : '#8C9099' }}
+            style={{ color: 'hsl(var(--muted-foreground))' }}
           >
             {profile?.email || 'isaac@ejemplo.com'}
           </p>
@@ -201,11 +199,11 @@ export function UserProfile({ profile, stats, xpHistory = [] }: { profile: any; 
           <div className="flex flex-col items-center flex-1 gap-1">
             <span
               className="font-display text-[28px] font-bold tracking-[-1px]"
-              style={{ color: isDark ? '#2DDAB0' : '#1AAF8B' }}
+              style={{ color: 'hsl(var(--primary))' }}
             >
               {stats.streak}
             </span>
-            <span className="text-[12px] font-sans" style={{ color: isDark ? '#5A6075' : '#8C9099' }}>
+            <span className="text-[12px] font-sans" style={{ color: 'hsl(var(--muted-foreground))' }}>
               Racha
             </span>
           </div>
@@ -213,11 +211,11 @@ export function UserProfile({ profile, stats, xpHistory = [] }: { profile: any; 
           <div className="flex flex-col items-center flex-1 gap-1">
             <span
               className="font-display text-[28px] font-bold tracking-[-1px]"
-              style={{ color: isDark ? '#FFFFFF' : '#111318' }}
+              style={{ color: 'hsl(var(--foreground))' }}
             >
               {stats.totalMissions}
             </span>
-            <span className="text-[12px] font-sans" style={{ color: isDark ? '#5A6075' : '#8C9099' }}>
+            <span className="text-[12px] font-sans" style={{ color: 'hsl(var(--muted-foreground))' }}>
               Lecturas
             </span>
           </div>
@@ -225,11 +223,11 @@ export function UserProfile({ profile, stats, xpHistory = [] }: { profile: any; 
           <div className="flex flex-col items-center flex-1 gap-1">
             <span
               className="font-display text-[28px] font-bold tracking-[-1px]"
-              style={{ color: isDark ? '#FFFFFF' : '#111318' }}
+              style={{ color: 'hsl(var(--foreground))' }}
             >
               {prayerHours}h
             </span>
-            <span className="text-[12px] font-sans" style={{ color: isDark ? '#5A6075' : '#8C9099' }}>
+            <span className="text-[12px] font-sans" style={{ color: 'hsl(var(--muted-foreground))' }}>
               Oración
             </span>
           </div>
@@ -246,22 +244,22 @@ export function UserProfile({ profile, stats, xpHistory = [] }: { profile: any; 
               style={{
                 backgroundColor: cardBg,
                 border: `1px solid ${cardBorder}`,
-                boxShadow: isDark ? '0 2px 16px rgba(0,0,0,0.20)' : '0 4px 40px rgba(17,19,24,0.063)',
-              }}
-            >
+                boxShadow: 'var(--quest-shadow-card)',
+            }}
+          >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <TrendingUp className="size-4" style={{ color: isDark ? '#8B5CF6' : '#7C3AED' }} />
-                  <span className="text-[13px] font-semibold font-sans" style={{ color: isDark ? '#FFFFFF' : '#111318' }}>
+                  <TrendingUp className="size-4" style={{ color: '#8B5CF6' }} />
+                  <span className="text-[13px] font-semibold font-sans text-foreground">
                     Nivel {profile.nivel} — {LEVEL_NAMES[profile.nivel] || 'Maestro'}
                   </span>
                 </div>
-                <span className="text-[12px] font-sans" style={{ color: isDark ? '#5A6075' : '#8C9099' }}>
+                <span className="text-[12px] font-sans text-muted-foreground">
                   {profile.xp.toLocaleString()} XP
                 </span>
               </div>
               {/* Progress bar */}
-              <div className="h-2 w-full overflow-hidden rounded-full" style={{ background: isDark ? '#1E2330' : '#E8EBF0' }}>
+              <div className="h-2 w-full overflow-hidden rounded-full bg-[hsl(var(--muted))]">
                 <div
                   className="h-full rounded-full transition-all duration-700"
                   style={{
@@ -271,10 +269,10 @@ export function UserProfile({ profile, stats, xpHistory = [] }: { profile: any; 
                 />
               </div>
               <div className="flex justify-between">
-                <span className="text-[11px] font-sans" style={{ color: isDark ? '#5A6075' : '#8C9099' }}>
+                <span className="text-[11px] font-sans text-muted-foreground">
                   {xpProgress.current.toLocaleString()} / {xpProgress.needed.toLocaleString()}
                 </span>
-                <span className="text-[11px] font-sans font-medium" style={{ color: isDark ? '#8B5CF6' : '#7C3AED' }}>
+                <span className="text-[11px] font-sans font-medium" style={{ color: '#8B5CF6' }}>
                   Ver historial →
                 </span>
               </div>
@@ -292,7 +290,7 @@ export function UserProfile({ profile, stats, xpHistory = [] }: { profile: any; 
           <div className="w-6 h-[2px] rounded-sm bg-[#FF6B35]" />
           <span
             className="text-[11px] font-bold tracking-[2px] font-sans uppercase"
-            style={{ color: isDark ? '#7A8090' : '#6B7080' }}
+            style={{ color: 'hsl(var(--quest-text-secondary))' }}
           >
             AJUSTES
           </span>
@@ -341,9 +339,9 @@ export function UserProfile({ profile, stats, xpHistory = [] }: { profile: any; 
             <div className="w-6 h-[2px] rounded-sm bg-[#FF6B35]" />
             <span
               className="text-[11px] font-bold tracking-[2px] font-sans uppercase"
-              style={{ color: isDark ? '#7A8090' : '#6B7080' }}
-            >
-              ADMINISTRACIÓN
+            style={{ color: 'hsl(var(--quest-text-secondary))' }}
+          >
+            ADMINISTRACIÓN
             </span>
           </div>
           <div
@@ -360,7 +358,7 @@ export function UserProfile({ profile, stats, xpHistory = [] }: { profile: any; 
               else toast.success(res.message)
             }}
             className="mt-1 text-xs px-4 transition-opacity opacity-50 hover:opacity-100 text-left"
-            style={{ color: isDark ? '#5A6075' : '#8C9099' }}
+            style={{ color: 'hsl(var(--muted-foreground))' }}
           >
             Enviar notificación de prueba →
           </button>

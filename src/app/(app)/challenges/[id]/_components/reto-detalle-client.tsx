@@ -4,7 +4,6 @@ import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, Gift, TriangleAlert, Users, Trophy, CircleCheck, Timer, Check, X, Trash2 } from 'lucide-react'
-import { useTheme } from 'next-themes'
 import { unirseRetoAction, responderInvitacionAction, eliminarRetoAction } from '../../actions'
 import { toast } from 'sonner'
 
@@ -38,8 +37,6 @@ export function RetoDetalleClient({ reto, userId }: { reto: RetoDetalle; userId:
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
     const router = useRouter()
     const isCreator = reto.creador_id === userId
-    const { resolvedTheme } = useTheme()
-    const isDark = resolvedTheme === 'dark'
 
     const criterio = reto.criterio as { action?: string; count?: number } | null
     const miParticipacion = reto.reto_participantes.find(p => p.usuario_id === userId)
@@ -58,17 +55,17 @@ export function RetoDetalleClient({ reto, userId }: { reto: RetoDetalle; userId:
     const isPersonal = reto.tipo === 'personal'
     const accentColor = isPersonal ? '#2DDAB0' : '#FF6B35'
     const badgeBg = isPersonal
-        ? (isDark ? 'rgba(45,218,176,0.09)' : 'rgba(45,218,176,0.08)')
-        : (isDark ? 'rgba(255,107,53,0.09)' : 'rgba(255,107,53,0.08)')
+        ? 'hsl(var(--primary) / 0.09)'
+        : 'rgba(255,107,53,0.09)'
 
-    // Colors from Pencil
-    const cardBg = isDark ? 'rgba(30,35,48,0.44)' : 'rgba(245,246,248,0.9)'
-    const cardStroke = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.08)'
-    const trackBg = isDark ? 'rgba(30,35,48,0.5)' : 'rgba(0,0,0,0.08)'
-    const titleClr = isDark ? '#FFFFFF' : '#1A1A2E'
-    const metaClr = isDark ? '#5A6075' : '#8890A5'
-    const descClr = isDark ? '#5A6075' : '#6B7280'
-    const rewardClr = isDark ? 'rgba(255,255,255,0.82)' : '#374151'
+    // Colors from CSS variables
+    const cardBg = 'hsl(var(--bg-surface) / 0.44)'
+    const cardStroke = 'hsl(var(--border))'
+    const trackBg = 'hsl(var(--muted))'
+    const titleClr = 'hsl(var(--foreground))'
+    const metaClr = 'hsl(var(--muted-foreground))'
+    const descClr = 'hsl(var(--muted-foreground))'
+    const rewardClr = 'hsl(var(--foreground) / 0.82)'
 
     const handleUnirse = () => {
         startTransition(async () => {
@@ -173,7 +170,7 @@ export function RetoDetalleClient({ reto, userId }: { reto: RetoDetalle; userId:
                 <div className="flex flex-col gap-3">
                     {/* XP Proposal for group challenges */}
                     {reto.tipo === 'grupal' && (
-                        <div className="flex items-center gap-3 rounded-[14px] p-3" style={{ backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)', border: `1px solid ${cardStroke}` }}>
+                        <div className="flex items-center gap-3 rounded-[14px] p-3" style={{ backgroundColor: 'hsl(var(--muted) / 0.50)', border: `1px solid ${cardStroke}` }}>
                             <Gift className="size-5 shrink-0" style={{ color: accentColor }} />
                             <div className="flex flex-col gap-1 flex-1">
                                 <span className="text-[11px] font-sans font-medium" style={{ color: metaClr }}>Sugerido: +{reto.recompensa_xp || 0} XP</span>
@@ -186,7 +183,7 @@ export function RetoDetalleClient({ reto, userId }: { reto: RetoDetalle; userId:
                                         onChange={e => setXpInput(e.target.value)}
                                         className="flex-1 h-8 rounded-[8px] px-3 text-[14px] font-sans font-bold text-center outline-none"
                                         style={{
-                                            backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
+                                            backgroundColor: 'hsl(var(--input))',
                                             border: `1px solid ${cardStroke}`,
                                             color: titleClr,
                                         }}
@@ -297,12 +294,12 @@ export function RetoDetalleClient({ reto, userId }: { reto: RetoDetalle; userId:
                         <button
                             onClick={() => setShowDeleteConfirm(true)}
                             className="w-full h-11 rounded-[14px] font-sans font-bold text-[13px] flex items-center justify-center gap-2 active:scale-[0.97] transition-transform"
-                            style={{ backgroundColor: isDark ? 'rgba(255,59,48,0.1)' : 'rgba(255,59,48,0.08)', color: '#FF3B30' }}
+                            style={{ backgroundColor: 'rgba(255,59,48,0.09)', color: '#FF3B30' }}
                         >
                             <Trash2 className="size-4" /> Eliminar Reto
                         </button>
                     ) : (
-                        <div className="rounded-[14px] p-4 flex flex-col gap-3" style={{ backgroundColor: isDark ? 'rgba(255,59,48,0.08)' : 'rgba(255,59,48,0.05)', border: '1px solid rgba(255,59,48,0.2)' }}>
+                        <div className="rounded-[14px] p-4 flex flex-col gap-3" style={{ backgroundColor: 'rgba(255,59,48,0.06)', border: '1px solid rgba(255,59,48,0.2)' }}>
                             <p className="text-[13px] font-sans font-semibold text-center" style={{ color: '#FF3B30' }}>
                                 ¿Estás seguro? Esta acción no se puede deshacer.
                             </p>
@@ -310,7 +307,7 @@ export function RetoDetalleClient({ reto, userId }: { reto: RetoDetalle; userId:
                                 <button
                                     onClick={() => setShowDeleteConfirm(false)}
                                     className="flex-1 h-10 rounded-[10px] font-sans font-bold text-[13px] active:scale-[0.97] transition-transform"
-                                    style={{ backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)', color: metaClr }}
+                                    style={{ backgroundColor: 'hsl(var(--muted))', color: metaClr }}
                                 >
                                     Cancelar
                                 </button>

@@ -3,7 +3,6 @@
 import { useState, useTransition } from 'react'
 import Link from 'next/link'
 import { Plus, Users, Gift, Trophy, Check, X, Clock, Calendar, User } from 'lucide-react'
-import { useTheme } from 'next-themes'
 import { CrearRetoForm } from './crear-reto-form'
 import { responderInvitacionAction } from '../actions'
 import { toast } from 'sonner'
@@ -49,8 +48,6 @@ export function RetosClient({
     perfil: Perfil | null
 }) {
     const [showCrear, setShowCrear] = useState(false)
-    const { resolvedTheme } = useTheme()
-    const isDark = resolvedTheme === 'dark'
 
     const nivel = perfil?.nivel || 1
     const xp = perfil?.xp || 0
@@ -60,11 +57,11 @@ export function RetosClient({
     const xpForLevel = nextThreshold - currentThreshold
     const progressPercent = xpForLevel > 0 ? Math.min(100, (xpInLevel / xpForLevel) * 100) : 100
 
-    const cardBg = isDark ? 'rgba(30,35,48,0.44)' : 'rgba(245,246,248,0.9)'
-    const cardStroke = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.08)'
-    const trackBg = isDark ? 'rgba(30,35,48,0.5)' : 'rgba(0,0,0,0.08)'
-    const titleClr = isDark ? '#FFFFFF' : '#1A1A2E'
-    const metaClr = isDark ? '#5A6075' : '#8890A5'
+    const cardBg = 'hsl(var(--bg-surface) / 0.44)'
+    const cardStroke = 'hsl(var(--border))'
+    const trackBg = 'hsl(var(--muted))'
+    const titleClr = 'hsl(var(--foreground))'
+    const metaClr = 'hsl(var(--muted-foreground))'
 
     const today = new Date().toISOString().split('T')[0]
 
@@ -107,7 +104,7 @@ export function RetosClient({
             {pendientes.length > 0 && (
                 <Section label="Invitaciones" metaClr={metaClr}>
                     {pendientes.map(reto => (
-                        <InvitationCard key={reto.id} reto={reto} isDark={isDark} titleClr={titleClr} metaClr={metaClr} cardBg={cardBg} cardStroke={cardStroke} />
+                        <InvitationCard key={reto.id} reto={reto} titleClr={titleClr} metaClr={metaClr} cardBg={cardBg} cardStroke={cardStroke} />
                     ))}
                 </Section>
             )}
@@ -115,10 +112,10 @@ export function RetosClient({
             {/* Activos */}
             <Section label="Activos" metaClr={metaClr}>
                 {activos.length === 0 ? (
-                    <EmptyState isDark={isDark} metaClr={metaClr} titleClr={titleClr} />
+                    <EmptyState metaClr={metaClr} titleClr={titleClr} />
                 ) : (
                     activos.map(reto => (
-                        <RetoCard key={reto.id} reto={reto} userId={userId} isDark={isDark} titleClr={titleClr} metaClr={metaClr} cardBg={cardBg} cardStroke={cardStroke} trackBg={trackBg} />
+                        <RetoCard key={reto.id} reto={reto} userId={userId} titleClr={titleClr} metaClr={metaClr} cardBg={cardBg} cardStroke={cardStroke} trackBg={trackBg} />
                     ))
                 )}
             </Section>
@@ -127,7 +124,7 @@ export function RetosClient({
             {proximos.length > 0 && (
                 <Section label="Próximos" metaClr={metaClr}>
                     {proximos.map(reto => (
-                        <RetoCard key={reto.id} reto={reto} userId={userId} isDark={isDark} titleClr={titleClr} metaClr={metaClr} cardBg={cardBg} cardStroke={cardStroke} trackBg={trackBg} />
+                        <RetoCard key={reto.id} reto={reto} userId={userId} titleClr={titleClr} metaClr={metaClr} cardBg={cardBg} cardStroke={cardStroke} trackBg={trackBg} />
                     ))}
                 </Section>
             )}
@@ -157,8 +154,8 @@ function Section({ label, metaClr, children }: { label: string; metaClr: string;
     )
 }
 
-function InvitationCard({ reto, isDark, titleClr, metaClr, cardBg, cardStroke }: {
-    reto: Reto; isDark: boolean; titleClr: string; metaClr: string; cardBg: string; cardStroke: string
+function InvitationCard({ reto, titleClr, metaClr, cardBg, cardStroke }: {
+    reto: Reto; titleClr: string; metaClr: string; cardBg: string; cardStroke: string
 }) {
     const [pending, startTransition] = useTransition()
     const [xpInput, setXpInput] = useState(String(reto.recompensa_xp || 100))
@@ -174,7 +171,7 @@ function InvitationCard({ reto, isDark, titleClr, metaClr, cardBg, cardStroke }:
 
     const isPersonal = reto.tipo === 'personal'
     const accentColor = isPersonal ? '#2DDAB0' : '#FF6B35'
-    const badgeBg = isPersonal ? (isDark ? 'rgba(45,218,176,0.09)' : 'rgba(45,218,176,0.08)') : (isDark ? 'rgba(255,107,53,0.09)' : 'rgba(255,107,53,0.08)')
+    const badgeBg = isPersonal ? 'hsl(var(--primary) / 0.09)' : 'rgba(255,107,53,0.09)'
 
     const totalParticipants = reto.reto_participantes.length
     const aceptados = reto.reto_participantes.filter(p => p.estado === 'aceptado').length
@@ -225,7 +222,7 @@ function InvitationCard({ reto, isDark, titleClr, metaClr, cardBg, cardStroke }:
                         onChange={e => setXpInput(e.target.value)}
                         className="flex-1 h-9 rounded-[10px] px-3 text-[14px] font-sans font-bold text-center outline-none"
                         style={{
-                            backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
+                            backgroundColor: 'hsl(var(--input))',
                             border: `1px solid ${cardStroke}`,
                             color: titleClr,
                         }}
@@ -246,7 +243,7 @@ function InvitationCard({ reto, isDark, titleClr, metaClr, cardBg, cardStroke }:
                     onClick={() => handleRespond(false)}
                     disabled={pending}
                     className="flex-1 h-10 rounded-[12px] font-sans font-bold text-[13px] flex items-center justify-center gap-1.5 active:scale-[0.97] transition-transform disabled:opacity-50"
-                    style={{ backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)', color: metaClr }}
+                    style={{ backgroundColor: 'hsl(var(--muted))', color: metaClr }}
                 >
                     <X className="size-4" /> Rechazar
                 </button>
@@ -255,8 +252,8 @@ function InvitationCard({ reto, isDark, titleClr, metaClr, cardBg, cardStroke }:
     )
 }
 
-function RetoCard({ reto, userId, isDark, titleClr, metaClr, cardBg, cardStroke, trackBg }: {
-    reto: Reto; userId: string; isDark: boolean; titleClr: string; metaClr: string; cardBg: string; cardStroke: string; trackBg: string
+function RetoCard({ reto, userId, titleClr, metaClr, cardBg, cardStroke, trackBg }: {
+    reto: Reto; userId: string; titleClr: string; metaClr: string; cardBg: string; cardStroke: string; trackBg: string
 }) {
     const miParticipacion = reto.reto_participantes.find(p => p.usuario_id === userId)
     const criterio = reto.criterio as { action?: string; count?: number } | null
@@ -267,7 +264,7 @@ function RetoCard({ reto, userId, isDark, titleClr, metaClr, cardBg, cardStroke,
 
     const isPersonal = reto.tipo === 'personal'
     const accentColor = isPersonal ? '#2DDAB0' : '#FF6B35'
-    const badgeBg = isPersonal ? (isDark ? 'rgba(45,218,176,0.09)' : 'rgba(45,218,176,0.08)') : (isDark ? 'rgba(255,107,53,0.09)' : 'rgba(255,107,53,0.08)')
+    const badgeBg = isPersonal ? 'hsl(var(--primary) / 0.09)' : 'rgba(255,107,53,0.09)'
 
     const diasRestantes = Math.max(0, Math.ceil((new Date(reto.fecha_fin).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
 
@@ -302,10 +299,10 @@ function RetoCard({ reto, userId, isDark, titleClr, metaClr, cardBg, cardStroke,
     )
 }
 
-function EmptyState({ isDark, metaClr, titleClr }: { isDark: boolean; metaClr: string; titleClr: string }) {
+function EmptyState({ metaClr, titleClr }: { metaClr: string; titleClr: string }) {
     return (
         <div className="flex flex-col items-center justify-center py-12 text-center">
-            <div className="size-14 rounded-2xl flex items-center justify-center mb-3" style={{ backgroundColor: isDark ? 'rgba(30,35,48,0.44)' : 'rgba(0,0,0,0.04)' }}>
+            <div className="size-14 rounded-2xl flex items-center justify-center mb-3" style={{ backgroundColor: 'hsl(var(--bg-surface) / 0.44)' }}>
                 <Trophy className="size-7" style={{ color: metaClr }} />
             </div>
             <p className="text-[13px] font-sans" style={{ color: titleClr }}>No hay retos activos aún.</p>

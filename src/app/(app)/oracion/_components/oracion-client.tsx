@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { useTheme } from 'next-themes'
 import { useRouter } from 'next/navigation'
 import { X, Play, Pause, Square } from 'lucide-react'
 import { toast } from 'sonner'
@@ -133,8 +132,6 @@ export function OracionClient({
     bonusXp,
 }: Props) {
     const router = useRouter()
-    const { resolvedTheme } = useTheme()
-    const isDark = resolvedTheme === 'dark'
     const baseSecs = Math.max(0, minutosRequeridos * 60)
     const bonusSecs = Math.max(0, bonusMinutos * 60)
     // If base >= bonus, bonus is already earned at completion
@@ -391,10 +388,10 @@ export function OracionClient({
     const R = 112
     const C = 2 * Math.PI * R
 
-    const tp = isDark ? '#FFFFFF' : '#111318'
-    const ts = isDark ? '#5A6075' : '#8C9099'
-    const teal = isDark ? '#2DDAB0' : '#1AAF8B'
-    const gold = isDark ? '#FFD700' : '#DAA520'
+    const tp = 'hsl(var(--foreground))'
+    const ts = 'hsl(var(--muted-foreground))'
+    const teal = 'hsl(var(--primary))'
+    const gold = '#FFD700'
 
     // Active accent color — teal for base, gold for bonus
     const activeColor = isInBonus ? gold : teal
@@ -409,17 +406,12 @@ export function OracionClient({
 
     return (
         <div
-            className="fixed inset-0 z-[60] flex flex-col"
-            style={{
-                background: isDark
-                    ? 'radial-gradient(ellipse 140% 160% at 50% 35%, #1A1E2A 0%, #10131C 45%, #080A10 100%)'
-                    : 'radial-gradient(ellipse 140% 160% at 50% 35%, #FFFFFF 0%, #F5F6F8 45%, #ECEEF2 100%)',
-            }}
+            className="fixed inset-0 z-[60] flex flex-col quest-bg"
         >
             {/* Top Bar */}
             <div className="flex h-[54px] items-center justify-between px-6 pt-[18px] pb-3">
                 <button onClick={handleClose} disabled={saving}>
-                    <X className="h-6 w-6" style={{ color: isDark ? '#FFFFFF50' : '#11131850' }} />
+                    <X className="h-6 w-6 text-muted-foreground/50" />
                 </button>
                 <span className="text-[15px] font-semibold" style={{ color: tp }}>
                     {isInBonus ? '🔥 Tiempo Bonus' : 'Tiempo de Oración'}
@@ -434,9 +426,9 @@ export function OracionClient({
                     <div
                         className="rounded-full px-4 py-1.5 text-[12px] font-bold tracking-wide animate-pulse"
                         style={{
-                            background: isDark ? 'rgba(255,215,0,0.12)' : 'rgba(218,165,32,0.10)',
+                            background: 'rgba(255,215,0,0.11)',
                             color: gold,
-                            border: `1px solid ${isDark ? 'rgba(255,215,0,0.25)' : 'rgba(218,165,32,0.20)'}`,
+                            border: '1px solid rgba(255,215,0,0.22)',
                         }}
                     >
                         ⭐ +{bonusXp} XP BONUS
@@ -446,7 +438,7 @@ export function OracionClient({
                 {/* Circle */}
                 <div className="relative flex h-60 w-60 items-center justify-center">
                     <svg className="absolute inset-0 -rotate-90" viewBox="0 0 240 240">
-                        <circle cx="120" cy="120" r={R} fill="none" stroke={isDark ? '#1E233060' : '#E8EBF060'} strokeWidth="6" />
+                        <circle cx="120" cy="120" r={R} fill="none" stroke="hsl(var(--muted))" strokeWidth="6" />
                         <circle cx="120" cy="120" r={R} fill="none" stroke={activeColor} strokeWidth="6"
                             strokeLinecap="round" strokeDasharray={C} strokeDashoffset={C * (1 - pct)}
                             style={{ transition: 'stroke-dashoffset 0.4s ease' }}
@@ -464,14 +456,14 @@ export function OracionClient({
                 {phase === 'bonus' && bonusPrompt ? (
                     <div className="flex flex-col items-center gap-2 px-8 transition-opacity duration-500">
                         <span className="text-3xl">{bonusPrompt.emoji}</span>
-                        <p className="text-center text-base font-medium" style={{ color: isDark ? '#FFD700CC' : '#DAA520CC' }}>
+                        <p className="text-center text-base font-medium" style={{ color: 'hsl(47 100% 50% / 0.80)' }}>
                             {bonusPrompt.text}
                         </p>
                         <p className="text-center text-[13px]" style={{ color: ts }}>{bonusPrompt.sub}</p>
                     </div>
                 ) : phase === 'timer' ? (
                     <div className="flex flex-col items-center gap-2 px-8">
-                        <p className="text-center text-base font-medium italic" style={{ color: isDark ? '#FFFFFF80' : '#11131880' }}>
+                        <p className="text-center text-base font-medium italic" style={{ color: 'hsl(var(--foreground) / 0.50)' }}>
                             {verse.text}
                         </p>
                         <p className="text-center text-[13px]" style={{ color: ts }}>{verse.ref}</p>
@@ -483,13 +475,13 @@ export function OracionClient({
                 {/* Completion state — bonus achieved */}
                 {phase === 'complete' && bonusReachable && (
                     <div className="mt-2 flex flex-col items-center gap-4 px-6">
-                        <div className="rounded-2xl px-6 py-3" style={{ background: isDark ? '#FFD70018' : '#DAA52012' }}>
+                        <div className="rounded-2xl px-6 py-3" style={{ background: 'hsl(47 100% 50% / 0.10)' }}>
                             <span className="text-lg font-semibold" style={{ color: gold }}>✨ ¡Oración bonus completada!</span>
                         </div>
                         {/* Daily motivational message */}
                         <p
                             className="text-center text-[14px] font-medium italic leading-relaxed max-w-[280px]"
-                            style={{ color: isDark ? '#FFFFFF90' : '#11131890' }}
+                            style={{ color: 'hsl(var(--foreground) / 0.55)' }}
                         >
                             {getDailyMessage()}
                         </p>
@@ -517,7 +509,7 @@ export function OracionClient({
                 {/* Base-only completion (when bonus is not reachable) */}
                 {phase === 'complete' && !bonusReachable && (
                     <div className="mt-2 flex flex-col items-center gap-3">
-                        <div className="rounded-2xl px-6 py-3" style={{ background: isDark ? '#2DDAB020' : '#1AAF8B15' }}>
+                        <div className="rounded-2xl px-6 py-3" style={{ background: 'hsl(var(--primary) / 0.12)' }}>
                             <span className="text-lg font-semibold" style={{ color: teal }}>✓ ¡Oración completada!</span>
                         </div>
                         <button
@@ -541,16 +533,16 @@ export function OracionClient({
                         style={{ background: activeColor }}
                     >
                         {isRunning
-                            ? <Pause className="h-7 w-7" style={{ color: isDark ? '#080A10' : '#FFFFFF' }} />
-                            : <Play className="h-7 w-7 ml-1" style={{ color: isDark ? '#080A10' : '#FFFFFF' }} />
+                            ? <Pause className="h-7 w-7" style={{ color: 'hsl(var(--primary-foreground))' }} />
+                            : <Play className="h-7 w-7 ml-1" style={{ color: 'hsl(var(--primary-foreground))' }} />
                         }
                     </button>
                     <button
                         onClick={handleStop} disabled={saving}
                         className="flex h-[52px] w-[52px] items-center justify-center rounded-[26px] border active:scale-90 disabled:opacity-50"
                         style={{
-                            background: isDark ? '#1E233070' : '#FFFFFFE8',
-                            borderColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)',
+                            background: 'hsl(var(--bg-surface) / 0.90)',
+                            borderColor: 'hsl(var(--border))',
                         }}
                     >
                         <Square className="h-5 w-5" style={{ color: '#FF6B6B' }} />

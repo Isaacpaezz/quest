@@ -2,7 +2,6 @@
 
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { useTheme } from 'next-themes'
 import { Users, Plus, LogIn, ArrowRight } from 'lucide-react'
 import { unirseAGrupoAction, crearGrupoAction } from '../../grupos/actions'
 import { useActionState } from 'react'
@@ -12,21 +11,19 @@ type Step = 'welcome' | 'join' | 'create'
 
 export function OnboardingClient() {
     const router = useRouter()
-    const { resolvedTheme } = useTheme()
-    const isDark = resolvedTheme !== 'light'
     const [step, setStep] = useState<Step>('welcome')
     const [isPending, startTransition] = useTransition()
 
     const [joinState, joinAction] = useActionState(unirseAGrupoAction, {})
     const [createState, createAction] = useActionState(crearGrupoAction, {})
 
-    // ── Design tokens ──
-    const cardBg = isDark ? 'rgba(30,35,48,0.44)' : 'rgba(245,246,248,0.9)'
-    const cardStroke = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.08)'
-    const titleClr = isDark ? '#FFFFFF' : '#1A1A2E'
-    const metaClr = isDark ? '#5A6075' : '#8890A5'
-    const accentClr = isDark ? '#2DDAB0' : '#1AAF8B'
-    const inputBg = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)'
+    // ── Design tokens (CSS variables) ──
+    const cardBg = 'hsl(var(--bg-surface) / 0.44)'
+    const cardStroke = 'hsl(var(--border))'
+    const titleClr = 'hsl(var(--foreground))'
+    const metaClr = 'hsl(var(--muted-foreground))'
+    const accentClr = 'hsl(var(--primary))'
+    const inputBg = 'hsl(var(--input))'
 
     const handleSkip = () => {
         startTransition(() => {
@@ -42,7 +39,7 @@ export function OnboardingClient() {
                     {/* Icon */}
                     <div
                         className="size-16 rounded-[20px] flex items-center justify-center"
-                        style={{ backgroundColor: isDark ? 'rgba(45,218,176,0.12)' : 'rgba(26,175,139,0.10)' }}
+                        style={{ backgroundColor: 'hsl(var(--primary) / 0.12)' }}
                     >
                         <Users className="size-8" style={{ color: accentClr }} />
                     </div>
@@ -66,9 +63,9 @@ export function OnboardingClient() {
                         >
                             <div
                                 className="size-10 rounded-full flex items-center justify-center shrink-0"
-                                style={{ backgroundColor: isDark ? 'rgba(45,218,176,0.12)' : 'rgba(26,175,139,0.10)' }}
-                            >
-                                <LogIn className="size-5" style={{ color: accentClr }} />
+                        style={{ backgroundColor: 'hsl(var(--primary) / 0.12)' }}
+                    >
+                        <LogIn className="size-5" style={{ color: accentClr }} />
                             </div>
                             <div className="flex-1 min-w-0">
                                 <span className="text-[14px] font-sans font-[600] block" style={{ color: titleClr }}>
@@ -88,7 +85,7 @@ export function OnboardingClient() {
                         >
                             <div
                                 className="size-10 rounded-full flex items-center justify-center shrink-0"
-                                style={{ backgroundColor: isDark ? 'rgba(255,107,53,0.12)' : 'rgba(255,107,53,0.08)' }}
+                                style={{ backgroundColor: 'rgba(255,107,53,0.10)' }}
                             >
                                 <Plus className="size-5" style={{ color: '#FF6B35' }} />
                             </div>

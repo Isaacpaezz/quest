@@ -2,7 +2,6 @@
 
 import { useState, useTransition, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { useTheme } from 'next-themes'
 import {
     Users, Plus, LogIn, Check, Copy, LogOut,
     Crown, ChevronRight, Loader2, UsersRound, Share2
@@ -38,8 +37,6 @@ interface GruposClientProps {
 
 export function GruposClient({ grupos, grupoActivoId, userId }: GruposClientProps) {
     const router = useRouter()
-    const { resolvedTheme } = useTheme()
-    const isDark = resolvedTheme !== 'light'
     const [showCreate, setShowCreate] = useState(false)
     const [showJoin, setShowJoin] = useState(false)
     const [copiedId, setCopiedId] = useState<string | null>(null)
@@ -63,14 +60,14 @@ export function GruposClient({ grupos, grupoActivoId, userId }: GruposClientProp
         }
     }, [joinState.success, router])
 
-    // ── Design tokens ──
-    const cardBg = isDark ? 'rgba(30,35,48,0.44)' : 'rgba(245,246,248,0.9)'
-    const cardStroke = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.08)'
-    const titleClr = isDark ? '#FFFFFF' : '#1A1A2E'
-    const metaClr = isDark ? '#5A6075' : '#8890A5'
-    const accentClr = isDark ? '#2DDAB0' : '#1AAF8B'
-    const inputBg = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)'
-    const sectionLbl = isDark ? '#7A8090' : '#6B7080'
+    // ── Design tokens (CSS variables) ──
+    const cardBg = 'hsl(var(--bg-surface) / 0.44)'
+    const cardStroke = 'hsl(var(--border))'
+    const titleClr = 'hsl(var(--foreground))'
+    const metaClr = 'hsl(var(--muted-foreground))'
+    const accentClr = 'hsl(var(--primary))'
+    const inputBg = 'hsl(var(--input))'
+    const sectionLbl = 'hsl(var(--quest-text-secondary))'
 
     const copyCode = async (code: string, grupoId: string) => {
         try {
@@ -274,7 +271,7 @@ export function GruposClient({ grupos, grupoActivoId, userId }: GruposClientProp
                 <div className="flex flex-col items-center justify-center py-12 text-center">
                     <div
                         className="size-14 rounded-2xl flex items-center justify-center mb-3"
-                        style={{ backgroundColor: isDark ? 'rgba(30,35,48,0.44)' : 'rgba(0,0,0,0.04)' }}
+                        style={{ backgroundColor: 'hsl(var(--bg-surface) / 0.44)' }}
                     >
                         <UsersRound className="size-7" style={{ color: metaClr }} />
                     </div>
@@ -300,7 +297,7 @@ export function GruposClient({ grupos, grupoActivoId, userId }: GruposClientProp
                                 style={{
                                     backgroundColor: cardBg,
                                     border: grupo.esActivo
-                                        ? `2px solid ${isDark ? 'rgba(45,218,176,0.40)' : 'rgba(26,175,139,0.35)'}`
+                                        ? `2px solid hsl(var(--primary) / 0.40)`
                                         : `1px solid ${cardStroke}`,
                                 }}
                             >
@@ -309,7 +306,7 @@ export function GruposClient({ grupos, grupoActivoId, userId }: GruposClientProp
                                     {grupo.esActivo && (
                                         <span
                                             className="text-[11px] font-sans font-bold px-2.5 py-1 rounded-full flex items-center gap-1"
-                                            style={{ color: accentClr, backgroundColor: isDark ? 'rgba(45,218,176,0.09)' : 'rgba(45,218,176,0.08)' }}
+                                            style={{ color: accentClr, backgroundColor: 'hsl(var(--primary) / 0.09)' }}
                                         >
                                             <Check className="size-3" />
                                             Activo
@@ -318,7 +315,7 @@ export function GruposClient({ grupos, grupoActivoId, userId }: GruposClientProp
                                     {grupo.miRol === 'admin' && (
                                         <span
                                             className="text-[11px] font-sans font-bold px-2.5 py-1 rounded-full flex items-center gap-1"
-                                            style={{ color: '#FF6B35', backgroundColor: isDark ? 'rgba(255,107,53,0.09)' : 'rgba(255,107,53,0.08)' }}
+                                            style={{ color: '#FF6B35', backgroundColor: 'rgba(255,107,53,0.09)' }}
                                         >
                                             <Crown className="size-3" />
                                             Admin
@@ -387,7 +384,7 @@ export function GruposClient({ grupos, grupoActivoId, userId }: GruposClientProp
                                             disabled={isPending}
                                             className="h-10 px-4 rounded-[12px] font-sans font-bold text-[13px] flex items-center justify-center gap-1.5 active:scale-[0.97] transition-transform disabled:opacity-50"
                                             style={{
-                                                backgroundColor: isDark ? 'rgba(255,107,107,0.08)' : 'rgba(255,107,107,0.06)',
+                                                backgroundColor: 'rgba(255,107,107,0.07)',
                                                 color: '#FF6B6B',
                                             }}
                                         >

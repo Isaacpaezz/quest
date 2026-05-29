@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useTheme } from 'next-themes'
 import Link from 'next/link'
 import { BookOpen, DollarSign, Users, Settings, ChevronRight, Zap, AlertTriangle, Flame, Plus, Share2 } from 'lucide-react'
 import { toast } from 'sonner'
@@ -25,16 +24,11 @@ export function AdminDashboardClient({
     alerts: AlertItem[]
     inviteCode: string | null
 }) {
-    const { resolvedTheme } = useTheme()
-    const [mounted, setMounted] = useState(false)
-    useEffect(() => setMounted(true), [])
-    const isDark = !mounted ? true : resolvedTheme === 'dark'
-
-    const cardBg = isDark ? 'rgba(21,25,37,0.44)' : 'rgba(255,255,255,0.91)'
-    const cardBorder = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.031)'
-    const textPrimary = isDark ? '#FFFFFF' : '#111318'
-    const textSecondary = isDark ? '#5A6075' : '#8C9099'
-    const accent = isDark ? '#2DDAB0' : '#1AAF8B'
+    const cardBg = 'hsl(var(--bg-surface) / 0.44)'
+    const cardBorder = 'hsl(var(--border))'
+    const textPrimary = 'hsl(var(--foreground))'
+    const textSecondary = 'hsl(var(--muted-foreground))'
+    const accent = 'hsl(var(--primary))'
 
     const adminLinks = [
         { href: '/admin/planes', icon: BookOpen, label: 'Planes de Lectura', desc: 'Gestiona la cola de planes del grupo' },
@@ -111,7 +105,7 @@ export function AdminDashboardClient({
                         <div className="w-6 h-[2px] rounded-sm bg-[#FF6B35]" />
                         <span
                             className="text-[11px] font-bold tracking-[2px] font-sans uppercase"
-                            style={{ color: isDark ? '#7A8090' : '#6B7080' }}
+                            style={{ color: 'hsl(var(--quest-text-secondary))' }}
                         >
                             ALERTAS
                         </span>
@@ -142,7 +136,7 @@ export function AdminDashboardClient({
                                 {i < Math.min(alerts.length, 5) - 1 && (
                                     <div
                                         className="mx-4"
-                                        style={{ height: 1, backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.031)' }}
+                                        style={{ height: 1, backgroundColor: 'hsl(var(--border))' }}
                                     />
                                 )}
                             </div>
@@ -157,9 +151,9 @@ export function AdminDashboardClient({
                     <div className="w-6 h-[2px] rounded-sm" style={{ backgroundColor: accent }} />
                     <span
                         className="text-[11px] font-bold tracking-[2px] font-sans uppercase"
-                        style={{ color: isDark ? '#7A8090' : '#6B7080' }}
-                    >
-                        ACCIONES RÁPIDAS
+                        style={{ color: 'hsl(var(--quest-text-secondary))' }}
+                        >
+                            ACCIONES RÁPIDAS
                     </span>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
@@ -167,8 +161,8 @@ export function AdminDashboardClient({
                         href="/challenges"
                         className="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl transition-all active:scale-[0.97]"
                         style={{
-                            backgroundColor: isDark ? 'rgba(167,139,250,0.08)' : 'rgba(167,139,250,0.08)',
-                            border: `1px solid ${isDark ? 'rgba(167,139,250,0.15)' : 'rgba(167,139,250,0.12)'}`,
+                            backgroundColor: 'rgba(167,139,250,0.08)',
+                            border: '1px solid rgba(167,139,250,0.13)',
                         }}
                     >
                         <Plus className="size-5" style={{ color: '#A78BFA' }} />
@@ -181,10 +175,10 @@ export function AdminDashboardClient({
                         <button
                             onClick={handleShare}
                             className="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl transition-all active:scale-[0.97]"
-                            style={{
-                                backgroundColor: isDark ? 'rgba(45,218,176,0.08)' : 'rgba(26,175,139,0.08)',
-                                border: `1px solid ${isDark ? 'rgba(45,218,176,0.15)' : 'rgba(26,175,139,0.12)'}`,
-                            }}
+                        style={{
+                            backgroundColor: 'hsl(var(--primary) / 0.08)',
+                            border: '1px solid hsl(var(--primary) / 0.13)',
+                        }}
                         >
                             <Share2 className="size-5" style={{ color: accent }} />
                             <span className="text-[12px] font-semibold font-sans" style={{ color: accent }}>
@@ -201,9 +195,9 @@ export function AdminDashboardClient({
                     <div className="w-6 h-[2px] rounded-sm bg-[#FF6B35]" />
                     <span
                         className="text-[11px] font-bold tracking-[2px] font-sans uppercase"
-                        style={{ color: isDark ? '#7A8090' : '#6B7080' }}
-                    >
-                        OPCIONES
+                        style={{ color: 'hsl(var(--quest-text-secondary))' }}
+                        >
+                            OPCIONES
                     </span>
                 </div>
 
@@ -233,7 +227,7 @@ export function AdminDashboardClient({
                             {i < adminLinks.length - 1 && (
                                 <div
                                     className="mx-4"
-                                    style={{ height: 1, backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.031)' }}
+                                    style={{ height: 1, backgroundColor: 'hsl(var(--border))' }}
                                 />
                             )}
                         </div>

@@ -1,25 +1,23 @@
 'use client'
 
-import { useTheme } from 'next-themes'
 import { CheckCircle2, Minus, ShieldAlert, Check, BookOpen, Timer, Flame } from 'lucide-react'
 import { CommunityMember } from '@/types/definitions'
 
 // ── Leaderboard row ───────────────────────────────────────────────────────────
 function RankRow({
-  user, rank, isDark,
+  user, rank,
 }: {
   user: CommunityMember
   rank: number
-  isDark: boolean
 }) {
-  const cardBg = isDark ? 'rgba(21,25,37,0.60)' : 'rgba(255,255,255,0.88)'
-  const border = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)'
-  const textClr = isDark ? '#FFFFFF' : '#111318'
-  const subClr = isDark ? '#5A6075' : '#8C9099'
-  const accentClr = isDark ? '#2DDAB0' : '#1AAF8B'
+  const cardBg = 'hsl(var(--bg-surface) / 0.60)'
+  const border = 'hsl(var(--border))'
+  const textClr = 'hsl(var(--foreground))'
+  const subClr = 'hsl(var(--muted-foreground))'
+  const accentClr = 'hsl(var(--primary))'
   const rankColors = ['#FFD700', '#C0C0C0', '#CD7F32']
   const rankColor = rankColors[rank - 1] || subClr
-  const dotBg = isDark ? '#1E2330' : '#E8EBF0'
+  const dotBg = 'hsl(var(--muted))'
 
   return (
     <div
@@ -75,7 +73,7 @@ function RankRow({
             width: 40,
             backgroundColor: (user.progresoHoy?.lectura_completada && user.progresoHoy?.oracion_completada)
               ? accentClr
-              : isDark ? '#2B3045' : '#E0E3EB',
+              : 'hsl(var(--muted))',
           }}
         />
       </div>
@@ -84,11 +82,8 @@ function RankRow({
 }
 
 export function CommunityClient({ communityData, highestStreak, nombreGrupo }: { communityData: CommunityMember[]; highestStreak: { nombre_usuario: string; streak: number } | null; nombreGrupo: string }) {
-  const { resolvedTheme } = useTheme()
-  const isDark = resolvedTheme !== 'light'
-
-  const sectionLbl = isDark ? '#7A8090' : '#6B7080'
-  const accentClr = isDark ? '#2DDAB0' : '#1AAF8B'
+  const sectionLbl = 'hsl(var(--quest-text-secondary))'
+  const accentClr = 'hsl(var(--primary))'
 
   // Sort by streak desc for ranking
   const ranked = [...communityData].sort((a, b) => (b.streak || 0) - (a.streak || 0))
@@ -97,10 +92,10 @@ export function CommunityClient({ communityData, highestStreak, nombreGrupo }: {
     u => u.progresoHoy?.lectura_completada && u.progresoHoy?.oracion_completada
   ).length
 
-  const cardBg = isDark ? 'rgba(21,25,37,0.50)' : 'rgba(255,255,255,0.80)'
-  const border = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)'
-  const textClr = isDark ? '#FFFFFF' : '#111318'
-  const subClr = isDark ? '#5A6075' : '#8C9099'
+  const cardBg = 'hsl(var(--bg-surface) / 0.50)'
+  const border = 'hsl(var(--border))'
+  const textClr = 'hsl(var(--foreground))'
+  const subClr = 'hsl(var(--muted-foreground))'
 
   return (
     <div className="flex flex-col gap-6">
@@ -116,7 +111,7 @@ export function CommunityClient({ communityData, highestStreak, nombreGrupo }: {
           </h2>
           <div
             className="flex items-center gap-1.5 rounded-full px-3 py-1"
-            style={{ backgroundColor: isDark ? 'rgba(45,218,176,0.12)' : 'rgba(26,175,139,0.10)' }}
+            style={{ backgroundColor: 'hsl(var(--primary) / 0.12)' }}
           >
             <CheckCircle2 className="size-3.5" style={{ color: accentClr }} />
             <span className="text-[12px] font-[600] font-sans" style={{ color: accentClr }}>
@@ -134,13 +129,13 @@ export function CommunityClient({ communityData, highestStreak, nombreGrupo }: {
         <div
           className="rounded-[20px] p-4 flex items-center gap-3"
           style={{
-            backgroundColor: isDark ? 'rgba(255,107,53,0.08)' : 'rgba(255,107,53,0.06)',
-            border: `1px solid ${isDark ? 'rgba(255,107,53,0.15)' : 'rgba(255,107,53,0.10)'}`,
+            backgroundColor: 'rgba(255,107,53,0.07)',
+            border: '1px solid rgba(255,107,53,0.12)',
           }}
         >
           <div
             className="size-10 rounded-full flex items-center justify-center shrink-0"
-            style={{ backgroundColor: isDark ? 'rgba(255,107,53,0.15)' : 'rgba(255,107,53,0.12)' }}
+            style={{ backgroundColor: 'rgba(255,107,53,0.13)' }}
           >
             <Flame className="size-5" style={{ color: '#FF6B35' }} />
           </div>
@@ -173,7 +168,7 @@ export function CommunityClient({ communityData, highestStreak, nombreGrupo }: {
 
         <div className="flex flex-col gap-3">
           {ranked.map((user, idx) => (
-            <RankRow key={user.id} user={user} rank={idx + 1} isDark={isDark} />
+            <RankRow key={user.id} user={user} rank={idx + 1} />
           ))}
         </div>
       </div>
@@ -199,13 +194,13 @@ export function CommunityClient({ communityData, highestStreak, nombreGrupo }: {
                   key={user.id}
                   className="flex items-center justify-between rounded-[20px] p-4"
                   style={{
-                    backgroundColor: isDark ? 'rgba(255,107,107,0.08)' : 'rgba(255,107,107,0.06)',
-                    border: `1px solid ${isDark ? 'rgba(255,107,107,0.15)' : 'rgba(255,107,107,0.10)'}`,
+                    backgroundColor: 'rgba(255,107,107,0.07)',
+                    border: '1px solid rgba(255,107,107,0.12)',
                   }}
                 >
                   <div className="flex items-center gap-3">
                     <ShieldAlert className="size-4 shrink-0" style={{ color: '#FF6B6B' }} />
-                    <span className="text-[14px] font-[500] font-sans" style={{ color: isDark ? '#FFFFFF' : '#111318' }}>
+                    <span className="text-[14px] font-[500] font-sans text-foreground">
                       {user.nombre_usuario}
                     </span>
                   </div>

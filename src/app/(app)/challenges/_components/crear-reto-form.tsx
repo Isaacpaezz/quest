@@ -3,7 +3,6 @@
 import { useActionState, useEffect, useRef } from 'react'
 import { crearRetoAction } from '../actions'
 import { X } from 'lucide-react'
-import { useTheme } from 'next-themes'
 
 function getTodayStr() {
     const d = new Date()
@@ -13,19 +12,17 @@ function getTodayStr() {
 export function CrearRetoForm({ onClose }: { onClose: () => void }) {
     const [state, formAction, pending] = useActionState(crearRetoAction, {})
     const overlayRef = useRef<HTMLDivElement>(null)
-    const { resolvedTheme } = useTheme()
-    const isDark = resolvedTheme === 'dark'
 
     useEffect(() => {
         if (state?.message) onClose()
     }, [state?.message, onClose])
 
-    const sheetBg = isDark ? '#151821' : '#FFFFFF'
-    const fieldBg = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)'
-    const fieldBorder = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.10)'
-    const titleClr = isDark ? '#FFFFFF' : '#1A1A2E'
-    const labelClr = isDark ? '#8890A5' : '#5A6075'
-    const inputClr = isDark ? '#F1F1F1' : '#1A1A2E'
+    const sheetBg = 'hsl(var(--bg-surface))'
+    const fieldBg = 'hsl(var(--input))'
+    const fieldBorder = 'hsl(var(--border))'
+    const titleClr = 'hsl(var(--foreground))'
+    const labelClr = 'hsl(var(--muted-foreground))'
+    const inputClr = 'hsl(var(--foreground))'
 
     const inputStyle: React.CSSProperties = {
         backgroundColor: fieldBg,
@@ -43,7 +40,7 @@ export function CrearRetoForm({ onClose }: { onClose: () => void }) {
         ...inputStyle,
         appearance: 'none' as const,
         WebkitAppearance: 'none' as const,
-        backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='${isDark ? '%238890A5' : '%235A6075'}' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E")`,
+        backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238C9099' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E")`,
         backgroundRepeat: 'no-repeat',
         backgroundPosition: 'right 14px center',
         paddingRight: 36,
@@ -63,13 +60,13 @@ export function CrearRetoForm({ onClose }: { onClose: () => void }) {
                 style={{ backgroundColor: sheetBg }}
             >
                 <div className="flex flex-col items-center mb-5">
-                    <div className="w-10 h-1 rounded-full mb-4" style={{ backgroundColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.12)' }} />
+                    <div className="w-10 h-1 rounded-full mb-4" style={{ backgroundColor: 'hsl(var(--border))' }} />
                     <div className="flex items-center justify-between w-full">
                         <h2 className="text-[18px] font-sans font-bold" style={{ color: titleClr }}>Nuevo Reto</h2>
                         <button
                             onClick={onClose}
                             className="size-8 rounded-full flex items-center justify-center"
-                            style={{ backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)' }}
+                            style={{ backgroundColor: 'hsl(var(--muted))' }}
                         >
                             <X className="size-4" style={{ color: labelClr }} />
                         </button>
@@ -142,7 +139,7 @@ export function CrearRetoForm({ onClose }: { onClose: () => void }) {
                     </div>
 
                     {state?.error && (
-                        <p className="text-red-400 text-[12px] rounded-[12px] p-3" style={{ backgroundColor: isDark ? 'rgba(239,68,68,0.1)' : 'rgba(239,68,68,0.06)' }}>
+                        <p className="text-red-400 text-[12px] rounded-[12px] p-3" style={{ backgroundColor: 'rgba(239,68,68,0.08)' }}>
                             {state.error}
                         </p>
                     )}

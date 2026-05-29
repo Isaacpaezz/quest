@@ -2,7 +2,6 @@
 
 import Link from 'next/link'
 import { useState, useTransition } from 'react'
-import { useTheme } from 'next-themes'
 import { ChevronRight, Check, X, Gift, Trophy, Calendar, Users, User } from 'lucide-react'
 import { responderInvitacionAction } from '@/app/(app)/challenges/actions'
 import { toast } from 'sonner'
@@ -37,17 +36,15 @@ export function RetosHomeSection({
     proximos: Reto[]
     userId: string
 }) {
-    const { resolvedTheme } = useTheme()
-    const isDark = resolvedTheme === 'dark'
-
-    const cardBg = isDark ? 'rgba(30,35,48,0.44)' : 'rgba(245,246,248,0.9)'
-    const cardStroke = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.08)'
-    const titleClr = isDark ? '#FFFFFF' : '#1A1A2E'
-    const metaClr = isDark ? '#5A6075' : '#8890A5'
-    const trackBg = isDark ? 'rgba(30,35,48,0.5)' : 'rgba(0,0,0,0.08)'
-
     const hasSomething = pendientes.length > 0 || activos.length > 0 || proximos.length > 0
     if (!hasSomething) return null
+
+    // CSS variable references for child components
+    const cardBg = 'hsl(var(--bg-surface) / 0.44)'
+    const cardStroke = 'hsl(var(--border))'
+    const titleClr = 'hsl(var(--foreground))'
+    const metaClr = 'hsl(var(--muted-foreground))'
+    const trackBg = 'hsl(var(--muted))'
 
     return (
         <div className="flex flex-col gap-4">
@@ -66,7 +63,6 @@ export function RetosHomeSection({
                 <InvitationMiniCard
                     key={reto.id}
                     reto={reto}
-                    isDark={isDark}
                     cardBg={cardBg}
                     cardStroke={cardStroke}
                     titleClr={titleClr}
@@ -80,7 +76,6 @@ export function RetosHomeSection({
                     key={reto.id}
                     reto={reto}
                     userId={userId}
-                    isDark={isDark}
                     cardBg={cardBg}
                     cardStroke={cardStroke}
                     titleClr={titleClr}
@@ -95,7 +90,6 @@ export function RetosHomeSection({
                     key={reto.id}
                     reto={reto}
                     userId={userId}
-                    isDark={isDark}
                     cardBg={cardBg}
                     cardStroke={cardStroke}
                     titleClr={titleClr}
@@ -113,8 +107,8 @@ function formatDateShort(dateStr: string) {
     return d.toLocaleDateString('es', { day: 'numeric', month: 'short' })
 }
 
-function InvitationMiniCard({ reto, isDark, cardBg, cardStroke, titleClr, metaClr }: {
-    reto: Reto; isDark: boolean; cardBg: string; cardStroke: string; titleClr: string; metaClr: string
+function InvitationMiniCard({ reto, cardBg, cardStroke, titleClr, metaClr }: {
+    reto: Reto; cardBg: string; cardStroke: string; titleClr: string; metaClr: string
 }) {
     const [pending, startTransition] = useTransition()
     const [xpInput, setXpInput] = useState(String(reto.recompensa_xp || 100))
@@ -173,7 +167,7 @@ function InvitationMiniCard({ reto, isDark, cardBg, cardStroke, titleClr, metaCl
                     onChange={e => setXpInput(e.target.value)}
                     className="flex-1 h-7 rounded-[8px] px-2 text-[13px] font-sans font-bold text-center outline-none"
                     style={{
-                        backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
+                        backgroundColor: 'hsl(var(--input))',
                         border: `1px solid ${cardStroke}`,
                         color: titleClr,
                     }}
@@ -193,7 +187,7 @@ function InvitationMiniCard({ reto, isDark, cardBg, cardStroke, titleClr, metaCl
                     onClick={() => handleRespond(false)}
                     disabled={pending}
                     className="flex-1 h-8 rounded-[10px] font-sans font-bold text-[12px] flex items-center justify-center gap-1 active:scale-[0.97] transition-transform disabled:opacity-50"
-                    style={{ backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)', color: metaClr }}
+                    style={{ backgroundColor: 'hsl(var(--muted))', color: metaClr }}
                 >
                     <X className="size-3.5" /> Rechazar
                 </button>
@@ -202,8 +196,8 @@ function InvitationMiniCard({ reto, isDark, cardBg, cardStroke, titleClr, metaCl
     )
 }
 
-function MiniRetoCard({ reto, userId, isDark, cardBg, cardStroke, titleClr, metaClr, trackBg, isUpcoming }: {
-    reto: Reto; userId: string; isDark: boolean; cardBg: string; cardStroke: string; titleClr: string; metaClr: string; trackBg: string; isUpcoming?: boolean
+function MiniRetoCard({ reto, userId, cardBg, cardStroke, titleClr, metaClr, trackBg, isUpcoming }: {
+    reto: Reto; userId: string; cardBg: string; cardStroke: string; titleClr: string; metaClr: string; trackBg: string; isUpcoming?: boolean
 }) {
     const miP = reto.reto_participantes.find(p => p.usuario_id === userId)
     const criterio = reto.criterio as { action?: string; count?: number } | null
@@ -213,7 +207,7 @@ function MiniRetoCard({ reto, userId, isDark, cardBg, cardStroke, titleClr, meta
 
     const isPersonal = reto.tipo === 'personal'
     const accentColor = isPersonal ? '#2DDAB0' : '#FF6B35'
-    const badgeBg = isPersonal ? (isDark ? 'rgba(45,218,176,0.09)' : 'rgba(45,218,176,0.08)') : (isDark ? 'rgba(255,107,53,0.09)' : 'rgba(255,107,53,0.08)')
+    const badgeBg = isPersonal ? 'hsl(var(--primary) / 0.09)' : 'rgba(255,107,53,0.09)'
 
     const diasRestantes = Math.max(0, Math.ceil((new Date(reto.fecha_fin).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
 
