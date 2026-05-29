@@ -34,6 +34,20 @@ export const metadata: Metadata = {
   },
 };
 
+const themeScript = `
+(function() {
+  try {
+    var t = localStorage.getItem('theme');
+    var d = document.documentElement;
+    if (t === 'dark' || (!t && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+      d.classList.add('dark');
+    } else {
+      d.classList.remove('dark');
+    }
+  } catch(e) {}
+})();
+`
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -41,10 +55,15 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="es" suppressHydrationWarning>
-      <body className={`${inter.variable} ${sora.variable} font-sans antialiased`}>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+      </head>
+      <body
+        className={`${inter.variable} ${sora.variable} font-sans antialiased`}
+        style={{ backgroundColor: 'hsl(var(--background))' }}
+      >
         <ThemeProvider
           attribute="class"
-          defaultTheme="dark"
           enableSystem
           disableTransitionOnChange
         >
