@@ -18,6 +18,7 @@ export type Database = {
         Row: {
           comentarios_count: number
           creado_en: string
+          grupo_id: string | null
           id: number
           likes_count: number
           referencia_contenido: string | null
@@ -28,6 +29,7 @@ export type Database = {
         Insert: {
           comentarios_count?: number
           creado_en?: string
+          grupo_id?: string | null
           id?: number
           likes_count?: number
           referencia_contenido?: string | null
@@ -38,6 +40,7 @@ export type Database = {
         Update: {
           comentarios_count?: number
           creado_en?: string
+          grupo_id?: string | null
           id?: number
           likes_count?: number
           referencia_contenido?: string | null
@@ -46,6 +49,13 @@ export type Database = {
           usuario_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "actividad_comunidad_grupo_id_fkey"
+            columns: ["grupo_id"]
+            isOneToOne: false
+            referencedRelation: "grupos"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "actividad_comunidad_usuario_id_fkey"
             columns: ["usuario_id"]
