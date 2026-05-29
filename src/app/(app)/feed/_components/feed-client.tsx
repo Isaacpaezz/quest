@@ -506,7 +506,7 @@ export function FeedClient({
   grupoId?: string | null
 }) {
   // Realtime feed updates
-  const { groupedActivities } = useRealtimeFeed(initialGroupedActivities, { memberIds, timezone, groupId })
+  const { groupedActivities } = useRealtimeFeed(initialGroupedActivities, { memberIds, timezone, grupoId })
   const activityDates = Object.keys(groupedActivities)
 
   const sectionLbl = 'hsl(var(--quest-text-secondary))'
