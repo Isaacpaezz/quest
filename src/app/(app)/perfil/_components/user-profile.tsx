@@ -352,12 +352,21 @@ export function UserProfile({ profile, stats, xpHistory = [] }: { profile: any; 
         >
           <button
             onClick={() => {
+              console.log('[DEBUG] Botón de vibración clickeado')
+              alert('¡El botón funciona!')
+              
               const hasVibrate = typeof navigator !== 'undefined' && 'vibrate' in navigator
+              console.log('[DEBUG] navigator.vibrate disponible:', hasVibrate)
+              
               if (!hasVibrate) {
+                alert('❌ navigator.vibrate NO está disponible en este browser')
                 toast.error('navigator.vibrate no está disponible en este browser')
                 return
               }
+              
               const result = navigator.vibrate(500)
+              console.log('[DEBUG] Resultado de vibrate:', result)
+              alert(`✅ Vibración disparada (500ms)\nResultado: ${result}\n\n¿Sentiste la vibración?`)
               toast.success(`Vibración disparada (500ms). Resultado: ${result}`)
             }}
             className="flex items-center gap-3 h-[52px] px-4 w-full text-left cursor-pointer active:scale-[0.98] transition-transform"
