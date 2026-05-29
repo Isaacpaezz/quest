@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react'
 import { usePathname } from 'next/navigation'
-import { useTheme } from 'next-themes'
 import { Bell } from 'lucide-react'
 
 const ROUTE_TITLES: Record<string, string> = {
@@ -43,7 +42,6 @@ function getPageSubtitle(pathname: string): string | undefined {
 
 export function GlassHeader() {
     const pathname = usePathname()
-    const { resolvedTheme } = useTheme()
     const [mounted, setMounted] = useState(false)
     const [scrolled, setScrolled] = useState(false)
 
@@ -55,25 +53,15 @@ export function GlassHeader() {
         return () => window.removeEventListener('scroll', onScroll)
     }, [])
 
-    const isDark = !mounted ? true : resolvedTheme === 'dark'
     const title = getPageTitle(pathname)
     const subtitle = getPageSubtitle(pathname)
-
-    const bg = scrolled
-        ? (isDark ? 'rgba(13,15,20,0.55)' : 'rgba(240,241,244,0.55)')
-        : 'transparent'
-    const border = scrolled
-        ? (isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)')
-        : 'transparent'
-    const textColor = isDark ? '#FFFFFF' : '#111318'
-    const iconColor = isDark ? '#9CA0B5' : '#6B7080'
 
     return (
         <header
             className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 h-16 transition-all duration-300"
             style={{
-                backgroundColor: bg,
-                borderBottom: `1px solid ${border}`,
+                backgroundColor: scrolled ? 'hsl(var(--glass-bg))' : 'transparent',
+                borderBottom: `1px solid ${scrolled ? 'hsl(var(--glass-border))' : 'transparent'}`,
                 backdropFilter: scrolled ? 'blur(20px) saturate(180%)' : 'none',
                 WebkitBackdropFilter: scrolled ? 'blur(20px) saturate(180%)' : 'none',
             }}
@@ -82,21 +70,21 @@ export function GlassHeader() {
             <div className="flex items-center gap-3">
                 <div
                     className="size-8 rounded-xl flex items-center justify-center"
-                    style={{ backgroundColor: isDark ? '#1E2330' : '#111318' }}
+                    style={{ backgroundColor: 'hsl(var(--foreground))' }}
                 >
                     <span className="font-display text-sm font-bold text-white">Q</span>
                 </div>
                 <div className="flex flex-col justify-center">
                     <span
                         className="font-display text-[20px] font-bold tracking-tight leading-tight"
-                        style={{ color: textColor }}
+                        style={{ color: 'hsl(var(--foreground))' }}
                     >
                         {title}
                     </span>
                     {subtitle && (
                         <span
                             className="text-[10px] font-sans leading-tight"
-                            style={{ color: iconColor }}
+                            style={{ color: 'hsl(var(--muted-foreground))' }}
                         >
                             {subtitle}
                         </span>
@@ -105,13 +93,16 @@ export function GlassHeader() {
             </div>
 
             {/* Right — Bell icon */}
-            <button className="relative p-1">
-                <Bell className="size-6" style={{ color: iconColor }} />
+            <button className="relative p-1 touch-press">
+                <Bell
+                    className="size-6"
+                    style={{ color: 'hsl(var(--muted-foreground))' }}
+                />
                 <span
                     className="absolute top-1 right-1 size-2 rounded-full ring-2"
                     style={{
-                        backgroundColor: '#FF6B6B',
-                        boxShadow: `0 0 0 2px ${isDark ? '#1A1E2A' : '#FFFFFF'}`,
+                        backgroundColor: 'hsl(var(--destructive))',
+                        boxShadow: '0 0 0 2px hsl(var(--background))',
                     }}
                 />
             </button>
