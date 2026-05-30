@@ -434,6 +434,7 @@ function ActivityItem({ act, userReactions: initialReactions, currentUserId }: {
                   <OrarPorPeticionButton
                     peticionId={String(act.referencia_contenido || '')}
                     initialOracionesCount={0}
+                    esAutor={act.usuario_id === currentUserId}
                     compact
                   />
                 )}
