@@ -822,3 +822,178 @@ export async function getPetitionAction(peticionId: string) {
     return { success: false, error: 'Error inesperado', peticion: null }
   }
 }
+
+// ─── Batch Intercession (Guided Prayer Flow) ─────────────────────────────────
+
+/**
+ * registrarIntercesionesBatch
+ * Registra intercesiones masivamente al completar el timer de oración.
+ * - Idempotent: UNIQUE(peticion_id, usuario_id) previene duplicados
+ * - XP rate-limited: max 5 intercesiones por día para XP
+ * - Notifications batched: 1 push por autor (no por petición)
+ * - Called on timer completion with prayedPetitions array
+ */
+export async function registrarIntercesionesBatch(peticionIds: string[]) {
+  try {
+    const supabase = await createClient()
+
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    if (authError || !user) {
+      return { success: false, error: 'No autenticado', inserted: 0, xpGranted: 0 }
+    }
+
+    if (!peticionIds.length) {
+      return { success: true, inserted: 0, xpGranted: 0 }
+    }
+
+    // Fetch petitions to validate they exist and are active
+    const { data: peticiones } = await supabase
+      .from('peticiones_oracion')
+      .select('id, usuario_id, titulo, grupo_id, estado')
+      .in('id', peticionIds)
+      .eq('estado', 'activa')
+
+    if (!peticiones?.length) {
+      return { success: true, inserted: 0, xpGranted: 0 }
+    }
+
+    // Filter out own petitions (self-intercession doesn't get XP)
+    const otherPetitions = peticiones.filter(p => p.usuario_id !== user.id)
+    const ownPetitions = peticiones.filter(p => p.usuario_id === user.id)
+
+    // Insert intercession records (idempotent via UNIQUE constraint)
+    const records = peticiones.map(p => ({
+      peticion_id: p.id,
+      usuario_id: user.id,
+    }))
+
+    const { error: insertError } = await supabase
+      .from('oraciones_por_peticion')
+      .upsert(records, { onConflict: 'peticion_id,usuario_id', ignoreDuplicates: true })
+
+    if (insertError) {
+      console.error('Error inserting batch intercessions:', insertError)
+      return { success: false, error: 'Error al registrar intercesiones', inserted: 0, xpGranted: 0 }
+    }
+
+    // Count how many were actually new (not duplicates)
+    // Since we used upsert with ignoreDuplicates, we can't know exactly how many were new
+    // But we can check which ones already existed
+    const { data: existing } = await supabase
+      .from('oraciones_por_peticion')
+      .select('peticion_id')
+      .eq('usuario_id', user.id)
+      .in('peticion_id', peticionIds)
+
+    const existingSet = new Set((existing || []).map(e => e.peticion_id))
+    const newCount = peticiones.filter(p => existingSet.has(p.id)).length
+
+    // Grant XP with daily cap (max 5 intercessions per day for XP)
+    let xpGranted = 0
+    if (otherPetitions.length > 0) {
+      try {
+        const { getXpConfig, grantXp } = await import('@/lib/xp-helpers')
+        const xpConfig = await getXpConfig(supabase, user.id)
+
+        // Check how many XP-eligible intercessions today
+        const today = new Date()
+        today.setHours(0, 0, 0, 0)
+        const { data: todayPrayers } = await supabase
+          .from('oraciones_por_peticion')
+          .select('id')
+          .eq('usuario_id', user.id)
+          .gte('creado_en', today.toISOString())
+
+        const todayCount = todayPrayers?.length || 0
+        const remainingXpSlots = Math.max(0, 5 - todayCount) // max 5 XP per day
+
+        // Grant XP for up to remainingXpSlots petitions
+        const xpPetitions = otherPetitions.slice(0, remainingXpSlots)
+        for (const p of xpPetitions) {
+          const result = await grantXp(
+            supabase,
+            user.id,
+            xpConfig.intercesion,
+            'intercesion',
+            p.id,
+            p.grupo_id || undefined
+          )
+          if (result) xpGranted += xpConfig.intercesion
+        }
+      } catch (xpErr) {
+        console.error('Error granting batch XP:', xpErr)
+      }
+    }
+
+    // Send batched notifications: 1 per author
+    const authorMap = new Map<string, { name: string; grupoId: string; titles: string[] }>()
+    for (const p of peticiones) {
+      if (p.usuario_id === user.id) continue // skip self
+      if (!p.grupo_id) continue
+
+      const existing = authorMap.get(p.usuario_id)
+      if (existing) {
+        existing.titles.push(p.titulo)
+      } else {
+        authorMap.set(p.usuario_id, {
+          name: '', // will be filled below
+          grupoId: p.grupo_id,
+          titles: [p.titulo],
+        })
+      }
+    }
+
+    if (authorMap.size > 0) {
+      try {
+        // Get author names
+        const authorIds = Array.from(authorMap.keys())
+        const { data: autores } = await supabase
+          .from('perfiles')
+          .select('id, nombre_usuario')
+          .in('id', authorIds)
+
+        const nameMap = new Map((autores || []).map(a => [a.id, a.nombre_usuario || 'Alguien']))
+
+        // Get pray-er name
+        const { data: myPerfil } = await supabase
+          .from('perfiles')
+          .select('nombre_usuario')
+          .eq('id', user.id)
+          .single()
+        const myName = myPerfil?.nombre_usuario || 'Alguien'
+
+        const { notifyGroupMembers } = await import('@/lib/push-helpers')
+
+        // Send one notification per author
+        for (const [authorId, info] of authorMap) {
+          const authorName = nameMap.get(authorId) || 'Alguien'
+          const petitionCount = info.titles.length
+          const body = petitionCount === 1
+            ? `${myName} oró por tu petición: ${info.titles[0]}`
+            : `${myName} oró por ${petitionCount} de tus peticiones`
+
+          await notifyGroupMembers(
+            info.grupoId,
+            {
+              title: 'Oraron por tu petición 🙏',
+              body,
+            },
+            user.id
+          ).catch(err => {
+            console.error('Error sending batch notification:', err)
+          })
+        }
+      } catch (notifErr) {
+        console.error('Error in batch notifications:', notifErr)
+      }
+    }
+
+    revalidatePath('/peticiones')
+    revalidatePath('/feed')
+
+    return { success: true, inserted: newCount, xpGranted }
+  } catch (error) {
+    console.error('Error en registrarIntercesionesBatch:', error)
+    return { success: false, error: 'Error inesperado', inserted: 0, xpGranted: 0 }
+  }
+}
