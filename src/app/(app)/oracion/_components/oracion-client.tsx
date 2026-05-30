@@ -241,6 +241,7 @@ export function OracionClient({
     const [guidedPrayers, setGuidedPrayers] = useState<Record<string, string>>(restoredGuide?.generatedPrayers ?? {})
     const [intercessionSaved, setIntercessionSaved] = useState(false)
     const preparacionShownRef = useRef(Boolean(restoredGuide?.preparacionShown))
+    const generatingGuidedPrayersRef = useRef(false)
 
     // Selected petitions for bonus phase display
     const selectedPetitions = useMemo(() => {
@@ -290,6 +291,52 @@ export function OracionClient({
         }, 20_000)
         return () => clearInterval(id)
     }, [phase, isRunning, selectedPetitions.length])
+
+    // If a same-day prayer session was restored with selected petitions but
+    // without generated prayer text (older localStorage state), generate the
+    // missing prayers in the background instead of requiring a full restart.
+    useEffect(() => {
+        if (phase === 'complete') return
+        if (selectedPetitions.length === 0) return
+        if (generatingGuidedPrayersRef.current) return
+
+        const missingIds = selectedPetitions
+            .filter(p => !guidedPrayers[p.id] && !p.oracion_guia)
+            .map(p => p.id)
+
+        if (missingIds.length === 0) return
+
+        generatingGuidedPrayersRef.current = true
+        const toastId = toast.loading('Preparando oración guía…')
+
+        generarOracionesGuiaBatch(missingIds)
+            .then(result => {
+                if (result.success) {
+                    const returnedIds = missingIds.filter(id => result.oraciones[id])
+
+                    if (returnedIds.length === 0) {
+                        toast.error('No se pudo preparar la oración guía', { id: toastId, duration: 3500 })
+                        return
+                    }
+
+                    setGuidedPrayers(prev => {
+                        const next = { ...prev, ...result.oraciones }
+                        guideWrite({ generatedPrayers: next })
+                        return next
+                    })
+                    toast.success('Oración guía lista', { id: toastId, duration: 2500 })
+                } else {
+                    toast.error(result.error || 'No se pudo preparar la oración guía', { id: toastId, duration: 3500 })
+                }
+            })
+            .catch(error => {
+                console.error('Error preparing restored guided prayers:', error)
+                toast.error('No se pudo preparar la oración guía', { id: toastId, duration: 3500 })
+            })
+            .finally(() => {
+                generatingGuidedPrayersRef.current = false
+            })
+    }, [phase, selectedPetitions, guidedPrayers])
 
     // ── Helper: get current elapsed (running or not) ──
     const now = useCallback((): number => {
