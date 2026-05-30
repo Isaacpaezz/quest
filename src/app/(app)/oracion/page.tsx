@@ -89,7 +89,7 @@ export default async function OracionPage() {
     if (grupoId) {
         const { data: comunidad } = await supabase
             .from('peticiones_oracion')
-            .select('id, titulo, descripcion, categoria, oraciones_count, oracion_guia, perfiles:usuario_id(nombre_usuario)')
+            .select('id, titulo, descripcion, categoria, usuario_id, oraciones_count, oracion_guia, perfiles:usuario_id(nombre_usuario)')
             .eq('grupo_id', grupoId)
             .eq('visibilidad', 'group')
             .eq('estado', 'activa')
@@ -110,7 +110,9 @@ export default async function OracionPage() {
                     categoria: p.categoria,
                     usuario_nombre: authorName,
                     oraciones_count: p.oraciones_count,
-                    oracion_guia: p.oracion_guia,
+                    // Always ask the server action for a hash/perspective-validated guide.
+                    // Old cached DB text may have been generated with the wrong perspective.
+                    oracion_guia: null,
                 }
             })
         }
@@ -118,12 +120,14 @@ export default async function OracionPage() {
 
     return (
         <OracionClient
+            key={user.id}
             minutosRequeridos={dailyMission!.minutos_oracion_requeridos}
             segundosIniciales={userProgress?.segundos_oracion_acumulados || 0}
             capituloId={chapterInfo.id}
             oracionCompletada={userProgress?.oracion_completada || false}
             bonusMinutos={bonusMinutos}
             bonusXp={bonusXp}
+            currentUserId={user.id}
             peticionesPropias={peticionesPropias}
             peticionesComunidad={peticionesComunidad}
             tieneGrupo={!!grupoId}

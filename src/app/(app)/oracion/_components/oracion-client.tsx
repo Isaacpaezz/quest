@@ -38,6 +38,7 @@ type Props = {
     oracionCompletada: boolean
     bonusMinutos: number
     bonusXp: number
+    currentUserId: string
     // Guided Prayer Flow props
     peticionesPropias?: PeticionPropia[]
     peticionesComunidad?: PeticionComunidad[]
@@ -144,21 +145,29 @@ function lsClear() {
 
 type GuidedPrayerState = {
     date: string
+    userId: string
+    version: number
     selectedPetitionIds: string[]
     prayedPetitionIds: string[]
     generatedPrayers: Record<string, string>
     preparacionShown: boolean
 }
 
-function guideRead(): GuidedPrayerState | null {
+const GUIDE_STATE_VERSION = 2
+
+function guideRead(userId: string): GuidedPrayerState | null {
     try {
         if (typeof window === 'undefined') return null
         const raw = localStorage.getItem(GUIDE_KEY)
         if (!raw) return null
         const d = JSON.parse(raw) as Partial<GuidedPrayerState>
         if (d.date !== todayKey()) return null
+        if (d.userId !== userId) return null
+        if (d.version !== GUIDE_STATE_VERSION) return null
         return {
             date: d.date,
+            userId: d.userId,
+            version: d.version,
             selectedPetitionIds: Array.isArray(d.selectedPetitionIds) ? d.selectedPetitionIds : [],
             prayedPetitionIds: Array.isArray(d.prayedPetitionIds) ? d.prayedPetitionIds : [],
             generatedPrayers: d.generatedPrayers && typeof d.generatedPrayers === 'object' && !Array.isArray(d.generatedPrayers)
@@ -172,11 +181,13 @@ function guideRead(): GuidedPrayerState | null {
     return null
 }
 
-function guideWrite(partial: Partial<Omit<GuidedPrayerState, 'date'>>) {
+function guideWrite(userId: string, partial: Partial<Omit<GuidedPrayerState, 'date' | 'userId' | 'version'>>) {
     try {
-        const current = guideRead()
+        const current = guideRead(userId)
         localStorage.setItem(GUIDE_KEY, JSON.stringify({
             date: todayKey(),
+            userId,
+            version: GUIDE_STATE_VERSION,
             selectedPetitionIds: current?.selectedPetitionIds ?? [],
             prayedPetitionIds: current?.prayedPetitionIds ?? [],
             generatedPrayers: current?.generatedPrayers ?? {},
@@ -210,6 +221,7 @@ export function OracionClient({
     oracionCompletada,
     bonusMinutos,
     bonusXp,
+    currentUserId,
     peticionesPropias = [],
     peticionesComunidad = [],
     tieneGrupo = false,
@@ -232,7 +244,7 @@ export function OracionClient({
 
     // ── Guided Prayer Flow State ──
     const hasPetitions = peticionesComunidad.length > 0
-    const restoredGuide = useRef<GuidedPrayerState | null>(guideRead()).current
+    const restoredGuide = useRef<GuidedPrayerState | null>(guideRead(currentUserId)).current
     const [showPreparacion, setShowPreparacion] = useState(false)
     const [selectedPetitionIds, setSelectedPetitionIds] = useState<string[]>(restoredGuide?.selectedPetitionIds ?? [])
     const [prayedPetitions, setPrayedPetitions] = useState<Set<string>>(
@@ -321,7 +333,7 @@ export function OracionClient({
 
                     setGuidedPrayers(prev => {
                         const next = { ...prev, ...result.oraciones }
-                        guideWrite({ generatedPrayers: next })
+                        guideWrite(currentUserId, { generatedPrayers: next })
                         return next
                     })
                     toast.success('Oración guía lista', { id: toastId, duration: 2500 })
@@ -336,7 +348,7 @@ export function OracionClient({
             .finally(() => {
                 generatingGuidedPrayersRef.current = false
             })
-    }, [phase, selectedPetitions, guidedPrayers])
+    }, [currentUserId, phase, selectedPetitions, guidedPrayers])
 
     // ── Helper: get current elapsed (running or not) ──
     const now = useCallback((): number => {
@@ -533,11 +545,11 @@ export function OracionClient({
         setPrayedPetitions(prev => {
             const next = new Set(prev)
             next.add(peticionId)
-            guideWrite({ prayedPetitionIds: Array.from(next) })
+            guideWrite(currentUserId, { prayedPetitionIds: Array.from(next) })
             return next
         })
         toast.success('Oración registrada 🙏', { duration: 1500 })
-    }, [])
+    }, [currentUserId])
 
     // Handle pre-timer confirmation
     const handlePreparacionConfirm = useCallback(async (selectedIds: string[]) => {
@@ -566,11 +578,11 @@ export function OracionClient({
         setSelectedPetitionIds(selectedIds)
         setShowPreparacion(false)
         preparacionShownRef.current = true
-        guideWrite({ selectedPetitionIds: selectedIds, generatedPrayers: nextPrayers, preparacionShown: true })
+        guideWrite(currentUserId, { selectedPetitionIds: selectedIds, generatedPrayers: nextPrayers, preparacionShown: true })
         setSaving(false)
         // Start the timer after confirming selections
         doStart()
-    }, [doStart, guidedPrayers])
+    }, [currentUserId, doStart, guidedPrayers])
 
     const handlePlayPause = async () => {
         if (isRunning) {

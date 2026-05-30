@@ -43,6 +43,8 @@ type PeticionGuiaContext = {
   titulo: string
   descripcion: string | null
   categoria: string
+  usuario_id: string
+  usuario_nombre: string
   oracion_guia: string | null
   oracion_guia_context_hash: string | null
 }
@@ -65,14 +67,17 @@ function normalizePrayerText(text: string): string {
 }
 
 function buildContextHash(
-  peticion: Pick<PeticionGuiaContext, 'titulo' | 'descripcion' | 'categoria'>,
-  updates: ActualizacionGuiaContext[]
+  peticion: Pick<PeticionGuiaContext, 'titulo' | 'descripcion' | 'categoria' | 'usuario_nombre'>,
+  updates: ActualizacionGuiaContext[],
+  perspective: 'own' | 'intercession'
 ) {
   return createHash('sha256')
     .update(JSON.stringify({
       titulo: peticion.titulo,
       descripcion: peticion.descripcion ?? '',
       categoria: peticion.categoria,
+      usuario_nombre: peticion.usuario_nombre,
+      perspective,
       updates: updates.map(update => ({
         tipo: update.tipo,
         texto: update.texto,
@@ -82,24 +87,51 @@ function buildContextHash(
     .digest('hex')
 }
 
-function buildPrayerPrompt(peticion: PeticionGuiaContext, updates: ActualizacionGuiaContext[]): string {
+function buildPrayerPrompt(
+  peticion: PeticionGuiaContext,
+  updates: ActualizacionGuiaContext[],
+  perspective: 'own' | 'intercession'
+): string {
   const latestUpdates = updates.length
     ? updates.map((update, index) => {
       const testimony = update.testimonio_texto ? ` Testimonio: ${update.testimonio_texto}` : ''
       return `${index + 1}. [${update.tipo}] ${update.texto}${testimony}`
     }).join('\n')
     : 'Sin actualizaciones recientes.'
+  const perspectiveInstruction = perspective === 'own'
+    ? 'La persona que ora es autora de esta petición. Redactá en primera persona singular, como una oración propia: "Señor, te presento mi petición...".'
+    : `La persona que ora está intercediendo por ${peticion.usuario_nombre}. Redactá en primera persona plural o comunitaria: "Señor, te pedimos por ${peticion.usuario_nombre}...". No escribas como si la necesidad fuera de quien está orando.`
 
   return `Redactá una oración guía para una petición comunitaria.
 
+Perspectiva: ${perspectiveInstruction}
+
 Título: ${peticion.titulo}
+Persona que hizo la petición: ${peticion.usuario_nombre}
 Categoría: ${peticion.categoria}
 Descripción: ${peticion.descripcion || 'Sin descripción adicional.'}
 Últimas actualizaciones:
 ${latestUpdates}`
 }
 
-function buildFallbackPrayer(peticion: PeticionGuiaContext, updates: ActualizacionGuiaContext[]): string {
+function buildFallbackPrayer(
+  peticion: PeticionGuiaContext,
+  updates: ActualizacionGuiaContext[],
+  perspective: 'own' | 'intercession'
+): string {
+  if (perspective === 'own') {
+    const descripcion = peticion.descripcion
+      ? `También te presento esta situación: ${peticion.descripcion}.`
+      : 'También te presento los detalles que quizá no sé expresar completamente.'
+    const latestUpdate = updates[0]?.texto
+      ? `Recuerdo la actualización más reciente: ${updates[0].texto}.`
+      : 'Te pido sabiduría, fortaleza y paz para caminar este proceso.'
+
+    return normalizePrayerText(
+      `Señor, te presento mi petición: ${peticion.titulo}. ${descripcion} ${latestUpdate} Acompañame con tu paz, tu consuelo y tu dirección. Ayudame a caminar este proceso con fe, sin perder la esperanza, confiando en tu cuidado y en tu presencia cercana. Dame sabiduría para cada paso y un corazón sensible para recibir tu fortaleza. Amén.`
+    )
+  }
+
   const descripcion = peticion.descripcion
     ? `También presentamos esta situación: ${peticion.descripcion}.`
     : 'También presentamos los detalles que quizá no conocemos completamente.'
@@ -108,11 +140,15 @@ function buildFallbackPrayer(peticion: PeticionGuiaContext, updates: Actualizaci
     : 'Pedimos sabiduría, fortaleza y paz para caminar este proceso.'
 
   return normalizePrayerText(
-    `Señor, traemos delante de vos esta petición: ${peticion.titulo}. ${descripcion} ${latestUpdate} Acompañá a la persona y a quienes la rodean con tu paz, tu consuelo y tu dirección. Ayudanos a interceder con amor, sin asumir lo que no sabemos, confiando en tu cuidado y en tu presencia cercana. Danos un corazón sensible para sostener esta necesidad con fe, paciencia y esperanza. Amén.`
+    `Señor, te pedimos por ${peticion.usuario_nombre} y por esta petición: ${peticion.titulo}. ${descripcion} ${latestUpdate} Acompañá a ${peticion.usuario_nombre} y a quienes le rodean con tu paz, tu consuelo y tu dirección. Ayudanos a interceder con amor, sin asumir lo que no sabemos, confiando en tu cuidado y en tu presencia cercana. Amén.`
   )
 }
 
-async function generatePrayerWithOpenAI(peticion: PeticionGuiaContext, updates: ActualizacionGuiaContext[]) {
+async function generatePrayerWithOpenAI(
+  peticion: PeticionGuiaContext,
+  updates: ActualizacionGuiaContext[],
+  perspective: 'own' | 'intercession'
+) {
   const apiKey = process.env.OPENAI_API_KEY
   if (!apiKey) return null
 
@@ -127,7 +163,7 @@ async function generatePrayerWithOpenAI(peticion: PeticionGuiaContext, updates: 
         model: process.env.OPENAI_PRAYER_MODEL || 'gpt-4.1-mini',
         input: [
           { role: 'system', content: OPENAI_PRAYER_SYSTEM_PROMPT },
-          { role: 'user', content: buildPrayerPrompt(peticion, updates) },
+          { role: 'user', content: buildPrayerPrompt(peticion, updates, perspective) },
         ],
         max_output_tokens: 220,
       }),
@@ -1100,7 +1136,7 @@ export async function generarOracionesGuiaBatch(peticionIds: string[]) {
 
     const { data: peticiones, error: peticionesError } = await supabase
       .from('peticiones_oracion')
-      .select('id, titulo, descripcion, categoria, oracion_guia, oracion_guia_context_hash')
+      .select('id, titulo, descripcion, categoria, usuario_id, oracion_guia, oracion_guia_context_hash, perfiles:usuario_id(nombre_usuario)')
       .in('id', parsed.data)
       .eq('grupo_id', perfil.grupo_activo_id)
       .eq('visibilidad', 'group')
@@ -1136,18 +1172,33 @@ export async function generarOracionesGuiaBatch(peticionIds: string[]) {
     const oraciones: Record<string, string> = {}
 
     for (const peticion of peticiones) {
+      const perfiles = peticion.perfiles as { nombre_usuario: string } | { nombre_usuario: string }[] | null
+      const authorName = Array.isArray(perfiles)
+        ? perfiles[0]?.nombre_usuario || 'Usuario'
+        : perfiles?.nombre_usuario || 'Usuario'
+      const perspective = peticion.usuario_id === user.id ? 'own' : 'intercession'
+      const peticionContext: PeticionGuiaContext = {
+        id: peticion.id,
+        titulo: peticion.titulo,
+        descripcion: peticion.descripcion,
+        categoria: peticion.categoria,
+        usuario_id: peticion.usuario_id,
+        usuario_nombre: authorName,
+        oracion_guia: peticion.oracion_guia,
+        oracion_guia_context_hash: peticion.oracion_guia_context_hash,
+      }
       const petitionUpdates = updatesByPetition.get(peticion.id) ?? []
-      const contextHash = buildContextHash(peticion, petitionUpdates)
+      const contextHash = buildContextHash(peticionContext, petitionUpdates, perspective)
 
-      if (peticion.oracion_guia && peticion.oracion_guia_context_hash === contextHash) {
+      if (perspective === 'intercession' && peticion.oracion_guia && peticion.oracion_guia_context_hash === contextHash) {
         oraciones[peticion.id] = peticion.oracion_guia
         continue
       }
 
-      const generated = await generatePrayerWithOpenAI(peticion, petitionUpdates)
-      const prayer = generated || buildFallbackPrayer(peticion, petitionUpdates)
+      const generated = await generatePrayerWithOpenAI(peticionContext, petitionUpdates, perspective)
+      const prayer = generated || buildFallbackPrayer(peticionContext, petitionUpdates, perspective)
 
-      if (admin) {
+      if (admin && perspective === 'intercession') {
         const { error: updateError } = await admin
           .from('peticiones_oracion')
           .update({
@@ -1160,7 +1211,7 @@ export async function generarOracionesGuiaBatch(peticionIds: string[]) {
         if (updateError) {
           console.error('Error actualizando cache de oración guía:', updateError)
         }
-      } else {
+      } else if (!admin) {
         console.warn('Admin client unavailable: returning guided prayer without cache')
       }
 
