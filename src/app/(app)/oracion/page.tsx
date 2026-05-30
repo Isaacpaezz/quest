@@ -54,6 +54,66 @@ export default async function OracionPage() {
         .eq('fecha_progreso', today)
         .single()
 
+    // ── Fetch petitions for guided prayer flow ──
+    let peticionesPropias: Array<{
+        id: string
+        titulo: string
+        descripcion: string | null
+        categoria: string
+        oraciones_count: number
+    }> = []
+
+    let peticionesComunidad: Array<{
+        id: string
+        titulo: string
+        descripcion: string | null
+        categoria: string
+        usuario_nombre: string
+        oraciones_count: number
+    }> = []
+
+    // Fetch user's own active petitions
+    const { data: propias } = await supabase
+        .from('peticiones_oracion')
+        .select('id, titulo, descripcion, categoria, oraciones_count')
+        .eq('usuario_id', user.id)
+        .eq('estado', 'activa')
+        .order('creado_en', { ascending: false })
+
+    if (propias) {
+        peticionesPropias = propias
+    }
+
+    // Fetch community petitions (if user has a group)
+    if (grupoId) {
+        const { data: comunidad } = await supabase
+            .from('peticiones_oracion')
+            .select('id, titulo, descripcion, categoria, oraciones_count, perfiles:usuario_id(nombre_usuario)')
+            .eq('grupo_id', grupoId)
+            .eq('visibilidad', 'group')
+            .eq('estado', 'activa')
+            .order('categoria', { ascending: false })
+            .order('creado_en', { ascending: false })
+
+        if (comunidad) {
+            peticionesComunidad = comunidad.map(p => {
+                const perfiles = p.perfiles as { nombre_usuario: string } | { nombre_usuario: string }[] | null
+                const authorName = Array.isArray(perfiles)
+                    ? perfiles[0]?.nombre_usuario || 'Usuario'
+                    : perfiles?.nombre_usuario || 'Usuario'
+
+                return {
+                    id: p.id,
+                    titulo: p.titulo,
+                    descripcion: p.descripcion,
+                    categoria: p.categoria,
+                    usuario_nombre: authorName,
+                    oraciones_count: p.oraciones_count,
+                }
+            })
+        }
+    }
+
     return (
         <OracionClient
             minutosRequeridos={dailyMission!.minutos_oracion_requeridos}
@@ -62,6 +122,9 @@ export default async function OracionPage() {
             oracionCompletada={userProgress?.oracion_completada || false}
             bonusMinutos={bonusMinutos}
             bonusXp={bonusXp}
+            peticionesPropias={peticionesPropias}
+            peticionesComunidad={peticionesComunidad}
+            tieneGrupo={!!grupoId}
         />
     )
 }
