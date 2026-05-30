@@ -688,13 +688,23 @@ export function OracionClient({
                         <p className="text-center text-base font-medium" style={{ color: 'hsl(47 100% 50% / 0.80)' }}>
                             Oración por <strong>{currentPetition.usuario_nombre}</strong>
                         </p>
-                        <p className="text-center text-[14px] font-medium" style={{ color: 'hsl(var(--foreground) / 0.70)' }}>
-                            {currentPetition.titulo}
-                        </p>
-                        {currentGuidedPrayer ? (
-                            <p className="max-w-sm rounded-2xl border border-yellow-400/20 bg-yellow-400/10 px-4 py-3 text-center text-[14px] leading-relaxed" style={{ color: 'hsl(var(--foreground) / 0.88)' }}>
-                                {currentGuidedPrayer}
+                        <div className="max-w-sm rounded-xl border border-border/50 bg-card/40 px-3 py-2 text-center">
+                            <p className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: ts }}>
+                                Petición
                             </p>
+                            <p className="text-[14px] font-medium" style={{ color: 'hsl(var(--foreground) / 0.78)' }}>
+                                {currentPetition.titulo}
+                            </p>
+                        </div>
+                        {currentGuidedPrayer ? (
+                            <div className="max-w-sm rounded-2xl border border-yellow-400/25 bg-yellow-400/10 px-4 py-3 text-center shadow-sm">
+                                <p className="mb-1 text-[11px] font-semibold uppercase tracking-wide" style={{ color: gold }}>
+                                    Oración guía
+                                </p>
+                                <p className="text-[14px] leading-relaxed" style={{ color: 'hsl(var(--foreground) / 0.90)' }}>
+                                    {currentGuidedPrayer}
+                                </p>
+                            </div>
                         ) : currentPetition.descripcion && (
                             <p className="text-center text-[12px] line-clamp-2" style={{ color: ts }}>
                                 {currentPetition.descripcion}

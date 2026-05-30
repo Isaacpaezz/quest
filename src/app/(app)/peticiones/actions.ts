@@ -51,6 +51,7 @@ type ActualizacionGuiaContext = {
   peticion_id: string
   tipo: string
   texto: string
+  testimonio_texto?: string | null
   creado_en: string
 }
 
@@ -83,7 +84,10 @@ function buildContextHash(
 
 function buildPrayerPrompt(peticion: PeticionGuiaContext, updates: ActualizacionGuiaContext[]): string {
   const latestUpdates = updates.length
-    ? updates.map((update, index) => `${index + 1}. [${update.tipo}] ${update.texto}`).join('\n')
+    ? updates.map((update, index) => {
+      const testimony = update.testimonio_texto ? ` Testimonio: ${update.testimonio_texto}` : ''
+      return `${index + 1}. [${update.tipo}] ${update.texto}${testimony}`
+    }).join('\n')
     : 'Sin actualizaciones recientes.'
 
   return `Redactá una oración guía para una petición comunitaria.
@@ -1113,7 +1117,7 @@ export async function generarOracionesGuiaBatch(peticionIds: string[]) {
 
     const { data: updates } = await supabase
       .from('actualizaciones_peticion')
-      .select('peticion_id, tipo, texto, creado_en')
+      .select('peticion_id, tipo, texto, testimonio_texto, creado_en')
       .in('peticion_id', peticiones.map(p => p.id))
       .order('creado_en', { ascending: false })
 
@@ -1128,9 +1132,6 @@ export async function generarOracionesGuiaBatch(peticionIds: string[]) {
 
     const { createAdminClient } = await import('@/lib/supabase/admin')
     const admin = createAdminClient()
-    if (!admin) {
-      return { success: false, error: 'No se pudo preparar el cache de oraciones', oraciones: {} as Record<string, string> }
-    }
 
     const oraciones: Record<string, string> = {}
 
@@ -1146,17 +1147,21 @@ export async function generarOracionesGuiaBatch(peticionIds: string[]) {
       const generated = await generatePrayerWithOpenAI(peticion, petitionUpdates)
       const prayer = generated || buildFallbackPrayer(peticion, petitionUpdates)
 
-      const { error: updateError } = await admin
-        .from('peticiones_oracion')
-        .update({
-          oracion_guia: prayer,
-          oracion_guia_generada_en: new Date().toISOString(),
-          oracion_guia_context_hash: contextHash,
-        })
-        .eq('id', peticion.id)
+      if (admin) {
+        const { error: updateError } = await admin
+          .from('peticiones_oracion')
+          .update({
+            oracion_guia: prayer,
+            oracion_guia_generada_en: new Date().toISOString(),
+            oracion_guia_context_hash: contextHash,
+          })
+          .eq('id', peticion.id)
 
-      if (updateError) {
-        console.error('Error actualizando cache de oración guía:', updateError)
+        if (updateError) {
+          console.error('Error actualizando cache de oración guía:', updateError)
+        }
+      } else {
+        console.warn('Admin client unavailable: returning guided prayer without cache')
       }
 
       oraciones[peticion.id] = prayer
