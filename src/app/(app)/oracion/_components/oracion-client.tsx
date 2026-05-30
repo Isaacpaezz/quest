@@ -269,9 +269,11 @@ export function OracionClient({
 
     const [verse] = useState(() => VERSES[Math.floor(Math.random() * VERSES.length)])
 
-    // Rotate bonus prompts every 20 seconds (petitions take priority)
+    // Rotate guided petitions/prompts every 20 seconds.
+    // Selected petitions take priority during the full prayer session,
+    // not only during bonus time.
     useEffect(() => {
-        if (phase !== 'bonus' || !isRunning) return
+        if (phase === 'complete' || !isRunning) return
         // If we have selected petitions, rotate through them instead
         if (selectedPetitions.length > 0) {
             const id = setInterval(() => {
@@ -279,6 +281,9 @@ export function OracionClient({
             }, 20_000)
             return () => clearInterval(id)
         }
+
+        if (phase !== 'bonus') return
+
         // Otherwise, use generic prompts
         const id = setInterval(() => {
             setBonusPromptIdx(prev => (prev + 1) % BONUS_PROMPTS.length)
@@ -600,8 +605,8 @@ export function OracionClient({
     // Active accent color — teal for base, gold for bonus
     const activeColor = isInBonus ? gold : teal
 
-    // Bonus phase content: petitions take priority over generic prompts
-    const currentPetition = selectedPetitions.length > 0 && isInBonus
+    // Prayer content: selected petitions take priority over generic prompts
+    const currentPetition = selectedPetitions.length > 0 && phase !== 'complete'
         ? selectedPetitions[bonusPromptIdx % selectedPetitions.length]
         : null
     const currentGuidedPrayer = currentPetition
@@ -677,11 +682,11 @@ export function OracionClient({
                 </div>
 
                 {/* Verse / Bonus prompt / Petition */}
-                {phase === 'bonus' && currentPetition ? (
+                {phase !== 'complete' && currentPetition ? (
                     <div className="flex flex-col items-center gap-3 px-6 transition-opacity duration-500">
                         <span className="text-3xl">🙏</span>
                         <p className="text-center text-base font-medium" style={{ color: 'hsl(47 100% 50% / 0.80)' }}>
-                            Orá por <strong>{currentPetition.usuario_nombre}</strong>
+                            Oración por <strong>{currentPetition.usuario_nombre}</strong>
                         </p>
                         <p className="text-center text-[14px] font-medium" style={{ color: 'hsl(var(--foreground) / 0.70)' }}>
                             {currentPetition.titulo}
