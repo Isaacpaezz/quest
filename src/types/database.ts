@@ -593,6 +593,9 @@ export type Database = {
           grupo_id: string | null
           id: string
           oraciones_count: number
+          oracion_guia: string | null
+          oracion_guia_context_hash: string | null
+          oracion_guia_generada_en: string | null
           respondida_en: string | null
           titulo: string
           usuario_id: string
@@ -607,6 +610,9 @@ export type Database = {
           grupo_id?: string | null
           id?: string
           oraciones_count?: number
+          oracion_guia?: string | null
+          oracion_guia_context_hash?: string | null
+          oracion_guia_generada_en?: string | null
           respondida_en?: string | null
           titulo: string
           usuario_id: string
@@ -621,6 +627,9 @@ export type Database = {
           grupo_id?: string | null
           id?: string
           oraciones_count?: number
+          oracion_guia?: string | null
+          oracion_guia_context_hash?: string | null
+          oracion_guia_generada_en?: string | null
           respondida_en?: string | null
           titulo?: string
           usuario_id?: string

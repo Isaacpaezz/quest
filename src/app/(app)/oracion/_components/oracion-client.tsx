@@ -6,7 +6,7 @@ import { X, Play, Pause, Square } from 'lucide-react'
 import { toast } from 'sonner'
 import { Toaster } from '@/components/ui/sonner'
 import { actualizarProgresoOracionAction } from '@/app/(app)/home/actions'
-import { registrarIntercesionesBatch } from '@/app/(app)/peticiones/actions'
+import { generarOracionesGuiaBatch, registrarIntercesionesBatch } from '@/app/(app)/peticiones/actions'
 import { useKeepAwake } from '@/hooks/use-keep-awake'
 import { PreparacionOracion } from './preparacion-oracion'
 import { ResumenOracion } from './resumen-oracion'
@@ -28,6 +28,7 @@ type PeticionComunidad = {
     categoria: string
     usuario_nombre: string
     oraciones_count: number
+    oracion_guia: string | null
 }
 
 type Props = {
@@ -145,6 +146,7 @@ type GuidedPrayerState = {
     date: string
     selectedPetitionIds: string[]
     prayedPetitionIds: string[]
+    generatedPrayers: Record<string, string>
     preparacionShown: boolean
 }
 
@@ -159,6 +161,11 @@ function guideRead(): GuidedPrayerState | null {
             date: d.date,
             selectedPetitionIds: Array.isArray(d.selectedPetitionIds) ? d.selectedPetitionIds : [],
             prayedPetitionIds: Array.isArray(d.prayedPetitionIds) ? d.prayedPetitionIds : [],
+            generatedPrayers: d.generatedPrayers && typeof d.generatedPrayers === 'object' && !Array.isArray(d.generatedPrayers)
+                ? Object.fromEntries(
+                    Object.entries(d.generatedPrayers).filter((entry): entry is [string, string] => typeof entry[1] === 'string')
+                )
+                : {},
             preparacionShown: Boolean(d.preparacionShown),
         }
     } catch { /* ignore */ }
@@ -172,6 +179,7 @@ function guideWrite(partial: Partial<Omit<GuidedPrayerState, 'date'>>) {
             date: todayKey(),
             selectedPetitionIds: current?.selectedPetitionIds ?? [],
             prayedPetitionIds: current?.prayedPetitionIds ?? [],
+            generatedPrayers: current?.generatedPrayers ?? {},
             preparacionShown: current?.preparacionShown ?? false,
             ...partial,
         }))
@@ -230,6 +238,7 @@ export function OracionClient({
     const [prayedPetitions, setPrayedPetitions] = useState<Set<string>>(
         () => new Set(restoredGuide?.prayedPetitionIds ?? [])
     )
+    const [guidedPrayers, setGuidedPrayers] = useState<Record<string, string>>(restoredGuide?.generatedPrayers ?? {})
     const [intercessionSaved, setIntercessionSaved] = useState(false)
     const preparacionShownRef = useRef(Boolean(restoredGuide?.preparacionShown))
 
@@ -479,14 +488,37 @@ export function OracionClient({
     }, [])
 
     // Handle pre-timer confirmation
-    const handlePreparacionConfirm = useCallback((selectedIds: string[]) => {
+    const handlePreparacionConfirm = useCallback(async (selectedIds: string[]) => {
+        setSaving(true)
+        const toastId = toast.loading('Preparando oraciones guía…')
+
+        let nextPrayers = guidedPrayers
+        if (selectedIds.length > 0) {
+            try {
+                const result = await generarOracionesGuiaBatch(selectedIds)
+                if (result.success) {
+                    nextPrayers = { ...guidedPrayers, ...result.oraciones }
+                    setGuidedPrayers(nextPrayers)
+                    toast.success('Oraciones listas', { id: toastId, duration: 2500 })
+                } else {
+                    toast.error(result.error || 'No se pudieron preparar las oraciones', { id: toastId, duration: 3500 })
+                }
+            } catch (error) {
+                console.error('Error preparing guided prayers:', error)
+                toast.error('No se pudieron preparar las oraciones', { id: toastId, duration: 3500 })
+            }
+        } else {
+            toast.dismiss(toastId)
+        }
+
         setSelectedPetitionIds(selectedIds)
         setShowPreparacion(false)
         preparacionShownRef.current = true
-        guideWrite({ selectedPetitionIds: selectedIds, preparacionShown: true })
+        guideWrite({ selectedPetitionIds: selectedIds, generatedPrayers: nextPrayers, preparacionShown: true })
+        setSaving(false)
         // Start the timer after confirming selections
         doStart()
-    }, [doStart])
+    }, [doStart, guidedPrayers])
 
     const handlePlayPause = async () => {
         if (isRunning) {
@@ -572,6 +604,9 @@ export function OracionClient({
     const currentPetition = selectedPetitions.length > 0 && isInBonus
         ? selectedPetitions[bonusPromptIdx % selectedPetitions.length]
         : null
+    const currentGuidedPrayer = currentPetition
+        ? guidedPrayers[currentPetition.id] || currentPetition.oracion_guia
+        : null
     const bonusPrompt = !currentPetition ? BONUS_PROMPTS[bonusPromptIdx] : null
 
     // Display time: show elapsed in phase 1, or bonus countdown in phase 2
@@ -651,7 +686,11 @@ export function OracionClient({
                         <p className="text-center text-[14px] font-medium" style={{ color: 'hsl(var(--foreground) / 0.70)' }}>
                             {currentPetition.titulo}
                         </p>
-                        {currentPetition.descripcion && (
+                        {currentGuidedPrayer ? (
+                            <p className="max-w-sm rounded-2xl border border-yellow-400/20 bg-yellow-400/10 px-4 py-3 text-center text-[14px] leading-relaxed" style={{ color: 'hsl(var(--foreground) / 0.88)' }}>
+                                {currentGuidedPrayer}
+                            </p>
+                        ) : currentPetition.descripcion && (
                             <p className="text-center text-[12px] line-clamp-2" style={{ color: ts }}>
                                 {currentPetition.descripcion}
                             </p>

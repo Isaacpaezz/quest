@@ -70,6 +70,7 @@ export default async function OracionPage() {
         categoria: string
         usuario_nombre: string
         oraciones_count: number
+        oracion_guia: string | null
     }> = []
 
     // Fetch user's own active petitions
@@ -88,7 +89,7 @@ export default async function OracionPage() {
     if (grupoId) {
         const { data: comunidad } = await supabase
             .from('peticiones_oracion')
-            .select('id, titulo, descripcion, categoria, oraciones_count, perfiles:usuario_id(nombre_usuario)')
+            .select('id, titulo, descripcion, categoria, oraciones_count, oracion_guia, perfiles:usuario_id(nombre_usuario)')
             .eq('grupo_id', grupoId)
             .eq('visibilidad', 'group')
             .eq('estado', 'activa')
@@ -109,6 +110,7 @@ export default async function OracionPage() {
                     categoria: p.categoria,
                     usuario_nombre: authorName,
                     oraciones_count: p.oraciones_count,
+                    oracion_guia: p.oracion_guia,
                 }
             })
         }

@@ -1,6 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { createHash } from 'crypto'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 
@@ -34,6 +35,118 @@ const actualizarPeticionSchema = z.object({
   categoria: z.enum(['salud', 'familia', 'trabajo', 'espiritual', 'urgente', 'otro']).optional(),
   visibilidad: z.enum(['private', 'group']).optional(),
 })
+
+const generarOracionesGuiaBatchSchema = z.array(z.string().uuid()).max(20)
+
+type PeticionGuiaContext = {
+  id: string
+  titulo: string
+  descripcion: string | null
+  categoria: string
+  oracion_guia: string | null
+  oracion_guia_context_hash: string | null
+}
+
+type ActualizacionGuiaContext = {
+  peticion_id: string
+  tipo: string
+  texto: string
+  creado_en: string
+}
+
+const OPENAI_PRAYER_SYSTEM_PROMPT = `Sos un asistente que ayuda a redactar oraciones cristianas comunitarias en español.
+Tono: cálido, reverente, sensible y esperanzador.
+Reglas: no inventes hechos; usa solo el contexto provisto; no des consejo médico, financiero ni legal; no prometas resultados; no digas "Dios dijo" ni uses certeza profética; no menciones que sos IA.
+Formato: una sola oración para repetir en voz alta, de 70 a 120 palabras.`
+
+function normalizePrayerText(text: string): string {
+  return text.replace(/\s+/g, ' ').trim()
+}
+
+function buildContextHash(
+  peticion: Pick<PeticionGuiaContext, 'titulo' | 'descripcion' | 'categoria'>,
+  updates: ActualizacionGuiaContext[]
+) {
+  return createHash('sha256')
+    .update(JSON.stringify({
+      titulo: peticion.titulo,
+      descripcion: peticion.descripcion ?? '',
+      categoria: peticion.categoria,
+      updates: updates.map(update => ({
+        tipo: update.tipo,
+        texto: update.texto,
+        creado_en: update.creado_en,
+      })),
+    }))
+    .digest('hex')
+}
+
+function buildPrayerPrompt(peticion: PeticionGuiaContext, updates: ActualizacionGuiaContext[]): string {
+  const latestUpdates = updates.length
+    ? updates.map((update, index) => `${index + 1}. [${update.tipo}] ${update.texto}`).join('\n')
+    : 'Sin actualizaciones recientes.'
+
+  return `Redactá una oración guía para una petición comunitaria.
+
+Título: ${peticion.titulo}
+Categoría: ${peticion.categoria}
+Descripción: ${peticion.descripcion || 'Sin descripción adicional.'}
+Últimas actualizaciones:
+${latestUpdates}`
+}
+
+function buildFallbackPrayer(peticion: PeticionGuiaContext, updates: ActualizacionGuiaContext[]): string {
+  const descripcion = peticion.descripcion
+    ? `También presentamos esta situación: ${peticion.descripcion}.`
+    : 'También presentamos los detalles que quizá no conocemos completamente.'
+  const latestUpdate = updates[0]?.texto
+    ? `Recordamos la actualización más reciente: ${updates[0].texto}.`
+    : 'Pedimos sabiduría, fortaleza y paz para caminar este proceso.'
+
+  return normalizePrayerText(
+    `Señor, traemos delante de vos esta petición: ${peticion.titulo}. ${descripcion} ${latestUpdate} Acompañá a la persona y a quienes la rodean con tu paz, tu consuelo y tu dirección. Ayudanos a interceder con amor, sin asumir lo que no sabemos, confiando en tu cuidado y en tu presencia cercana. Danos un corazón sensible para sostener esta necesidad con fe, paciencia y esperanza. Amén.`
+  )
+}
+
+async function generatePrayerWithOpenAI(peticion: PeticionGuiaContext, updates: ActualizacionGuiaContext[]) {
+  const apiKey = process.env.OPENAI_API_KEY
+  if (!apiKey) return null
+
+  try {
+    const response = await fetch('https://api.openai.com/v1/responses', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: process.env.OPENAI_PRAYER_MODEL || 'gpt-4.1-mini',
+        input: [
+          { role: 'system', content: OPENAI_PRAYER_SYSTEM_PROMPT },
+          { role: 'user', content: buildPrayerPrompt(peticion, updates) },
+        ],
+        max_output_tokens: 220,
+      }),
+    })
+
+    if (!response.ok) {
+      console.error('OpenAI prayer generation failed:', response.status, await response.text())
+      return null
+    }
+
+    const payload = await response.json() as {
+      output_text?: string
+      output?: Array<{ content?: Array<{ text?: string }> }>
+    }
+    const generated = payload.output_text
+      ?? payload.output?.flatMap(item => item.content ?? []).map(content => content.text).find(Boolean)
+
+    return generated ? normalizePrayerText(generated) : null
+  } catch (error) {
+    console.error('Error generating prayer with OpenAI:', error)
+    return null
+  }
+}
 
 // ─── Server Actions ──────────────────────────────────────────────────────────
 
@@ -943,6 +1056,118 @@ export async function getPetitionAction(peticionId: string) {
   } catch (error) {
     console.error('Error en getPetitionAction:', error)
     return { success: false, error: 'Error inesperado', peticion: null }
+  }
+}
+
+// ─── Guided Prayer Generation ────────────────────────────────────────────────
+
+/**
+ * generarOracionesGuiaBatch
+ * Genera o recupera oraciones guía para peticiones comunitarias activas.
+ * Valida acceso con la sesión del usuario y actualiza cache con cliente admin.
+ */
+export async function generarOracionesGuiaBatch(peticionIds: string[]) {
+  try {
+    const supabase = await createClient()
+
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    if (authError || !user) {
+      return { success: false, error: 'No autenticado', oraciones: {} as Record<string, string> }
+    }
+
+    const parsed = generarOracionesGuiaBatchSchema.safeParse([...new Set(peticionIds)])
+    if (!parsed.success) {
+      return { success: false, error: 'Peticiones inválidas', oraciones: {} as Record<string, string> }
+    }
+
+    if (!parsed.data.length) {
+      return { success: true, oraciones: {} as Record<string, string> }
+    }
+
+    const { data: perfil } = await supabase
+      .from('perfiles')
+      .select('grupo_activo_id')
+      .eq('id', user.id)
+      .single()
+
+    if (!perfil?.grupo_activo_id) {
+      return { success: false, error: 'Necesitás un grupo activo', oraciones: {} as Record<string, string> }
+    }
+
+    const { data: peticiones, error: peticionesError } = await supabase
+      .from('peticiones_oracion')
+      .select('id, titulo, descripcion, categoria, oracion_guia, oracion_guia_context_hash')
+      .in('id', parsed.data)
+      .eq('grupo_id', perfil.grupo_activo_id)
+      .eq('visibilidad', 'group')
+      .eq('estado', 'activa')
+
+    if (peticionesError) {
+      console.error('Error cargando peticiones para oración guía:', peticionesError)
+      return { success: false, error: 'Error al cargar peticiones', oraciones: {} as Record<string, string> }
+    }
+
+    if (!peticiones?.length) {
+      return { success: true, oraciones: {} as Record<string, string> }
+    }
+
+    const { data: updates } = await supabase
+      .from('actualizaciones_peticion')
+      .select('peticion_id, tipo, texto, creado_en')
+      .in('peticion_id', peticiones.map(p => p.id))
+      .order('creado_en', { ascending: false })
+
+    const updatesByPetition = new Map<string, ActualizacionGuiaContext[]>()
+    for (const update of updates ?? []) {
+      const current = updatesByPetition.get(update.peticion_id) ?? []
+      if (current.length < 5) {
+        current.push(update)
+        updatesByPetition.set(update.peticion_id, current)
+      }
+    }
+
+    const { createAdminClient } = await import('@/lib/supabase/admin')
+    const admin = createAdminClient()
+    if (!admin) {
+      return { success: false, error: 'No se pudo preparar el cache de oraciones', oraciones: {} as Record<string, string> }
+    }
+
+    const oraciones: Record<string, string> = {}
+
+    for (const peticion of peticiones) {
+      const petitionUpdates = updatesByPetition.get(peticion.id) ?? []
+      const contextHash = buildContextHash(peticion, petitionUpdates)
+
+      if (peticion.oracion_guia && peticion.oracion_guia_context_hash === contextHash) {
+        oraciones[peticion.id] = peticion.oracion_guia
+        continue
+      }
+
+      const generated = await generatePrayerWithOpenAI(peticion, petitionUpdates)
+      const prayer = generated || buildFallbackPrayer(peticion, petitionUpdates)
+
+      const { error: updateError } = await admin
+        .from('peticiones_oracion')
+        .update({
+          oracion_guia: prayer,
+          oracion_guia_generada_en: new Date().toISOString(),
+          oracion_guia_context_hash: contextHash,
+        })
+        .eq('id', peticion.id)
+
+      if (updateError) {
+        console.error('Error actualizando cache de oración guía:', updateError)
+      }
+
+      oraciones[peticion.id] = prayer
+    }
+
+    revalidatePath('/oracion')
+
+    return { success: true, oraciones }
+  } catch (error) {
+    console.error('Error en generarOracionesGuiaBatch:', error)
+    return { success: false, error: 'Error inesperado', oraciones: {} as Record<string, string> }
   }
 }
 
