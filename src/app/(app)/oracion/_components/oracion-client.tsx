@@ -46,6 +46,7 @@ type Props = {
 type Phase = 'timer' | 'bonus' | 'complete'
 
 const LS_KEY = 'quest_prayer_timer'
+const GUIDE_KEY = 'quest_prayer_guided_state'
 const SYNC_MS = 30_000
 
 const VERSES = [
@@ -118,20 +119,67 @@ function getDailyMessage(): string {
 
 // ── localStorage ───────────────────────────────────────────────────────
 
+function todayKey(): string {
+    const now = new Date()
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+}
+
 function lsRead(): number | null {
     try {
         const raw = localStorage.getItem(LS_KEY)
         if (!raw) return null
         const d = JSON.parse(raw)
+        if (d.date !== todayKey()) return null
         if (typeof d.elapsed === 'number' && d.elapsed > 0) return d.elapsed
     } catch { /* ignore */ }
     return null
 }
 function lsWrite(elapsed: number) {
-    try { localStorage.setItem(LS_KEY, JSON.stringify({ elapsed })) } catch { /* ignore */ }
+    try { localStorage.setItem(LS_KEY, JSON.stringify({ date: todayKey(), elapsed })) } catch { /* ignore */ }
 }
 function lsClear() {
     try { localStorage.removeItem(LS_KEY) } catch { /* ignore */ }
+}
+
+type GuidedPrayerState = {
+    date: string
+    selectedPetitionIds: string[]
+    prayedPetitionIds: string[]
+    preparacionShown: boolean
+}
+
+function guideRead(): GuidedPrayerState | null {
+    try {
+        if (typeof window === 'undefined') return null
+        const raw = localStorage.getItem(GUIDE_KEY)
+        if (!raw) return null
+        const d = JSON.parse(raw) as Partial<GuidedPrayerState>
+        if (d.date !== todayKey()) return null
+        return {
+            date: d.date,
+            selectedPetitionIds: Array.isArray(d.selectedPetitionIds) ? d.selectedPetitionIds : [],
+            prayedPetitionIds: Array.isArray(d.prayedPetitionIds) ? d.prayedPetitionIds : [],
+            preparacionShown: Boolean(d.preparacionShown),
+        }
+    } catch { /* ignore */ }
+    return null
+}
+
+function guideWrite(partial: Partial<Omit<GuidedPrayerState, 'date'>>) {
+    try {
+        const current = guideRead()
+        localStorage.setItem(GUIDE_KEY, JSON.stringify({
+            date: todayKey(),
+            selectedPetitionIds: current?.selectedPetitionIds ?? [],
+            prayedPetitionIds: current?.prayedPetitionIds ?? [],
+            preparacionShown: current?.preparacionShown ?? false,
+            ...partial,
+        }))
+    } catch { /* ignore */ }
+}
+
+function guideClear() {
+    try { localStorage.removeItem(GUIDE_KEY) } catch { /* ignore */ }
 }
 
 // ── Wake Lock (via useKeepAwake hook) ──────────────────────────────────
@@ -176,10 +224,14 @@ export function OracionClient({
 
     // ── Guided Prayer Flow State ──
     const hasPetitions = peticionesComunidad.length > 0
+    const restoredGuide = useRef<GuidedPrayerState | null>(guideRead()).current
     const [showPreparacion, setShowPreparacion] = useState(false)
-    const [selectedPetitionIds, setSelectedPetitionIds] = useState<string[]>([])
-    const [prayedPetitions, setPrayedPetitions] = useState<Set<string>>(new Set())
+    const [selectedPetitionIds, setSelectedPetitionIds] = useState<string[]>(restoredGuide?.selectedPetitionIds ?? [])
+    const [prayedPetitions, setPrayedPetitions] = useState<Set<string>>(
+        () => new Set(restoredGuide?.prayedPetitionIds ?? [])
+    )
     const [intercessionSaved, setIntercessionSaved] = useState(false)
+    const preparacionShownRef = useRef(Boolean(restoredGuide?.preparacionShown))
 
     // Selected petitions for bonus phase display
     const selectedPetitions = useMemo(() => {
@@ -308,6 +360,9 @@ export function OracionClient({
 
         registrarIntercesionesBatch(ids)
             .then(result => {
+                if (result.success) {
+                    guideClear()
+                }
                 if (result.success && result.inserted > 0) {
                     toast.success(
                         `Intercediste por ${result.inserted} ${result.inserted === 1 ? 'petición' : 'peticiones'}`,
@@ -417,6 +472,7 @@ export function OracionClient({
         setPrayedPetitions(prev => {
             const next = new Set(prev)
             next.add(peticionId)
+            guideWrite({ prayedPetitionIds: Array.from(next) })
             return next
         })
         toast.success('Oración registrada 🙏', { duration: 1500 })
@@ -426,6 +482,8 @@ export function OracionClient({
     const handlePreparacionConfirm = useCallback((selectedIds: string[]) => {
         setSelectedPetitionIds(selectedIds)
         setShowPreparacion(false)
+        preparacionShownRef.current = true
+        guideWrite({ selectedPetitionIds: selectedIds, preparacionShown: true })
         // Start the timer after confirming selections
         doStart()
     }, [doStart])
@@ -440,7 +498,7 @@ export function OracionClient({
             toast.info('Progreso guardado', { description: `${fmt(frozen)} acumulados` })
         } else {
             // If we have community petitions and haven't shown preparacion yet, show it
-            if (hasPetitions && !showPreparacion && phase === 'timer' && !baseSavedRef.current) {
+            if (hasPetitions && !preparacionShownRef.current && phase === 'timer' && !baseSavedRef.current) {
                 setShowPreparacion(true)
                 return
             }
@@ -452,6 +510,16 @@ export function OracionClient({
         const frozen = doPause()
         setSaving(true)
         await save(frozen, baseSavedRef.current)
+        // Flush pending intercessions before navigating away
+        if (prayedPetitions.size > 0 && !intercessionSaved) {
+            setIntercessionSaved(true)
+            const result = await registrarIntercesionesBatch(Array.from(prayedPetitions))
+            if (!result.success) {
+                toast.error('No se pudieron guardar tus intercesiones')
+            } else {
+                guideClear()
+            }
+        }
         setSaving(false)
         lsClear()
         router.push('/home')
@@ -463,6 +531,16 @@ export function OracionClient({
             setSaving(true)
             await save(frozen, baseSavedRef.current)
             setSaving(false)
+        }
+        // Flush pending intercessions before navigating away
+        if (prayedPetitions.size > 0 && !intercessionSaved) {
+            setIntercessionSaved(true)
+            const result = await registrarIntercesionesBatch(Array.from(prayedPetitions))
+            if (!result.success) {
+                toast.error('No se pudieron guardar tus intercesiones')
+            } else {
+                guideClear()
+            }
         }
         router.push('/home')
     }

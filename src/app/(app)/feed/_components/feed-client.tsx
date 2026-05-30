@@ -1,10 +1,10 @@
 'use client'
 
 import { useState, useTransition, useRef, useEffect } from 'react'
-import { Newspaper, Heart, MessageCircle, BookOpen, Timer, Flame, ChevronDown, Send, Trash2, Trophy, HandHeart } from 'lucide-react'
+import { Newspaper, Heart, MessageCircle, BookOpen, Timer, Flame, ChevronDown, Send, Trash2, Trophy, HandHeart, ArrowRight } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 import { EmptyState } from '@/components/shared/empty-state'
 import { toggleReactionAction, postCommentAction, getCommentsAction, deleteCommentAction } from '../actions'
-import { OrarPorPeticionButton } from '@/app/(app)/peticiones/_components/orar-por-peticion-button'
 import type { FeedActivity } from '../types'
 import { toast } from 'sonner'
 import { useRealtimeFeed } from './use-realtime-feed'
@@ -175,6 +175,7 @@ function ActivityItem({ act, userReactions: initialReactions, currentUserId }: {
   userReactions: Set<ReactionType>
   currentUserId: string
 }) {
+  const router = useRouter()
   const [userReactions, setUserReactions] = useState<Set<ReactionType>>(initialReactions)
   const [likeCount, setLikeCount] = useState(Number(act.likes_count) || 0)
   const [expanded, setExpanded] = useState(false)
@@ -431,12 +432,14 @@ function ActivityItem({ act, userReactions: initialReactions, currentUserId }: {
                   {isPeticion ? 'Petición' : 'Respondida'}
                 </span>
                 {isPeticion && (
-                  <OrarPorPeticionButton
-                    peticionId={String(act.referencia_contenido || '')}
-                    initialOracionesCount={0}
-                    esAutor={act.usuario_id === currentUserId}
-                    compact
-                  />
+                  <button
+                    onClick={() => router.push(`/peticiones/${String(act.referencia_contenido || '')}`)}
+                    className="flex items-center gap-1 text-[11px] font-sans font-medium transition-colors"
+                    style={{ color: accentRose }}
+                  >
+                    Ver petición
+                    <ArrowRight className="size-3" />
+                  </button>
                 )}
               </div>
             </div>

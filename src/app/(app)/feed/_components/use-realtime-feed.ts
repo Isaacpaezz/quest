@@ -70,6 +70,21 @@ export function useRealtimeFeed(
     })
   }, [])
 
+  const removeActivity = useCallback((id: number) => {
+    setGroupedActivities(prev => {
+      let changed = false
+      const updated: Record<string, FeedActivity[]> = {}
+
+      for (const dateKey of Object.keys(prev)) {
+        const filtered = prev[dateKey].filter(a => a.id !== id)
+        if (filtered.length !== prev[dateKey].length) changed = true
+        if (filtered.length > 0) updated[dateKey] = filtered
+      }
+
+      return changed ? updated : prev
+    })
+  }, [])
+
   useEffect(() => {
     const supabase = createClient()
 
@@ -121,7 +136,19 @@ export function useRealtimeFeed(
         (payload) => {
           const updated = payload.new as Record<string, unknown>
           const id = updated.id as number
+
+          // If the row no longer belongs to this group (e.g. petition made
+          // private/archived), remove it from already-open feed clients so
+          // stale private metadata is not displayed until reload.
+          if (options.grupoId && updated.grupo_id !== options.grupoId) {
+            removeActivity(id)
+            return
+          }
+
           updateActivity(id, {
+            tipo_actividad: updated.tipo_actividad as FeedActivity['tipo_actividad'],
+            referencia_contenido: (updated.referencia_contenido as string) || null,
+            resumen_actividad: (updated.resumen_actividad as string) || null,
             likes_count: (updated.likes_count as number) ?? 0,
             comentarios_count: (updated.comentarios_count as number) ?? 0,
           })

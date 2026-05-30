@@ -29,9 +29,10 @@ export async function notifyUsers(
 ): Promise<void> {
   if (!userIds.length) return
 
-  const supabase = await createClient()
+  const admin = createAdminClient()
+  if (!admin) return
 
-  const { data: subscriptions } = await supabase
+  const { data: subscriptions } = await admin
     .from('suscripciones_push')
     .select('usuario_id, subscription')
     .in('usuario_id', userIds)
@@ -45,7 +46,6 @@ export async function notifyUsers(
   if (!subs.length) return
 
   const payloadStr = JSON.stringify(payload)
-  const admin = createAdminClient()
 
   await Promise.all(
     subs.map((s) =>
