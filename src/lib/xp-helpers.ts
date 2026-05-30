@@ -12,6 +12,10 @@ export interface XpConfig {
   devocional_completo: number
   reto_personal: number
   reto_grupal_base: number
+  intercesion: number
+  peticion_compartida: number
+  testimonio: number
+  intercesion_daily_cap: number
 }
 
 // Default config (used as fallback if DB read fails or user has no group)
@@ -25,6 +29,10 @@ const DEFAULT_XP_CONFIG: XpConfig = {
   devocional_completo: 25,
   reto_personal: 100,
   reto_grupal_base: 100,
+  intercesion: 5,
+  peticion_compartida: 10,
+  testimonio: 20,
+  intercesion_daily_cap: 50,
 }
 
 // Mapping: configuracion_app.clave → XpConfig property
@@ -38,6 +46,10 @@ const CONFIG_KEY_MAP: Record<string, keyof XpConfig> = {
   xp_racha_cap: 'racha_cap',
   xp_reto_completado: 'reto_personal',
   xp_reto_grupal_base: 'reto_grupal_base',
+  xp_intercesion: 'intercesion',
+  xp_peticion_compartida: 'peticion_compartida',
+  xp_testimonio: 'testimonio',
+  xp_intercesion_daily_cap: 'intercesion_daily_cap',
 }
 
 // ─── Get XP Config ───────────────────────────────────────────────────────────

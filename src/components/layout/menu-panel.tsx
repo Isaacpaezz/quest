@@ -7,7 +7,7 @@ import { useTheme } from 'next-themes'
 import {
     X, Activity, Users, CalendarDays, User, Settings,
     Trophy, Award, AlertTriangle, Sun, Moon, UsersRound,
-    ChevronDown, Check, Shield,
+    ChevronDown, Check, Shield, Heart,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { cambiarGrupoActivoAction } from '@/app/(app)/grupos/actions'
@@ -18,6 +18,7 @@ const NAV_ITEMS = [
     { href: '/feed', label: 'Feed', icon: Activity },
     { href: '/community', label: 'Comunidad', icon: Users },
     { href: '/grupos', label: 'Grupos', icon: UsersRound },
+    { href: '/peticiones', label: 'Peticiones', icon: Heart },
     { href: '/history', label: 'Historial', icon: CalendarDays },
     { href: '/challenges', label: 'Retos', icon: Trophy },
     { href: '/badges', label: 'Badges', icon: Award },

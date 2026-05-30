@@ -14,6 +14,54 @@ export type Database = {
   }
   public: {
     Tables: {
+      actualizaciones_peticion: {
+        Row: {
+          creado_en: string
+          id: string
+          peticion_id: string
+          testimonio_publico: boolean
+          testimonio_texto: string | null
+          texto: string
+          tipo: Database["public"]["Enums"]["tipo_actualizacion"]
+          usuario_id: string
+        }
+        Insert: {
+          creado_en?: string
+          id?: string
+          peticion_id: string
+          testimonio_publico?: boolean
+          testimonio_texto?: string | null
+          texto: string
+          tipo?: Database["public"]["Enums"]["tipo_actualizacion"]
+          usuario_id: string
+        }
+        Update: {
+          creado_en?: string
+          id?: string
+          peticion_id?: string
+          testimonio_publico?: boolean
+          testimonio_texto?: string | null
+          texto?: string
+          tipo?: Database["public"]["Enums"]["tipo_actualizacion"]
+          usuario_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "actualizaciones_peticion_peticion_id_fkey"
+            columns: ["peticion_id"]
+            isOneToOne: false
+            referencedRelation: "peticiones_oracion"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "actualizaciones_peticion_usuario_id_fkey"
+            columns: ["usuario_id"]
+            isOneToOne: false
+            referencedRelation: "perfiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       actividad_comunidad: {
         Row: {
           comentarios_count: number
@@ -413,6 +461,42 @@ export type Database = {
           },
         ]
       }
+      oraciones_por_peticion: {
+        Row: {
+          creado_en: string
+          id: string
+          peticion_id: string
+          usuario_id: string
+        }
+        Insert: {
+          creado_en?: string
+          id?: string
+          peticion_id: string
+          usuario_id: string
+        }
+        Update: {
+          creado_en?: string
+          id?: string
+          peticion_id?: string
+          usuario_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "oraciones_por_peticion_peticion_id_fkey"
+            columns: ["peticion_id"]
+            isOneToOne: false
+            referencedRelation: "peticiones_oracion"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "oraciones_por_peticion_usuario_id_fkey"
+            columns: ["usuario_id"]
+            isOneToOne: false
+            referencedRelation: "perfiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       penalizaciones: {
         Row: {
           estado: Database["public"]["Enums"]["penalizacion_estado"]
@@ -495,6 +579,66 @@ export type Database = {
             columns: ["grupo_activo_id"]
             isOneToOne: false
             referencedRelation: "grupos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      peticiones_oracion: {
+        Row: {
+          actualizado_en: string | null
+          categoria: Database["public"]["Enums"]["categoria_peticion"]
+          creado_en: string
+          descripcion: string | null
+          estado: Database["public"]["Enums"]["estado_peticion"]
+          grupo_id: string | null
+          id: string
+          oraciones_count: number
+          respondida_en: string | null
+          titulo: string
+          usuario_id: string
+          visibilidad: string
+        }
+        Insert: {
+          actualizado_en?: string | null
+          categoria?: Database["public"]["Enums"]["categoria_peticion"]
+          creado_en?: string
+          descripcion?: string | null
+          estado?: Database["public"]["Enums"]["estado_peticion"]
+          grupo_id?: string | null
+          id?: string
+          oraciones_count?: number
+          respondida_en?: string | null
+          titulo: string
+          usuario_id: string
+          visibilidad?: string
+        }
+        Update: {
+          actualizado_en?: string | null
+          categoria?: Database["public"]["Enums"]["categoria_peticion"]
+          creado_en?: string
+          descripcion?: string | null
+          estado?: Database["public"]["Enums"]["estado_peticion"]
+          grupo_id?: string | null
+          id?: string
+          oraciones_count?: number
+          respondida_en?: string | null
+          titulo?: string
+          usuario_id?: string
+          visibilidad?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "peticiones_oracion_grupo_id_fkey"
+            columns: ["grupo_id"]
+            isOneToOne: false
+            referencedRelation: "grupos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "peticiones_oracion_usuario_id_fkey"
+            columns: ["usuario_id"]
+            isOneToOne: false
+            referencedRelation: "perfiles"
             referencedColumns: ["id"]
           },
         ]
@@ -943,9 +1087,12 @@ export type Database = {
       transicion_automatica_de_plan: { Args: never; Returns: undefined }
     }
     Enums: {
+      categoria_peticion: "salud" | "familia" | "trabajo" | "espiritual" | "urgente" | "otro"
+      estado_peticion: "activa" | "respondida" | "archivada"
       penalizacion_estado: "pendiente" | "pagada"
       plan_estado: "inactivo" | "activo" | "proximo" | "completado"
-      tipo_actividad: "lectura_completada" | "oracion_completada" | "victoria"
+      tipo_actualizacion: "progreso" | "resuelto" | "testimonio"
+      tipo_actividad: "lectura_completada" | "oracion_completada" | "victoria" | "peticion_compartida" | "peticion_respondida"
     }
     CompositeTypes: {
       capitulo_diario_type: {
@@ -1076,9 +1223,12 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      categoria_peticion: ["salud", "familia", "trabajo", "espiritual", "urgente", "otro"],
+      estado_peticion: ["activa", "respondida", "archivada"],
       penalizacion_estado: ["pendiente", "pagada"],
       plan_estado: ["inactivo", "activo", "proximo", "completado"],
-      tipo_actividad: ["lectura_completada", "oracion_completada", "victoria"],
+      tipo_actualizacion: ["progreso", "resuelto", "testimonio"],
+      tipo_actividad: ["lectura_completada", "oracion_completada", "victoria", "peticion_compartida", "peticion_respondida"],
     },
   },
 } as const
