@@ -694,25 +694,30 @@ export function OracionClient({
 
             {/* Main timer UI */}
             <div
-                className={`fixed inset-0 z-[60] flex flex-col quest-bg ${showPreparacion ? 'invisible' : ''}`}
+                className={`fixed inset-0 z-[60] flex h-dvh flex-col ${phase === 'complete' ? 'overflow-y-auto' : 'overflow-hidden'} quest-bg ${showPreparacion ? 'invisible' : ''}`}
             >
             {/* Top Bar */}
-            <div className="flex h-[54px] items-center justify-between px-6 pt-[18px] pb-3">
-                <button onClick={handleClose} disabled={saving}>
+            <div className="flex h-[calc(env(safe-area-inset-top)+48px)] shrink-0 items-end justify-between px-3 pb-1.5 pt-[env(safe-area-inset-top)]">
+                <button
+                    onClick={handleClose}
+                    disabled={saving}
+                    className="flex h-11 w-11 items-center justify-center rounded-full active:scale-95 disabled:opacity-50"
+                    aria-label="Cerrar oración"
+                >
                     <X className="h-6 w-6 text-muted-foreground/50" />
                 </button>
                 <span className="text-[15px] font-semibold" style={{ color: tp }}>
                     {isInBonus ? '🔥 Tiempo Bonus' : 'Tiempo de Oración'}
                 </span>
-                <div className="w-6" />
+                <div className="h-11 w-11" />
             </div>
 
             {/* Center */}
-            <div className="flex flex-1 flex-col items-center justify-center gap-6">
+            <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-[clamp(0.35rem,1.3dvh,1.25rem)] px-4 py-1">
                 {/* Bonus badge */}
                 {isInBonus && (
                     <div
-                        className="rounded-full px-4 py-1.5 text-[12px] font-bold tracking-wide animate-pulse"
+                        className="shrink-0 rounded-full px-3 py-1 text-[11px] font-bold tracking-wide animate-pulse"
                         style={{
                             background: 'rgba(255,215,0,0.11)',
                             color: gold,
@@ -724,7 +729,7 @@ export function OracionClient({
                 )}
 
                 {/* Circle */}
-                <div className="relative flex h-60 w-60 items-center justify-center">
+                <div className="relative flex h-[clamp(8rem,28dvh,15rem)] w-[clamp(8rem,28dvh,15rem)] shrink-0 items-center justify-center">
                     <svg className="absolute inset-0 -rotate-90" viewBox="0 0 240 240">
                         <circle cx="120" cy="120" r={R} fill="none" stroke="hsl(var(--muted))" strokeWidth="6" />
                         <circle cx="120" cy="120" r={R} fill="none" stroke={activeColor} strokeWidth="6"
@@ -732,35 +737,35 @@ export function OracionClient({
                             style={{ transition: 'stroke-dashoffset 0.4s ease' }}
                         />
                     </svg>
-                    <div className="flex flex-col items-center gap-2">
-                        <span className="text-[56px] font-extralight tabular-nums" style={{ color: tp, letterSpacing: 2 }}>
+                    <div className="flex flex-col items-center gap-1">
+                        <span className="text-[clamp(2.5rem,7.5dvh,3.5rem)] font-extralight leading-none tabular-nums" style={{ color: tp, letterSpacing: 2 }}>
                             {displayTime}
                         </span>
-                        <span className="text-sm font-medium" style={{ color: isInBonus ? gold : ts }}>{displayLabel}</span>
+                        <span className="text-xs font-medium" style={{ color: isInBonus ? gold : ts }}>{displayLabel}</span>
                     </div>
                 </div>
 
                 {/* Verse / Bonus prompt / Petition */}
                 {phase !== 'complete' && currentPetition ? (
-                    <div className="flex flex-col items-center gap-3 px-6 transition-opacity duration-500">
-                        <span className="text-3xl">🙏</span>
-                        <p className="text-center text-base font-medium" style={{ color: 'hsl(47 100% 50% / 0.80)' }}>
+                    <div className="flex min-h-0 w-full max-w-sm flex-col items-center gap-[clamp(0.2rem,0.8dvh,0.75rem)] transition-opacity duration-500">
+                        <span className="text-2xl leading-none [@media(max-height:700px)]:hidden">🙏</span>
+                        <p className="text-center text-sm font-medium leading-tight" style={{ color: 'hsl(47 100% 50% / 0.80)' }}>
                             Oración por <strong>{currentPetition.usuario_nombre}</strong>
                         </p>
-                        <div className="max-w-sm rounded-xl border border-border/50 bg-card/40 px-3 py-2 text-center">
+                        <div className="w-full rounded-xl border border-border/50 bg-card/40 px-3 py-1.5 text-center">
                             <p className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: ts }}>
                                 Petición
                             </p>
-                            <p className="text-[14px] font-medium" style={{ color: 'hsl(var(--foreground) / 0.78)' }}>
+                            <p className="line-clamp-2 text-[13px] font-medium leading-snug" style={{ color: 'hsl(var(--foreground) / 0.78)' }}>
                                 {currentPetition.titulo}
                             </p>
                         </div>
                         {currentGuidedPrayer ? (
-                            <div className="max-w-sm rounded-2xl border border-yellow-400/25 bg-yellow-400/10 px-4 py-3 text-center shadow-sm">
-                                <p className="mb-1 text-[11px] font-semibold uppercase tracking-wide" style={{ color: gold }}>
+                            <div className="w-full rounded-2xl border border-yellow-400/25 bg-yellow-400/10 px-3 py-2 text-center shadow-sm">
+                                <p className="mb-0.5 text-[10px] font-semibold uppercase tracking-wide" style={{ color: gold }}>
                                     Oración guía
                                 </p>
-                                <p className="text-[14px] leading-relaxed" style={{ color: 'hsl(var(--foreground) / 0.90)' }}>
+                                <p className="line-clamp-4 text-[13px] leading-snug [@media(max-height:700px)]:line-clamp-2" style={{ color: 'hsl(var(--foreground) / 0.90)' }}>
                                     {currentGuidedPrayer}
                                 </p>
                             </div>
@@ -773,7 +778,7 @@ export function OracionClient({
                         <button
                             onClick={() => handleOreTap(currentPetition.id)}
                             disabled={prayedPetitions.has(currentPetition.id)}
-                            className="mt-2 flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold active:scale-95 disabled:opacity-60 transition-all"
+                            className="flex min-h-11 items-center gap-2 rounded-xl px-5 py-2 text-sm font-semibold active:scale-95 disabled:opacity-60 transition-all"
                             style={{
                                 background: prayedPetitions.has(currentPetition.id)
                                     ? 'hsl(var(--muted))'
@@ -791,22 +796,22 @@ export function OracionClient({
                         </button>
                         {/* Petition counter */}
                         {selectedPetitions.length > 1 && (
-                            <p className="text-[11px] text-muted-foreground">
+                            <p className="text-[11px] text-muted-foreground [@media(max-height:700px)]:hidden">
                                 {(bonusPromptIdx % selectedPetitions.length) + 1} de {selectedPetitions.length} peticiones
                             </p>
                         )}
                     </div>
                 ) : phase === 'bonus' && bonusPrompt ? (
-                    <div className="flex flex-col items-center gap-2 px-8 transition-opacity duration-500">
-                        <span className="text-3xl">{bonusPrompt.emoji}</span>
-                        <p className="text-center text-base font-medium" style={{ color: 'hsl(47 100% 50% / 0.80)' }}>
+                    <div className="flex flex-col items-center gap-1.5 px-4 transition-opacity duration-500">
+                        <span className="text-2xl leading-none">{bonusPrompt.emoji}</span>
+                        <p className="text-center text-sm font-medium leading-tight" style={{ color: 'hsl(47 100% 50% / 0.80)' }}>
                             {bonusPrompt.text}
                         </p>
                         <p className="text-center text-[13px]" style={{ color: ts }}>{bonusPrompt.sub}</p>
                     </div>
                 ) : phase === 'timer' ? (
-                    <div className="flex flex-col items-center gap-2 px-8">
-                        <p className="text-center text-base font-medium italic" style={{ color: 'hsl(var(--foreground) / 0.50)' }}>
+                    <div className="flex flex-col items-center gap-1.5 px-4">
+                        <p className="text-center text-sm font-medium italic leading-tight" style={{ color: 'hsl(var(--foreground) / 0.50)' }}>
                             {verse.text}
                         </p>
                         <p className="text-center text-[13px]" style={{ color: ts }}>{verse.ref}</p>
@@ -858,10 +863,11 @@ export function OracionClient({
 
             {/* Controls */}
             {phase !== 'complete' && (
-                <div className="flex items-center justify-center gap-8 px-6 pb-12">
+                <div className="flex shrink-0 items-center justify-center gap-5 px-6 pb-[max(env(safe-area-inset-bottom),1rem)] pt-1">
                     <button
                         onClick={handlePlayPause} disabled={saving}
-                        className="flex h-[72px] w-[72px] items-center justify-center rounded-full active:scale-90 disabled:opacity-50"
+                        aria-label={isRunning ? 'Pausar oración' : 'Iniciar oración'}
+                        className="flex h-16 w-16 items-center justify-center rounded-full active:scale-90 disabled:opacity-50"
                         style={{ background: activeColor }}
                     >
                         {isRunning
@@ -871,6 +877,7 @@ export function OracionClient({
                     </button>
                     <button
                         onClick={handleStop} disabled={saving}
+                        aria-label="Detener oración"
                         className="flex h-[52px] w-[52px] items-center justify-center rounded-[26px] border active:scale-90 disabled:opacity-50"
                         style={{
                             background: 'hsl(var(--bg-surface) / 0.90)',
