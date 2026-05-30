@@ -15,6 +15,57 @@ type PushPayload = {
 }
 
 /**
+ * Sends push notifications to specific users by ID.
+ * Cleans up stale subs (410/404).
+ *
+ * @param userIds - Array of user IDs to notify
+ * @param payload - Push notification payload (title, body)
+ * @param excludeUserId - User ID to exclude (the sender)
+ */
+export async function notifyUsers(
+  userIds: string[],
+  payload: PushPayload,
+  excludeUserId?: string
+): Promise<void> {
+  if (!userIds.length) return
+
+  const admin = createAdminClient()
+  if (!admin) return
+
+  const { data: subscriptions } = await admin
+    .from('suscripciones_push')
+    .select('usuario_id, subscription')
+    .in('usuario_id', userIds)
+
+  let subs = (subscriptions || []) as Array<{ subscription: WebPushSub; usuario_id: string }>
+
+  if (excludeUserId) {
+    subs = subs.filter((s) => s.usuario_id !== excludeUserId)
+  }
+
+  if (!subs.length) return
+
+  const payloadStr = JSON.stringify(payload)
+
+  await Promise.all(
+    subs.map((s) =>
+      pushService
+        .sendNotification(s.subscription as unknown as WebPushSubscription, payloadStr)
+        .catch(async (err: Error & { statusCode?: number }) => {
+          console.error('Error sending push notification:', err)
+          if ((err.statusCode === 410 || err.statusCode === 404) && admin) {
+            await admin
+              .from('suscripciones_push')
+              .delete()
+              .eq('usuario_id', s.usuario_id)
+              .eq('subscription->>endpoint', s.subscription.endpoint)
+          }
+        })
+    )
+  )
+}
+
+/**
  * Sends push notifications to all members of a group.
  * Filters subscriptions by grupo_id via join with miembros_grupo.
  * Excludes the sender (excludeUserId). Cleans up stale subs (410/404).

@@ -98,7 +98,7 @@ export async function crearPeticionAction(
       return { success: false, error: 'Error al crear la petición' }
     }
 
-    // If shared with group, create feed entry
+    // If shared with group, create feed entry + grant XP
     if (visibilidad === 'group' && peticion.grupo_id) {
       await supabase.from('actividad_comunidad').insert({
         usuario_id: user.id,
@@ -107,6 +107,22 @@ export async function crearPeticionAction(
         resumen_actividad: titulo,
         grupo_id: peticion.grupo_id,
       })
+
+      // Grant XP for sharing petition with group
+      try {
+        const { getXpConfig, grantXp } = await import('@/lib/xp-helpers')
+        const xpConfig = await getXpConfig(supabase, user.id)
+        await grantXp(
+          supabase,
+          user.id,
+          xpConfig.peticion_compartida,
+          'peticion_compartida',
+          peticion.id,
+          peticion.grupo_id
+        )
+      } catch (xpErr) {
+        console.error('Error otorgando XP por petición compartida:', xpErr)
+      }
     }
 
     revalidatePath('/peticiones')
@@ -160,7 +176,48 @@ export async function actualizarPeticionAction(
     if (parsed.data.titulo !== undefined) updateData.titulo = parsed.data.titulo
     if (parsed.data.descripcion !== undefined) updateData.descripcion = parsed.data.descripcion
     if (parsed.data.categoria !== undefined) updateData.categoria = parsed.data.categoria
-    if (parsed.data.visibilidad !== undefined) updateData.visibilidad = parsed.data.visibilidad
+    if (parsed.data.visibilidad !== undefined) {
+      updateData.visibilidad = parsed.data.visibilidad
+
+      // When changing visibility, also update grupo_id
+      if (parsed.data.visibilidad === 'group') {
+        const { data: perfil } = await supabase
+          .from('perfiles')
+          .select('grupo_activo_id')
+          .eq('id', user.id)
+          .single()
+
+        if (!perfil?.grupo_activo_id) {
+          return {
+            success: false,
+            error: 'Necesitás un grupo activo para compartir peticiones',
+          }
+        }
+        updateData.grupo_id = perfil.grupo_activo_id
+      } else if (parsed.data.visibilidad === 'private') {
+        updateData.grupo_id = null
+
+        // Hide existing group feed entries without deleting production data.
+        const { createAdminClient } = await import('@/lib/supabase/admin')
+        const admin = createAdminClient()
+        if (!admin) {
+          return { success: false, error: 'No se pudo actualizar la privacidad del feed' }
+        }
+        const { error: feedScrubError } = await admin
+          .from('actividad_comunidad')
+          .update({
+            grupo_id: null,
+            resumen_actividad: 'Petición privada',
+          })
+          .eq('referencia_contenido', peticionId)
+          .in('tipo_actividad', ['peticion_compartida', 'peticion_respondida'])
+
+        if (feedScrubError) {
+          console.error('Error ocultando petición del feed:', feedScrubError)
+          return { success: false, error: 'Error al actualizar la privacidad del feed' }
+        }
+      }
+    }
 
     const { error: updateError } = await supabase
       .from('peticiones_oracion')
@@ -175,6 +232,7 @@ export async function actualizarPeticionAction(
     revalidatePath('/peticiones')
     revalidatePath('/peticiones/mis-peticiones')
     revalidatePath(`/peticiones/${peticionId}`)
+    revalidatePath('/feed')
 
     return { success: true }
   } catch (error) {
@@ -211,11 +269,13 @@ export async function eliminarPeticionAction(peticionId: string) {
       return { success: false, error: 'La petición ya fue archivada' }
     }
 
-    // Soft delete: mark as archived
+    // Soft delete: archive and make owner-only without deleting production data.
     const { error: updateError } = await supabase
       .from('peticiones_oracion')
       .update({
         estado: 'archivada',
+        visibilidad: 'private',
+        grupo_id: null,
         actualizado_en: new Date().toISOString(),
       })
       .eq('id', peticionId)
@@ -225,8 +285,28 @@ export async function eliminarPeticionAction(peticionId: string) {
       return { success: false, error: 'Error al eliminar la petición' }
     }
 
+    const { createAdminClient } = await import('@/lib/supabase/admin')
+    const admin = createAdminClient()
+    if (!admin) {
+      return { success: false, error: 'No se pudo ocultar la petición del feed' }
+    }
+    const { error: feedScrubError } = await admin
+      .from('actividad_comunidad')
+      .update({
+        grupo_id: null,
+        resumen_actividad: 'Petición archivada',
+      })
+      .eq('referencia_contenido', peticionId)
+      .in('tipo_actividad', ['peticion_compartida', 'peticion_respondida'])
+
+    if (feedScrubError) {
+      console.error('Error ocultando petición archivada del feed:', feedScrubError)
+      return { success: false, error: 'Error al ocultar la petición del feed' }
+    }
+
     revalidatePath('/peticiones')
     revalidatePath('/peticiones/mis-peticiones')
+    revalidatePath('/feed')
 
     return { success: true }
   } catch (error) {
@@ -306,6 +386,12 @@ export async function orarPorPeticionAction(peticionId: string) {
       return { success: false, error: 'Petición no encontrada o no activa' }
     }
 
+    // Server-side guard: users cannot pray for their own petitions.
+    const isSelfIntercession = peticion.usuario_id === user.id
+    if (isSelfIntercession) {
+      return { success: false, error: 'No podés orar por tu propia petición' }
+    }
+
     // Check if user already prayed (lifetime uniqueness)
     const { data: existing } = await supabase
       .from('oraciones_por_peticion')
@@ -316,6 +402,28 @@ export async function orarPorPeticionAction(peticionId: string) {
 
     if (existing) {
       return { success: false, error: 'Ya oraste por esta petición' }
+    }
+
+    // Calculate XP eligibility BEFORE inserting the current prayer.
+    let shouldGrantIntercessionXp = false
+    try {
+      const { getXpConfig } = await import('@/lib/xp-helpers')
+      const xpConfig = await getXpConfig(supabase, user.id)
+      const today = new Date()
+      today.setHours(0, 0, 0, 0)
+      const { createAdminClient } = await import('@/lib/supabase/admin')
+      const admin = createAdminClient()
+      const xpReadClient = admin ?? supabase
+      const { data: todayPrayers } = await xpReadClient
+        .from('oraciones_por_peticion')
+        .select('id')
+        .eq('usuario_id', user.id)
+        .gte('creado_en', today.toISOString())
+
+      const todayXp = (todayPrayers?.length || 0) * xpConfig.intercesion
+      shouldGrantIntercessionXp = todayXp + xpConfig.intercesion <= xpConfig.intercesion_daily_cap
+    } catch (xpErr) {
+      console.error('Error calculando elegibilidad XP por intercesión:', xpErr)
     }
 
     // Insert intercession record (trigger increments oraciones_count)
@@ -335,28 +443,30 @@ export async function orarPorPeticionAction(peticionId: string) {
       return { success: false, error: 'Error al registrar la oración' }
     }
 
-    // Grant XP (only for praying for others' petitions)
-    const isSelfIntercession = peticion.usuario_id === user.id
+    // Grant XP (only for praying for others' petitions, with daily cap)
     if (!isSelfIntercession) {
       try {
         const { getXpConfig, grantXp } = await import('@/lib/xp-helpers')
         const xpConfig = await getXpConfig(supabase, user.id)
+
+      if (shouldGrantIntercessionXp) {
         await grantXp(
-          supabase,
-          user.id,
-          xpConfig.intercesion,
-          'intercesion',
-          peticionId,
-          peticion.grupo_id || undefined
-        )
+            supabase,
+            user.id,
+            xpConfig.intercesion,
+            'intercesion',
+            peticionId,
+            peticion.grupo_id || undefined
+          )
+        }
       } catch (xpErr) {
         // Don't fail the prayer if XP fails
         console.error('Error otorgando XP por intercesión:', xpErr)
       }
     }
 
-    // Send push notification to petition author
-    if (!isSelfIntercession && peticion.grupo_id) {
+    // Send push notification to petition author only
+    if (!isSelfIntercession) {
       try {
         // Get the pray-er's name
         const { data: perfil } = await supabase
@@ -367,10 +477,10 @@ export async function orarPorPeticionAction(peticionId: string) {
 
         const nombre = perfil?.nombre_usuario || 'Alguien'
 
-        // Send notification only to petition author
-        const { notifyGroupMembers } = await import('@/lib/push-helpers')
-        await notifyGroupMembers(
-          peticion.grupo_id,
+        // Send notification only to the petition author
+        const { notifyUsers } = await import('@/lib/push-helpers')
+        await notifyUsers(
+          [peticion.usuario_id],
           {
             title: 'Oraron por tu petición',
             body: `${nombre} oró por tu petición: ${peticion.titulo}`,
@@ -478,6 +588,10 @@ export async function getCommunityWallAction() {
 
     // Check which petitions the current user has prayed for
     const peticionIds = sorted.map(p => p.id)
+    if (peticionIds.length === 0) {
+      return { success: true, peticiones: [] }
+    }
+
     const { data: userPrayers } = await supabase
       .from('oraciones_por_peticion')
       .select('peticion_id')
@@ -549,7 +663,7 @@ export async function crearActualizacionPeticionAction(
     // Verify ownership
     const { data: peticion } = await supabase
       .from('peticiones_oracion')
-      .select('id, usuario_id, estado, grupo_id, titulo')
+      .select('id, usuario_id, estado, grupo_id, titulo, visibilidad')
       .eq('id', peticionId)
       .single()
 
@@ -596,7 +710,7 @@ export async function crearActualizacionPeticionAction(
       }
 
       // Create feed entry if testimony is public
-      if (testimonio_publico && peticion.grupo_id) {
+      if (testimonio_publico && peticion.visibilidad === 'group' && peticion.grupo_id) {
         await supabase.from('actividad_comunidad').insert({
           usuario_id: user.id,
           tipo_actividad: 'peticion_respondida',
@@ -606,8 +720,8 @@ export async function crearActualizacionPeticionAction(
         })
       }
 
-      // Notify intercessors that the petition was answered
-      if (peticion.grupo_id) {
+      // Notify only intercessors while the petition remains group-visible.
+      if (peticion.visibilidad === 'group' && peticion.grupo_id) {
         try {
           const { data: intercessors } = await supabase
             .from('oraciones_por_peticion')
@@ -616,9 +730,10 @@ export async function crearActualizacionPeticionAction(
             .neq('usuario_id', user.id)
 
           if (intercessors?.length) {
-            const { notifyGroupMembers } = await import('@/lib/push-helpers')
-            await notifyGroupMembers(
-              peticion.grupo_id,
+            const intercessorIds = intercessors.map(i => i.usuario_id)
+            const { notifyUsers } = await import('@/lib/push-helpers')
+            await notifyUsers(
+              intercessorIds,
               {
                 title: '¡Petición respondida! 🙏',
                 body: `Una petición por la que oraste fue respondida: ${peticion.titulo}`,
@@ -721,6 +836,10 @@ export async function getPetitionDetailAction(peticionId: string) {
     // Access check: owner or group member
     const isOwner = peticion.usuario_id === user.id
 
+    if (!isOwner && peticion.visibilidad === 'group' && !peticion.grupo_id) {
+      return { success: false, error: 'No tenés acceso a esta petición', peticion: null, updates: [] }
+    }
+
     if (!isOwner && peticion.visibilidad === 'group' && peticion.grupo_id) {
       const { data: membership } = await supabase
         .from('miembros_grupo')
@@ -801,6 +920,10 @@ export async function getPetitionAction(peticionId: string) {
     // Check access: owner or group member
     const isOwner = peticion.usuario_id === user.id
 
+    if (!isOwner && peticion.visibilidad === 'group' && !peticion.grupo_id) {
+      return { success: false, error: 'No tenés acceso a esta petición', peticion: null }
+    }
+
     if (!isOwner && peticion.visibilidad === 'group' && peticion.grupo_id) {
       const { data: membership } = await supabase
         .from('miembros_grupo')
@@ -820,5 +943,182 @@ export async function getPetitionAction(peticionId: string) {
   } catch (error) {
     console.error('Error en getPetitionAction:', error)
     return { success: false, error: 'Error inesperado', peticion: null }
+  }
+}
+
+// ─── Batch Intercession (Guided Prayer Flow) ─────────────────────────────────
+
+/**
+ * registrarIntercesionesBatch
+ * Registra intercesiones masivamente al completar el timer de oración.
+ * - Idempotent: UNIQUE(peticion_id, usuario_id) previene duplicados
+ * - XP rate-limited: max 5 intercesiones por día para XP
+ * - Notifications batched: 1 push por autor (no por petición)
+ * - Called on timer completion with prayedPetitions array
+ */
+export async function registrarIntercesionesBatch(peticionIds: string[]) {
+  try {
+    const supabase = await createClient()
+
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    if (authError || !user) {
+      return { success: false, error: 'No autenticado', inserted: 0, xpGranted: 0 }
+    }
+
+    if (!peticionIds.length) {
+      return { success: true, inserted: 0, xpGranted: 0 }
+    }
+
+    // Fetch petitions to validate they exist and are active
+    const { data: peticiones } = await supabase
+      .from('peticiones_oracion')
+      .select('id, usuario_id, titulo, grupo_id, estado')
+      .in('id', peticionIds)
+      .eq('estado', 'activa')
+
+    if (!peticiones?.length) {
+      return { success: true, inserted: 0, xpGranted: 0 }
+    }
+
+    // Filter out own petitions (self-intercession is not recorded)
+    const otherPetitions = peticiones.filter(p => p.usuario_id !== user.id)
+
+    // Count existing intercessions BEFORE upsert to know how many are new
+    const { data: existingBefore } = await supabase
+      .from('oraciones_por_peticion')
+      .select('peticion_id')
+      .eq('usuario_id', user.id)
+      .in('peticion_id', peticionIds)
+
+    const existingBeforeSet = new Set((existingBefore || []).map(e => e.peticion_id))
+    const newCount = otherPetitions.filter(p => !existingBeforeSet.has(p.id)).length
+    const newPetitions = otherPetitions.filter(p => !existingBeforeSet.has(p.id))
+
+    // Calculate XP slots BEFORE inserting the current batch.
+    let remainingXpSlots = 0
+    try {
+      const { getXpConfig } = await import('@/lib/xp-helpers')
+      const xpConfig = await getXpConfig(supabase, user.id)
+      const today = new Date()
+      today.setHours(0, 0, 0, 0)
+      const { createAdminClient } = await import('@/lib/supabase/admin')
+      const admin = createAdminClient()
+      const xpReadClient = admin ?? supabase
+      const { data: todayPrayers } = await xpReadClient
+        .from('oraciones_por_peticion')
+        .select('id')
+        .eq('usuario_id', user.id)
+        .gte('creado_en', today.toISOString())
+
+      const todayCount = todayPrayers?.length || 0
+      const todayXp = todayCount * xpConfig.intercesion
+      const remainingXp = Math.max(0, xpConfig.intercesion_daily_cap - todayXp)
+      remainingXpSlots = Math.floor(remainingXp / xpConfig.intercesion)
+    } catch (xpErr) {
+      console.error('Error calculating batch XP slots:', xpErr)
+    }
+
+    // Insert intercession records (idempotent via UNIQUE constraint)
+    const records = otherPetitions.map(p => ({
+      peticion_id: p.id,
+      usuario_id: user.id,
+    }))
+
+    if (!records.length) {
+      return { success: true, inserted: 0, xpGranted: 0 }
+    }
+
+    const { error: insertError } = await supabase
+      .from('oraciones_por_peticion')
+      .upsert(records, { onConflict: 'peticion_id,usuario_id', ignoreDuplicates: true })
+
+    if (insertError) {
+      console.error('Error inserting batch intercessions:', insertError)
+      return { success: false, error: 'Error al registrar intercesiones', inserted: 0, xpGranted: 0 }
+    }
+
+    // Grant XP with daily cap (max 5 intercessions per day for XP)
+    let xpGranted = 0
+    if (newPetitions.length > 0 && remainingXpSlots > 0) {
+      try {
+        const { getXpConfig, grantXp } = await import('@/lib/xp-helpers')
+        const xpConfig = await getXpConfig(supabase, user.id)
+
+        // Grant XP for up to remainingXpSlots petitions
+        const xpPetitions = newPetitions.slice(0, remainingXpSlots)
+        for (const p of xpPetitions) {
+          const result = await grantXp(
+            supabase,
+            user.id,
+            xpConfig.intercesion,
+            'intercesion',
+            p.id,
+            p.grupo_id || undefined
+          )
+          if (result) xpGranted += xpConfig.intercesion
+        }
+      } catch (xpErr) {
+        console.error('Error granting batch XP:', xpErr)
+      }
+    }
+
+    // Send batched notifications: 1 per author
+    const authorMap = new Map<string, { grupoId: string; titles: string[] }>()
+    for (const p of newPetitions) {
+      if (!p.grupo_id) continue
+
+      const existing = authorMap.get(p.usuario_id)
+      if (existing) {
+        existing.titles.push(p.titulo)
+      } else {
+        authorMap.set(p.usuario_id, {
+          grupoId: p.grupo_id,
+          titles: [p.titulo],
+        })
+      }
+    }
+
+    if (authorMap.size > 0) {
+      try {
+        // Get pray-er name
+        const { data: myPerfil } = await supabase
+          .from('perfiles')
+          .select('nombre_usuario')
+          .eq('id', user.id)
+          .single()
+        const myName = myPerfil?.nombre_usuario || 'Alguien'
+
+        const { notifyUsers } = await import('@/lib/push-helpers')
+
+        // Send one notification per author (targeted, not group-wide) in parallel
+        await Promise.allSettled(
+          Array.from(authorMap.entries()).map(([authorId, info]) => {
+            const petitionCount = info.titles.length
+            const body = petitionCount === 1
+              ? `${myName} oró por tu petición: ${info.titles[0]}`
+              : `${myName} oró por ${petitionCount} de tus peticiones`
+
+            return notifyUsers(
+              [authorId],
+              {
+                title: 'Oraron por tu petición 🙏',
+                body,
+              },
+              user.id
+            )
+          })
+        )
+      } catch (notifErr) {
+        console.error('Error in batch notifications:', notifErr)
+      }
+    }
+
+    revalidatePath('/peticiones')
+    revalidatePath('/feed')
+
+    return { success: true, inserted: newCount, xpGranted }
+  } catch (error) {
+    console.error('Error en registrarIntercesionesBatch:', error)
+    return { success: false, error: 'Error inesperado', inserted: 0, xpGranted: 0 }
   }
 }

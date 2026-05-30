@@ -1,14 +1,34 @@
 'use client'
 
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { X, Play, Pause, Square } from 'lucide-react'
 import { toast } from 'sonner'
 import { Toaster } from '@/components/ui/sonner'
 import { actualizarProgresoOracionAction } from '@/app/(app)/home/actions'
+import { registrarIntercesionesBatch } from '@/app/(app)/peticiones/actions'
 import { useKeepAwake } from '@/hooks/use-keep-awake'
+import { PreparacionOracion } from './preparacion-oracion'
+import { ResumenOracion } from './resumen-oracion'
 
 // ── Types & Constants ──────────────────────────────────────────────────
+
+type PeticionPropia = {
+    id: string
+    titulo: string
+    descripcion: string | null
+    categoria: string
+    oraciones_count: number
+}
+
+type PeticionComunidad = {
+    id: string
+    titulo: string
+    descripcion: string | null
+    categoria: string
+    usuario_nombre: string
+    oraciones_count: number
+}
 
 type Props = {
     minutosRequeridos: number
@@ -17,11 +37,16 @@ type Props = {
     oracionCompletada: boolean
     bonusMinutos: number
     bonusXp: number
+    // Guided Prayer Flow props
+    peticionesPropias?: PeticionPropia[]
+    peticionesComunidad?: PeticionComunidad[]
+    tieneGrupo?: boolean
 }
 
 type Phase = 'timer' | 'bonus' | 'complete'
 
 const LS_KEY = 'quest_prayer_timer'
+const GUIDE_KEY = 'quest_prayer_guided_state'
 const SYNC_MS = 30_000
 
 const VERSES = [
@@ -94,20 +119,67 @@ function getDailyMessage(): string {
 
 // ── localStorage ───────────────────────────────────────────────────────
 
+function todayKey(): string {
+    const now = new Date()
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+}
+
 function lsRead(): number | null {
     try {
         const raw = localStorage.getItem(LS_KEY)
         if (!raw) return null
         const d = JSON.parse(raw)
+        if (d.date !== todayKey()) return null
         if (typeof d.elapsed === 'number' && d.elapsed > 0) return d.elapsed
     } catch { /* ignore */ }
     return null
 }
 function lsWrite(elapsed: number) {
-    try { localStorage.setItem(LS_KEY, JSON.stringify({ elapsed })) } catch { /* ignore */ }
+    try { localStorage.setItem(LS_KEY, JSON.stringify({ date: todayKey(), elapsed })) } catch { /* ignore */ }
 }
 function lsClear() {
     try { localStorage.removeItem(LS_KEY) } catch { /* ignore */ }
+}
+
+type GuidedPrayerState = {
+    date: string
+    selectedPetitionIds: string[]
+    prayedPetitionIds: string[]
+    preparacionShown: boolean
+}
+
+function guideRead(): GuidedPrayerState | null {
+    try {
+        if (typeof window === 'undefined') return null
+        const raw = localStorage.getItem(GUIDE_KEY)
+        if (!raw) return null
+        const d = JSON.parse(raw) as Partial<GuidedPrayerState>
+        if (d.date !== todayKey()) return null
+        return {
+            date: d.date,
+            selectedPetitionIds: Array.isArray(d.selectedPetitionIds) ? d.selectedPetitionIds : [],
+            prayedPetitionIds: Array.isArray(d.prayedPetitionIds) ? d.prayedPetitionIds : [],
+            preparacionShown: Boolean(d.preparacionShown),
+        }
+    } catch { /* ignore */ }
+    return null
+}
+
+function guideWrite(partial: Partial<Omit<GuidedPrayerState, 'date'>>) {
+    try {
+        const current = guideRead()
+        localStorage.setItem(GUIDE_KEY, JSON.stringify({
+            date: todayKey(),
+            selectedPetitionIds: current?.selectedPetitionIds ?? [],
+            prayedPetitionIds: current?.prayedPetitionIds ?? [],
+            preparacionShown: current?.preparacionShown ?? false,
+            ...partial,
+        }))
+    } catch { /* ignore */ }
+}
+
+function guideClear() {
+    try { localStorage.removeItem(GUIDE_KEY) } catch { /* ignore */ }
 }
 
 // ── Wake Lock (via useKeepAwake hook) ──────────────────────────────────
@@ -130,6 +202,9 @@ export function OracionClient({
     oracionCompletada,
     bonusMinutos,
     bonusXp,
+    peticionesPropias = [],
+    peticionesComunidad = [],
+    tieneGrupo = false,
 }: Props) {
     const router = useRouter()
     const baseSecs = Math.max(0, minutosRequeridos * 60)
@@ -146,6 +221,24 @@ export function OracionClient({
         if (oracionCompletada || initialElapsed >= baseSecs) return 'bonus'
         return 'timer'
     }
+
+    // ── Guided Prayer Flow State ──
+    const hasPetitions = peticionesComunidad.length > 0
+    const restoredGuide = useRef<GuidedPrayerState | null>(guideRead()).current
+    const [showPreparacion, setShowPreparacion] = useState(false)
+    const [selectedPetitionIds, setSelectedPetitionIds] = useState<string[]>(restoredGuide?.selectedPetitionIds ?? [])
+    const [prayedPetitions, setPrayedPetitions] = useState<Set<string>>(
+        () => new Set(restoredGuide?.prayedPetitionIds ?? [])
+    )
+    const [intercessionSaved, setIntercessionSaved] = useState(false)
+    const preparacionShownRef = useRef(Boolean(restoredGuide?.preparacionShown))
+
+    // Selected petitions for bonus phase display
+    const selectedPetitions = useMemo(() => {
+        if (!selectedPetitionIds.length) return []
+        const idSet = new Set(selectedPetitionIds)
+        return peticionesComunidad.filter(p => idSet.has(p.id))
+    }, [selectedPetitionIds, peticionesComunidad])
 
     // ── State ──
     const [elapsed, setElapsed] = useState(initialElapsed)
@@ -167,14 +260,22 @@ export function OracionClient({
 
     const [verse] = useState(() => VERSES[Math.floor(Math.random() * VERSES.length)])
 
-    // Rotate bonus prompts every 20 seconds
+    // Rotate bonus prompts every 20 seconds (petitions take priority)
     useEffect(() => {
         if (phase !== 'bonus' || !isRunning) return
+        // If we have selected petitions, rotate through them instead
+        if (selectedPetitions.length > 0) {
+            const id = setInterval(() => {
+                setBonusPromptIdx(prev => (prev + 1) % selectedPetitions.length)
+            }, 20_000)
+            return () => clearInterval(id)
+        }
+        // Otherwise, use generic prompts
         const id = setInterval(() => {
             setBonusPromptIdx(prev => (prev + 1) % BONUS_PROMPTS.length)
         }, 20_000)
         return () => clearInterval(id)
-    }, [phase, isRunning])
+    }, [phase, isRunning, selectedPetitions.length])
 
     // ── Helper: get current elapsed (running or not) ──
     const now = useCallback((): number => {
@@ -248,6 +349,31 @@ export function OracionClient({
             setSaving(false)
         }
     }, [bonusSecs, bonusXp, save])
+
+    // ── Save batch intercessions on completion ──
+    useEffect(() => {
+        if (phase !== 'complete' || intercessionSaved) return
+        if (prayedPetitions.size === 0) return
+
+        setIntercessionSaved(true)
+        const ids = Array.from(prayedPetitions)
+
+        registrarIntercesionesBatch(ids)
+            .then(result => {
+                if (result.success) {
+                    guideClear()
+                }
+                if (result.success && result.inserted > 0) {
+                    toast.success(
+                        `Intercediste por ${result.inserted} ${result.inserted === 1 ? 'petición' : 'peticiones'}`,
+                        { description: result.xpGranted > 0 ? `+${result.xpGranted} XP` : undefined, duration: 3000 }
+                    )
+                }
+            })
+            .catch(err => {
+                console.error('Error saving batch intercessions:', err)
+            })
+    }, [phase, prayedPetitions, intercessionSaved])
 
     // ── RAF loop ──
     const loop = useCallback(() => {
@@ -341,6 +467,27 @@ export function OracionClient({
 
     // ── Handlers ──
 
+    // Handle "Oré" tap during bonus phase
+    const handleOreTap = useCallback((peticionId: string) => {
+        setPrayedPetitions(prev => {
+            const next = new Set(prev)
+            next.add(peticionId)
+            guideWrite({ prayedPetitionIds: Array.from(next) })
+            return next
+        })
+        toast.success('Oración registrada 🙏', { duration: 1500 })
+    }, [])
+
+    // Handle pre-timer confirmation
+    const handlePreparacionConfirm = useCallback((selectedIds: string[]) => {
+        setSelectedPetitionIds(selectedIds)
+        setShowPreparacion(false)
+        preparacionShownRef.current = true
+        guideWrite({ selectedPetitionIds: selectedIds, preparacionShown: true })
+        // Start the timer after confirming selections
+        doStart()
+    }, [doStart])
+
     const handlePlayPause = async () => {
         if (isRunning) {
             const frozen = doPause()
@@ -350,6 +497,11 @@ export function OracionClient({
             setSaving(false)
             toast.info('Progreso guardado', { description: `${fmt(frozen)} acumulados` })
         } else {
+            // If we have community petitions and haven't shown preparacion yet, show it
+            if (hasPetitions && !preparacionShownRef.current && phase === 'timer' && !baseSavedRef.current) {
+                setShowPreparacion(true)
+                return
+            }
             doStart()
         }
     }
@@ -358,6 +510,16 @@ export function OracionClient({
         const frozen = doPause()
         setSaving(true)
         await save(frozen, baseSavedRef.current)
+        // Flush pending intercessions before navigating away
+        if (prayedPetitions.size > 0 && !intercessionSaved) {
+            setIntercessionSaved(true)
+            const result = await registrarIntercesionesBatch(Array.from(prayedPetitions))
+            if (!result.success) {
+                toast.error('No se pudieron guardar tus intercesiones')
+            } else {
+                guideClear()
+            }
+        }
         setSaving(false)
         lsClear()
         router.push('/home')
@@ -369,6 +531,16 @@ export function OracionClient({
             setSaving(true)
             await save(frozen, baseSavedRef.current)
             setSaving(false)
+        }
+        // Flush pending intercessions before navigating away
+        if (prayedPetitions.size > 0 && !intercessionSaved) {
+            setIntercessionSaved(true)
+            const result = await registrarIntercesionesBatch(Array.from(prayedPetitions))
+            if (!result.success) {
+                toast.error('No se pudieron guardar tus intercesiones')
+            } else {
+                guideClear()
+            }
         }
         router.push('/home')
     }
@@ -395,7 +567,12 @@ export function OracionClient({
 
     // Active accent color — teal for base, gold for bonus
     const activeColor = isInBonus ? gold : teal
-    const bonusPrompt = BONUS_PROMPTS[bonusPromptIdx]
+
+    // Bonus phase content: petitions take priority over generic prompts
+    const currentPetition = selectedPetitions.length > 0 && isInBonus
+        ? selectedPetitions[bonusPromptIdx % selectedPetitions.length]
+        : null
+    const bonusPrompt = !currentPetition ? BONUS_PROMPTS[bonusPromptIdx] : null
 
     // Display time: show elapsed in phase 1, or bonus countdown in phase 2
     const displayTime = isInBonus && bonusReachable
@@ -405,9 +582,21 @@ export function OracionClient({
     const displayLabel = isInBonus ? 'bonus' : 'minutos'
 
     return (
-        <div
-            className="fixed inset-0 z-[60] flex flex-col quest-bg"
-        >
+        <>
+            {/* Pre-timer preparation screen */}
+            {showPreparacion && (
+                <PreparacionOracion
+                    peticionesPropias={peticionesPropias}
+                    peticionesComunidad={peticionesComunidad}
+                    tieneGrupo={tieneGrupo}
+                    onConfirm={handlePreparacionConfirm}
+                />
+            )}
+
+            {/* Main timer UI */}
+            <div
+                className={`fixed inset-0 z-[60] flex flex-col quest-bg ${showPreparacion ? 'invisible' : ''}`}
+            >
             {/* Top Bar */}
             <div className="flex h-[54px] items-center justify-between px-6 pt-[18px] pb-3">
                 <button onClick={handleClose} disabled={saving}>
@@ -452,8 +641,49 @@ export function OracionClient({
                     </div>
                 </div>
 
-                {/* Verse / Bonus prompt */}
-                {phase === 'bonus' && bonusPrompt ? (
+                {/* Verse / Bonus prompt / Petition */}
+                {phase === 'bonus' && currentPetition ? (
+                    <div className="flex flex-col items-center gap-3 px-6 transition-opacity duration-500">
+                        <span className="text-3xl">🙏</span>
+                        <p className="text-center text-base font-medium" style={{ color: 'hsl(47 100% 50% / 0.80)' }}>
+                            Orá por <strong>{currentPetition.usuario_nombre}</strong>
+                        </p>
+                        <p className="text-center text-[14px] font-medium" style={{ color: 'hsl(var(--foreground) / 0.70)' }}>
+                            {currentPetition.titulo}
+                        </p>
+                        {currentPetition.descripcion && (
+                            <p className="text-center text-[12px] line-clamp-2" style={{ color: ts }}>
+                                {currentPetition.descripcion}
+                            </p>
+                        )}
+                        {/* "Oré" button */}
+                        <button
+                            onClick={() => handleOreTap(currentPetition.id)}
+                            disabled={prayedPetitions.has(currentPetition.id)}
+                            className="mt-2 flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold active:scale-95 disabled:opacity-60 transition-all"
+                            style={{
+                                background: prayedPetitions.has(currentPetition.id)
+                                    ? 'hsl(var(--muted))'
+                                    : gold,
+                                color: prayedPetitions.has(currentPetition.id)
+                                    ? 'hsl(var(--muted-foreground))'
+                                    : '#111318',
+                            }}
+                        >
+                            {prayedPetitions.has(currentPetition.id) ? (
+                                <>✓ Oraste por {currentPetition.usuario_nombre}</>
+                            ) : (
+                                <>Oré 🙏</>
+                            )}
+                        </button>
+                        {/* Petition counter */}
+                        {selectedPetitions.length > 1 && (
+                            <p className="text-[11px] text-muted-foreground">
+                                {(bonusPromptIdx % selectedPetitions.length) + 1} de {selectedPetitions.length} peticiones
+                            </p>
+                        )}
+                    </div>
+                ) : phase === 'bonus' && bonusPrompt ? (
                     <div className="flex flex-col items-center gap-2 px-8 transition-opacity duration-500">
                         <span className="text-3xl">{bonusPrompt.emoji}</span>
                         <p className="text-center text-base font-medium" style={{ color: 'hsl(47 100% 50% / 0.80)' }}>
@@ -474,53 +704,42 @@ export function OracionClient({
 
                 {/* Completion state — bonus achieved */}
                 {phase === 'complete' && bonusReachable && (
-                    <div className="mt-2 flex flex-col items-center gap-4 px-6">
-                        <div className="rounded-2xl px-6 py-3" style={{ background: 'hsl(47 100% 50% / 0.10)' }}>
-                            <span className="text-lg font-semibold" style={{ color: gold }}>✨ ¡Oración bonus completada!</span>
-                        </div>
-                        {/* Daily motivational message */}
-                        <p
-                            className="text-center text-[14px] font-medium italic leading-relaxed max-w-[280px]"
-                            style={{ color: 'hsl(var(--foreground) / 0.55)' }}
-                        >
-                            {getDailyMessage()}
-                        </p>
-                        <div className="flex flex-col items-center gap-1">
-                            <span className="text-[13px]" style={{ color: ts }}>
-                                ⏱ {fmt(baseSecs)} oración + {fmt(Math.max(0, elapsed - baseSecs))} bonus
-                            </span>
-                            {pauseCount > 0 && (
-                                <span className="text-[12px]" style={{ color: ts }}>
-                                    {pauseCount} pausa{pauseCount > 1 ? 's' : ''}
-                                </span>
-                            )}
-                        </div>
-                        <button
-                            onClick={() => { lsClear(); router.push('/home') }}
-                            disabled={saving}
-                            className="mt-1 rounded-xl px-6 py-3 text-sm font-semibold active:scale-95 disabled:opacity-50"
-                            style={{ background: gold, color: '#111318' }}
-                        >
-                            {saving ? 'Guardando…' : 'Volver al inicio'}
-                        </button>
-                    </div>
+                    <ResumenOracion
+                        baseSecs={baseSecs}
+                        bonusSecs={bonusSecs}
+                        elapsed={elapsed}
+                        bonusReached={true}
+                        bonusXp={bonusXp}
+                        saving={saving}
+                        pauseCount={pauseCount}
+                        peticionesRezadas={selectedPetitions.map(p => ({
+                            id: p.id,
+                            titulo: p.titulo,
+                            autorNombre: p.usuario_nombre,
+                            fueOrada: prayedPetitions.has(p.id),
+                        }))}
+                        onVolver={() => { lsClear(); router.push('/home') }}
+                    />
                 )}
 
                 {/* Base-only completion (when bonus is not reachable) */}
                 {phase === 'complete' && !bonusReachable && (
-                    <div className="mt-2 flex flex-col items-center gap-3">
-                        <div className="rounded-2xl px-6 py-3" style={{ background: 'hsl(var(--primary) / 0.12)' }}>
-                            <span className="text-lg font-semibold" style={{ color: teal }}>✓ ¡Oración completada!</span>
-                        </div>
-                        <button
-                            onClick={() => { lsClear(); router.push('/home') }}
-                            disabled={saving}
-                            className="mt-1 rounded-xl px-6 py-3 text-sm font-semibold active:scale-95 disabled:opacity-50"
-                            style={{ background: teal, color: '#111318' }}
-                        >
-                            {saving ? 'Guardando…' : 'Volver al inicio'}
-                        </button>
-                    </div>
+                    <ResumenOracion
+                        baseSecs={baseSecs}
+                        bonusSecs={bonusSecs}
+                        elapsed={elapsed}
+                        bonusReached={false}
+                        bonusXp={bonusXp}
+                        saving={saving}
+                        pauseCount={pauseCount}
+                        peticionesRezadas={selectedPetitions.map(p => ({
+                            id: p.id,
+                            titulo: p.titulo,
+                            autorNombre: p.usuario_nombre,
+                            fueOrada: prayedPetitions.has(p.id),
+                        }))}
+                        onVolver={() => { lsClear(); router.push('/home') }}
+                    />
                 )}
             </div>
 
@@ -551,6 +770,7 @@ export function OracionClient({
             )}
 
             <Toaster richColors />
-        </div>
+            </div>
+        </>
     )
 }

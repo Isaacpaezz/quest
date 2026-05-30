@@ -179,13 +179,39 @@ CREATE POLICY "Group members can view group petitions"
 -- INSERT: Authenticated users can create petitions
 CREATE POLICY "Users can create petitions"
   ON public.peticiones_oracion FOR INSERT
-  WITH CHECK (auth.uid() = usuario_id);
+  WITH CHECK (
+    auth.uid() = usuario_id
+    AND (
+      (visibilidad = 'private' AND grupo_id IS NULL)
+      OR (
+        visibilidad = 'group'
+        AND grupo_id IS NOT NULL
+        AND EXISTS (
+          SELECT 1 FROM public.miembros_grupo
+          WHERE usuario_id = auth.uid() AND grupo_id = peticiones_oracion.grupo_id
+        )
+      )
+    )
+  );
 
 -- UPDATE: Only owner can update
 CREATE POLICY "Users can update own petitions"
   ON public.peticiones_oracion FOR UPDATE
   USING (auth.uid() = usuario_id)
-  WITH CHECK (auth.uid() = usuario_id);
+  WITH CHECK (
+    auth.uid() = usuario_id
+    AND (
+      (visibilidad = 'private' AND grupo_id IS NULL)
+      OR (
+        visibilidad = 'group'
+        AND grupo_id IS NOT NULL
+        AND EXISTS (
+          SELECT 1 FROM public.miembros_grupo
+          WHERE usuario_id = auth.uid() AND grupo_id = peticiones_oracion.grupo_id
+        )
+      )
+    )
+  );
 
 -- DELETE: Only owner can delete (soft delete via estado preferred)
 CREATE POLICY "Users can delete own petitions"
@@ -219,7 +245,20 @@ CREATE POLICY "Group members can view intercessions on group petitions"
 -- INSERT: Authenticated users can pray for petitions
 CREATE POLICY "Users can pray for petitions"
   ON public.oraciones_por_peticion FOR INSERT
-  WITH CHECK (auth.uid() = usuario_id);
+  WITH CHECK (
+    auth.uid() = usuario_id
+    AND EXISTS (
+      SELECT 1
+      FROM public.peticiones_oracion p
+      JOIN public.miembros_grupo mg ON mg.grupo_id = p.grupo_id
+      WHERE p.id = oraciones_por_peticion.peticion_id
+        AND p.estado = 'activa'
+        AND p.visibilidad = 'group'
+        AND p.grupo_id IS NOT NULL
+        AND p.usuario_id <> auth.uid()
+        AND mg.usuario_id = auth.uid()
+    )
+  );
 
 -- DELETE: Not allowed (lifetime uniqueness — no un-praying)
 
@@ -266,20 +305,6 @@ CREATE POLICY "Petition creator can add updates"
 ALTER PUBLICATION supabase_realtime ADD TABLE public.peticiones_oracion;
 ALTER TABLE public.peticiones_oracion REPLICA IDENTITY FULL;
 
--- ══════════════════════════════════════════════════════════════════════
--- 9. XP CONFIG INSERTS (default values)
--- ══════════════════════════════════════════════════════════════════════
-
--- These are global defaults (grupo_id = NULL). Groups can override.
--- Using INSERT with ON CONFLICT to avoid duplicates if migration is re-run.
-INSERT INTO public.configuracion_app (clave, valor, grupo_id)
-VALUES
-  ('xp_intercesion', '5', '00000000-0000-0000-0000-000000000000'),
-  ('xp_peticion_compartida', '10', '00000000-0000-0000-0000-000000000000'),
-  ('xp_testimonio', '20', '00000000-0000-0000-0000-000000000000'),
-  ('xp_intercesion_daily_cap', '50', '00000000-0000-0000-0000-000000000000')
-ON CONFLICT (clave, grupo_id) DO NOTHING;
-
 -- =====================================================
 -- MIGRACIÓN COMPLETADA ✅
 -- =====================================================
@@ -291,6 +316,5 @@ ON CONFLICT (clave, grupo_id) DO NOTHING;
 -- ✅ Trigger para auto-set grupo_id
 -- ✅ RLS habilitado con políticas de seguridad
 -- ✅ Realtime habilitado en peticiones_oracion
--- ✅ XP config defaults insertados
 -- ✅ Solo cambios aditivos — sin DROP, DELETE ni TRUNCATE
 -- =====================================================

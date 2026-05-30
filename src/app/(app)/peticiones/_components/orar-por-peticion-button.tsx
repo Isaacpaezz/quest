@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useState, useTransition, useEffect } from 'react'
 import { Heart } from 'lucide-react'
 import { toast } from 'sonner'
 import { orarPorPeticionAction } from '../actions'
@@ -40,6 +40,15 @@ export function OrarPorPeticionButton({
   const [isPending, startTransition] = useTransition()
   const [oracionesCount, setOracionesCount] = useState(initialOracionesCount)
   const [hasOro, setHasOro] = useState(yaOro)
+
+  // Sync count when parent re-renders with new data
+  useEffect(() => {
+    setOracionesCount(initialOracionesCount)
+  }, [initialOracionesCount])
+
+  useEffect(() => {
+    setHasOro(yaOro)
+  }, [yaOro])
 
   // Don't show button for petition author
   if (esAutor) {

@@ -327,7 +327,6 @@ export function PeticionDetailClient({
   updates: initialUpdates,
 }: PeticionDetailClientProps) {
   const router = useRouter()
-  const [updates, setUpdates] = useState(initialUpdates)
   const [isPending, startTransition] = useTransition()
 
   const categoria = CATEGORIA_BADGES[peticion.categoria] ?? CATEGORIA_BADGES.otro
@@ -403,13 +402,19 @@ export function PeticionDetailClient({
             por {peticion.author_name}
           </span>
           <div className="flex items-center gap-3">
-            <OrarPorPeticionButton
-              peticionId={peticion.id}
-              initialOracionesCount={peticion.oraciones_count}
-              yaOro={peticion.ya_oro}
-              esAutor={peticion.is_owner}
-              autorNombre={peticion.author_name}
-            />
+            {peticion.estado === 'activa' ? (
+              <OrarPorPeticionButton
+                peticionId={peticion.id}
+                initialOracionesCount={peticion.oraciones_count}
+                yaOro={peticion.ya_oro}
+                esAutor={peticion.is_owner}
+                autorNombre={peticion.author_name}
+              />
+            ) : (
+              <span className="text-[12px] font-sans" style={{ color: subClr }}>
+                {peticion.oraciones_count} oraciones
+              </span>
+            )}
           </div>
         </div>
       </div>
@@ -427,7 +432,7 @@ export function PeticionDetailClient({
         >
           Actualizaciones
         </h2>
-        <UpdateTimeline updates={updates} />
+        <UpdateTimeline updates={initialUpdates} />
       </div>
     </div>
   )
