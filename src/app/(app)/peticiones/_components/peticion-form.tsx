@@ -210,9 +210,20 @@ export function PeticionForm({
           >
             <SelectValue placeholder="Seleccioná una categoría" />
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent
+            className="z-[100] rounded-xl border shadow-xl"
+            style={{
+              backgroundColor: 'hsl(var(--popover))',
+              borderColor: borderClr,
+              color: 'hsl(var(--popover-foreground))',
+            }}
+          >
             {CATEGORIAS.map((cat) => (
-              <SelectItem key={cat.value} value={cat.value}>
+              <SelectItem
+                key={cat.value}
+                value={cat.value}
+                className="rounded-lg py-2.5 text-[14px] font-sans focus:bg-primary/10 focus:text-foreground"
+              >
                 {cat.label}
               </SelectItem>
             ))}
