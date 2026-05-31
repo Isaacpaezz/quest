@@ -761,11 +761,11 @@ export function OracionClient({
                             </p>
                         </div>
                         {currentGuidedPrayer ? (
-                            <div className="w-full rounded-2xl border border-yellow-400/25 bg-yellow-400/10 px-3 py-2 text-center shadow-sm">
+                            <div className="flex min-h-0 w-full flex-col rounded-2xl border border-yellow-400/25 bg-yellow-400/10 px-3 py-2 text-center shadow-sm">
                                 <p className="mb-0.5 text-[10px] font-semibold uppercase tracking-wide" style={{ color: gold }}>
                                     Oración guía
                                 </p>
-                                <p className="line-clamp-4 text-[13px] leading-snug [@media(max-height:700px)]:line-clamp-2" style={{ color: 'hsl(var(--foreground) / 0.90)' }}>
+                                <p className="max-h-[18dvh] overflow-y-auto overscroll-contain text-[13px] leading-snug [@media(max-height:700px)]:max-h-[14dvh]" style={{ color: 'hsl(var(--foreground) / 0.90)' }}>
                                     {currentGuidedPrayer}
                                 </p>
                             </div>
