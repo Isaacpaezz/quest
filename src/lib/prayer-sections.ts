@@ -89,22 +89,16 @@ export function validateSectionConfig(
 
 /**
  * Parse a raw JSON string (from `configuracion_app.valor`) into a SectionConfig.
- * Falls back to DEFAULT_SECTIONS when the input is missing, invalid, or incomplete.
+ * Falls back to DEFAULT_SECTIONS when the input is missing, invalid, incomplete,
+ * or when percentages do not sum to exactly 100.
  */
 export function parseSectionConfig(raw: string | undefined): SectionConfig {
   if (!raw) return { ...DEFAULT_SECTIONS }
 
   try {
     const parsed = JSON.parse(raw)
-    if (typeof parsed !== 'object' || parsed === null) return { ...DEFAULT_SECTIONS }
-
-    const result: SectionConfig = { ...DEFAULT_SECTIONS }
-    for (const key of SECTION_KEYS) {
-      if (typeof parsed[key] === 'number' && parsed[key] >= 0) {
-        result[key] = parsed[key]
-      }
-    }
-    return result
+    const result = validateSectionConfig(parsed)
+    return result.valid ? result.config : { ...DEFAULT_SECTIONS }
   } catch {
     return { ...DEFAULT_SECTIONS }
   }

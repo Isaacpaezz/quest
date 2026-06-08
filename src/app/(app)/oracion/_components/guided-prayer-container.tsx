@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState, useCallback, type KeyboardEvent } from 'react'
-import { ChevronLeft, ChevronRight, Play, Pause } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Play, Pause, X } from 'lucide-react'
 import type { SectionDuration, SectionKey } from '@/lib/prayer-sections'
 import { usePrayerSession } from '@/hooks/use-prayer-session'
 import { SectionProgressBar } from './sections/section-progress-bar'
@@ -51,6 +51,8 @@ type Props = {
   peticionesPropias?: PeticionPropia[]
   peticionesComunidad?: PeticionComunidad[]
   onIntercessionBatch?: (intercededIds: string[]) => Promise<void>
+  onClose?: () => void
+  closeDisabled?: boolean
 }
 
 /**
@@ -67,6 +69,8 @@ export function GuidedPrayerContainer({
   peticionesPropias = [],
   peticionesComunidad = [],
   onIntercessionBatch,
+  onClose,
+  closeDisabled = false,
 }: Props) {
   const [state, actions] = usePrayerSession(totalSeconds, sections, initialElapsed, onSync)
   const { phase, currentSectionIndex, totalElapsed, sectionElapsed } = state
@@ -162,6 +166,24 @@ export function GuidedPrayerContainer({
 
   return (
     <div ref={containerRef} onKeyDown={trapFocus} className="flex h-full flex-col">
+      {/* Top Bar — inside focus trap so keyboard users can reach close */}
+      {onClose && (
+        <div className="flex h-[calc(env(safe-area-inset-top)+48px)] shrink-0 items-end justify-between px-3 pb-1.5 pt-[env(safe-area-inset-top)]">
+          <button
+            onClick={onClose}
+            disabled={closeDisabled}
+            className="flex h-11 w-11 items-center justify-center rounded-full active:scale-95 disabled:opacity-50"
+            aria-label="Cerrar oración"
+          >
+            <X className="h-6 w-6 text-muted-foreground/50" />
+          </button>
+          <span className="text-[15px] font-semibold" style={{ color: 'hsl(var(--foreground))' }}>
+            Oración guiada
+          </span>
+          <div className="h-11 w-11" />
+        </div>
+      )}
+
       <SectionProgressBar
         sections={sections}
         currentSectionIndex={currentSectionIndex}

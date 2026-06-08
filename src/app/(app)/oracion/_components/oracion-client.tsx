@@ -647,23 +647,7 @@ export function OracionClient({
     if (sectionDurations && sectionDurations.length > 0) {
         return (
             <div className="fixed inset-0 z-[60] flex h-dvh flex-col overflow-hidden quest-bg">
-                {/* Top Bar */}
-                <div className="flex h-[calc(env(safe-area-inset-top)+48px)] shrink-0 items-end justify-between px-3 pb-1.5 pt-[env(safe-area-inset-top)]">
-                    <button
-                        onClick={handleClose}
-                        disabled={saving}
-                        className="flex h-11 w-11 items-center justify-center rounded-full active:scale-95 disabled:opacity-50"
-                        aria-label="Cerrar oración"
-                    >
-                        <X className="h-6 w-6 text-muted-foreground/50" />
-                    </button>
-                    <span className="text-[15px] font-semibold" style={{ color: 'hsl(var(--foreground))' }}>
-                        Oración guiada
-                    </span>
-                    <div className="h-11 w-11" />
-                </div>
-
-                {/* Guided prayer container */}
+                {/* Guided prayer container — close button is inside the focus-trapped region */}
                 <div className="flex min-h-0 flex-1 flex-col">
                     <GuidedPrayerContainer
                         totalSeconds={baseSecs}
@@ -673,6 +657,8 @@ export function OracionClient({
                         onComplete={(totalElapsed) => void handleBaseCompletion(totalElapsed)}
                         peticionesPropias={peticionesPropias}
                         peticionesComunidad={peticionesComunidad}
+                        onClose={handleClose}
+                        closeDisabled={saving}
                         onIntercessionBatch={async (ids) => {
                             if (ids.length === 0) return
                             const result = await registrarIntercesionesBatch(ids)

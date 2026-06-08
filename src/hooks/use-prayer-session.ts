@@ -98,9 +98,12 @@ export function usePrayerSession(
   }, [])
 
   // ── RAF loop ──
+  // elapsedRef holds the committed base elapsed (set on pause/navigation/start).
+  // runStartRef holds the wall-clock time when the current run segment began.
+  // now() computes: base + (Date.now() - runStart) / 1000 when running.
+  // We NEVER write elapsedRef inside the loop — only on pause, navigation, or completion.
   const loop = useCallback(() => {
     const cur = now()
-    elapsedRef.current = cur
     setTotalElapsed(cur)
 
     const newIdx = findSectionIndex(cur, sections)
@@ -165,6 +168,11 @@ export function usePrayerSession(
     const nextIdx = currentSectionIndex + 1
     const nextStart = sections[nextIdx].startOffset
     elapsedRef.current = nextStart
+    // Reset run anchor so the next RAF frame starts from the new base
+    // without adding old wall-clock elapsed
+    if (phaseRef.current === 'running') {
+      runStartRef.current = Date.now()
+    }
     setCurrentSectionIndex(nextIdx)
     setTotalElapsed(nextStart)
     writeSession(nextStart, nextIdx)
@@ -176,6 +184,10 @@ export function usePrayerSession(
     const prevIdx = currentSectionIndex - 1
     const prevStart = sections[prevIdx].startOffset
     elapsedRef.current = prevStart
+    // Reset run anchor so the next RAF frame starts from the new base
+    if (phaseRef.current === 'running') {
+      runStartRef.current = Date.now()
+    }
     setCurrentSectionIndex(prevIdx)
     setTotalElapsed(prevStart)
     writeSession(prevStart, prevIdx)
