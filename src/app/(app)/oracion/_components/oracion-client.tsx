@@ -8,8 +8,10 @@ import { Toaster } from '@/components/ui/sonner'
 import { actualizarProgresoOracionAction } from '@/app/(app)/home/actions'
 import { generarOracionesGuiaBatch, registrarIntercesionesBatch } from '@/app/(app)/peticiones/actions'
 import { useKeepAwake } from '@/hooks/use-keep-awake'
+import type { SectionDuration } from '@/lib/prayer-sections'
 import { PreparacionOracion } from './preparacion-oracion'
 import { ResumenOracion } from './resumen-oracion'
+import { GuidedPrayerContainer } from './guided-prayer-container'
 
 // ── Types & Constants ──────────────────────────────────────────────────
 
@@ -43,6 +45,8 @@ type Props = {
     peticionesPropias?: PeticionPropia[]
     peticionesComunidad?: PeticionComunidad[]
     tieneGrupo?: boolean
+    // Guided prayer section durations (from admin config)
+    sectionDurations?: SectionDuration[]
 }
 
 type Phase = 'timer' | 'bonus' | 'complete'
@@ -225,6 +229,7 @@ export function OracionClient({
     peticionesPropias = [],
     peticionesComunidad = [],
     tieneGrupo = false,
+    sectionDurations,
 }: Props) {
     const router = useRouter()
     const baseSecs = Math.max(0, minutosRequeridos * 60)
@@ -679,6 +684,42 @@ export function OracionClient({
         : fmt(Math.min(cur, baseSecs))
 
     const displayLabel = isInBonus ? 'bonus' : 'minutos'
+
+    // ── Guided prayer mode: delegate to GuidedPrayerContainer ──
+    if (sectionDurations && sectionDurations.length > 0) {
+        return (
+            <div className="fixed inset-0 z-[60] flex h-dvh flex-col overflow-hidden quest-bg">
+                {/* Top Bar */}
+                <div className="flex h-[calc(env(safe-area-inset-top)+48px)] shrink-0 items-end justify-between px-3 pb-1.5 pt-[env(safe-area-inset-top)]">
+                    <button
+                        onClick={handleClose}
+                        disabled={saving}
+                        className="flex h-11 w-11 items-center justify-center rounded-full active:scale-95 disabled:opacity-50"
+                        aria-label="Cerrar oración"
+                    >
+                        <X className="h-6 w-6 text-muted-foreground/50" />
+                    </button>
+                    <span className="text-[15px] font-semibold" style={{ color: 'hsl(var(--foreground))' }}>
+                        Oración guiada
+                    </span>
+                    <div className="h-11 w-11" />
+                </div>
+
+                {/* Guided prayer container */}
+                <div className="flex min-h-0 flex-1 flex-col">
+                    <GuidedPrayerContainer
+                        totalSeconds={baseSecs}
+                        sections={sectionDurations}
+                        initialElapsed={segundosIniciales}
+                        onSync={(elapsed) => void save(elapsed, baseSavedRef.current)}
+                        onComplete={(totalElapsed) => void handleBaseCompletion(totalElapsed)}
+                    />
+                </div>
+
+                <Toaster richColors />
+            </div>
+        )
+    }
 
     return (
         <>

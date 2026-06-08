@@ -39,10 +39,10 @@ Chain strategy: stacked-to-main
 
 - [x] 2.1 Create `src/hooks/use-prayer-session.ts` implementing `usePrayerSession(totalSeconds, sections, initialElapsed, onSync)` — RAF loop, section index tracking, pause/resume, next/prev dispatch, 30s sync callback, localStorage persistence for `quest_prayer_session`.
 - [x] 2.2 Create `src/app/(app)/oracion/_components/sections/section-progress-bar.tsx` — renders 5 section dots (active = filled, completed = check), current section label, and per-section timer ring using section accent color.
-- [ ] 2.3 Create `src/app/(app)/oracion/_components/guided-prayer-container.tsx` — imports `usePrayerSession`, renders `SectionProgressBar` + active section slot (placeholder text per section for now) + prev/next/pause controls. Receives `totalSeconds`, `sections`, `initialElapsed`, `onSync`, and section slot children.
-- [ ] 2.4 Modify `src/app/(app)/oracion/page.tsx` — fetch `oracion_secciones` from `configuracion_app` via `getConfigGrupo()`, call `parseSectionConfig()`, compute `SectionDuration[]` via `computeSectionDurations()`, pass as props to `OracionClient`.
-- [ ] 2.5 Modify `src/app/(app)/oracion/_components/oracion-client.tsx` — extract section config from props, delegate rendering to `GuidedPrayerContainer` when section config is present. Preserve existing timer path as fallback.
-- [ ] 2.6 Verify: `pnpm build` passes; prayer route loads with section config; container renders placeholder sections with correct durations.
+- [x] 2.3 Create `src/app/(app)/oracion/_components/guided-prayer-container.tsx` — imports `usePrayerSession`, renders `SectionProgressBar` + active section slot (placeholder text per section for now) + prev/next/pause controls. Receives `totalSeconds`, `sections`, `initialElapsed`, `onSync`, and section slot children.
+- [x] 2.4 Modify `src/app/(app)/oracion/page.tsx` — fetch `oracion_secciones` from `configuracion_app` via `getConfigGrupo()`, call `parseSectionConfig()`, compute `SectionDuration[]` via `computeSectionDurations()`, pass as props to `OracionClient`.
+- [x] 2.5 Modify `src/app/(app)/oracion/_components/oracion-client.tsx` — extract section config from props, delegate rendering to `GuidedPrayerContainer` when section config is present. Preserve existing timer path as fallback.
+- [x] 2.6 Verify: `pnpm build` passes; prayer route loads with section config; container renders placeholder sections with correct durations.
 
 ## Phase 3: Adoration + Gratitude Sections + Visual Foundation (PR3, ~180 lines)
 

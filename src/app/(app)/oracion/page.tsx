@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { getToday } from '@/lib/utils'
 import { getTimezone, getConfigGrupo, getGrupoActivo } from '@/lib/grupo-helpers'
+import { parseSectionConfig, computeSectionDurations } from '@/lib/prayer-sections'
 import { OracionClient } from './_components/oracion-client'
 
 export default async function OracionPage() {
@@ -17,10 +18,12 @@ export default async function OracionPage() {
     const grupoId = await getGrupoActivo(supabase)
     let bonusMinutos = 10
     let bonusXp = 20
+    let sectionConfigRaw: string | undefined
     if (grupoId) {
         const config = await getConfigGrupo(supabase, grupoId)
         bonusMinutos = Number(config['xp_oracion_bonus_minutos']) || 10
         bonusXp = Number(config['xp_oracion_bonus']) || 20
+        sectionConfigRaw = config['oracion_secciones']
     }
 
     let dailyMissionQuery = supabase
@@ -118,6 +121,11 @@ export default async function OracionPage() {
         }
     }
 
+    // Compute guided prayer section durations from config
+    const sectionConfig = parseSectionConfig(sectionConfigRaw)
+    const totalPrayerSeconds = dailyMission!.minutos_oracion_requeridos * 60
+    const sectionDurations = computeSectionDurations(totalPrayerSeconds, sectionConfig)
+
     return (
         <OracionClient
             key={user.id}
@@ -131,6 +139,7 @@ export default async function OracionPage() {
             peticionesPropias={peticionesPropias}
             peticionesComunidad={peticionesComunidad}
             tieneGrupo={!!grupoId}
+            sectionDurations={sectionDurations}
         />
     )
 }
