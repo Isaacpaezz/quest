@@ -54,10 +54,10 @@ Chain strategy: stacked-to-main
 
 ## Phase 4: Confession Section — Ephemeral Client-Only (PR4, ~100 lines)
 
-- [ ] 4.1 Create `src/app/(app)/oracion/_components/sections/confession-section.tsx` — purple gradient, ephemeral `useState` textarea, clear visual notice "Esto no se guarda", component owns its own state with no upward callbacks carrying text.
-- [ ] 4.2 Add `useEffect` cleanup on unmount that resets confession state to empty string. Verify no `formData`, no server action import, no `localStorage` write for confession text.
-- [ ] 4.3 Wire `ConfessionSection` into `GuidedPrayerContainer` slot for section index 1. Container passes only `durationSeconds` prop — no session dispatch.
-- [ ] 4.4 Verify: `pnpm build` passes; confession text is cleared on section change; grep confirms no server action receives confession content; progress sync payload excludes confession data.
+- [x] 4.1 Create `src/app/(app)/oracion/_components/sections/confession-section.tsx` — purple gradient, ephemeral `useState` textarea, clear visual notice "Esto no se guarda", component owns its own state with no upward callbacks carrying text.
+- [x] 4.2 Add `useEffect` cleanup on unmount that resets confession state to empty string. Verify no `formData`, no server action import, no `localStorage` write for confession text.
+- [x] 4.3 Wire `ConfessionSection` into `GuidedPrayerContainer` slot for section index 1. Container passes only timing progress (`sectionElapsed`) — no session dispatch.
+- [x] 4.4 Verify: `pnpm build` passes; confession text is cleared on section change; grep confirms no server action receives confession content; progress sync payload excludes confession data.
 
 ## Phase 5: Supplication + Intercession + Session Summary (PR5, ~260 lines)
 

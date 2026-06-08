@@ -6,6 +6,7 @@ import type { SectionDuration, SectionKey } from '@/lib/prayer-sections'
 import { usePrayerSession } from '@/hooks/use-prayer-session'
 import { SectionProgressBar } from './sections/section-progress-bar'
 import { AdorationSection } from './sections/adoration-section'
+import { ConfessionSection } from './sections/confession-section'
 import { GratitudeSection } from './sections/gratitude-section'
 
 const SECTION_PLACEHOLDERS: Record<SectionKey, { emoji: string; prompt: string }> = {
@@ -75,6 +76,8 @@ export function GuidedPrayerContainer({ totalSeconds, sections, initialElapsed, 
           <div className="flex min-h-0 w-full flex-1 flex-col transition-opacity duration-500">
             {currentSection.key === 'adoracion' ? (
               <AdorationSection sectionElapsed={sectionElapsed} />
+            ) : currentSection.key === 'confesion' ? (
+              <ConfessionSection sectionElapsed={sectionElapsed} />
             ) : currentSection.key === 'gratitud' ? (
               <GratitudeSection sectionElapsed={sectionElapsed} />
             ) : placeholder ? (
