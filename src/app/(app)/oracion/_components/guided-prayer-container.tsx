@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState, useCallback } from 'react'
+import { useEffect, useMemo, useRef, useState, useCallback, type KeyboardEvent } from 'react'
 import { ChevronLeft, ChevronRight, Play, Pause } from 'lucide-react'
 import type { SectionDuration, SectionKey } from '@/lib/prayer-sections'
 import { usePrayerSession } from '@/hooks/use-prayer-session'
@@ -105,6 +105,17 @@ export function GuidedPrayerContainer({
   }, [sections, totalElapsed, totalSeconds])
 
   const completedRef = useRef(false)
+  const containerRef = useRef<HTMLDivElement>(null)
+  const sectionContentRef = useRef<HTMLDivElement>(null)
+
+  // Focus management: auto-focus section content area on section change
+  useEffect(() => {
+    if (phase === 'complete' || phase === 'idle') return
+    const el = sectionContentRef.current
+    if (el) {
+      el.focus({ preventScroll: true })
+    }
+  }, [currentSectionIndex, phase])
 
   useEffect(() => {
     if (phase === 'complete' && !completedRef.current) {
@@ -122,15 +133,42 @@ export function GuidedPrayerContainer({
     void onIntercessionBatch(Array.from(intercededIds)).finally(() => setBatchSaving(false))
   }, [phase, intercededIds, batchSaved, onIntercessionBatch])
 
+  const trapFocus = useCallback((event: KeyboardEvent<HTMLDivElement>) => {
+    if (event.key !== 'Tab') return
+
+    const root = containerRef.current
+    if (!root) return
+
+    const focusable = Array.from(
+      root.querySelectorAll<HTMLElement>(
+        'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])'
+      )
+    ).filter((element) => !element.hasAttribute('disabled') && element.tabIndex !== -1)
+
+    if (focusable.length === 0) return
+
+    const first = focusable[0]
+    const last = focusable[focusable.length - 1]
+    const active = document.activeElement
+
+    if (event.shiftKey && active === first) {
+      event.preventDefault()
+      last.focus()
+    } else if (!event.shiftKey && active === last) {
+      event.preventDefault()
+      first.focus()
+    }
+  }, [])
+
   return (
-    <div className="flex h-full flex-col">
+    <div ref={containerRef} onKeyDown={trapFocus} className="flex h-full flex-col">
       <SectionProgressBar
         sections={sections}
         currentSectionIndex={currentSectionIndex}
         sectionElapsed={sectionElapsed}
       />
 
-      {/* Section content */}
+      {/* Section content — crossfade with reduced-motion support */}
       <div className="flex min-h-0 flex-1 flex-col items-center justify-center">
         {phase === 'complete' ? (
           <SessionSummary
@@ -141,7 +179,14 @@ export function GuidedPrayerContainer({
             saving={batchSaving}
           />
         ) : currentSection ? (
-          <div className="flex min-h-0 w-full flex-1 flex-col transition-opacity duration-500">
+          <div
+            key={currentSectionIndex}
+            ref={sectionContentRef}
+            role="region"
+            aria-label={`${currentSection.label}, sección ${currentSectionIndex + 1} de ${sections.length}`}
+            tabIndex={-1}
+            className="guided-section-crossfade flex min-h-0 w-full flex-1 flex-col outline-none"
+          >
             {currentSection.key === 'adoracion' ? (
               <AdorationSection sectionElapsed={sectionElapsed} />
             ) : currentSection.key === 'confesion' ? (
@@ -175,7 +220,7 @@ export function GuidedPrayerContainer({
 
       {/* Overall session progress */}
       {phase !== 'complete' && (
-        <div className="px-6 pb-1">
+        <div className="px-6 pb-1" aria-live="polite" aria-atomic="true">
           <div className="h-1 w-full overflow-hidden rounded-full" style={{ background: 'hsl(var(--muted))' }}>
             <div
               className="h-full rounded-full transition-[width] duration-500 ease-out"
@@ -190,7 +235,7 @@ export function GuidedPrayerContainer({
 
       {/* Controls */}
       {phase !== 'complete' && (
-        <div className="flex shrink-0 items-center justify-center gap-4 px-6 pb-[max(env(safe-area-inset-bottom),1rem)] pt-2">
+        <div className="flex shrink-0 items-center justify-center gap-4 px-6 pb-[max(env(safe-area-inset-bottom),1.25rem)] pt-2">
           <button
             onClick={actions.prevSection}
             disabled={isFirst || phase === 'idle'}

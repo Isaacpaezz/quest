@@ -69,9 +69,9 @@ Chain strategy: stacked-to-main
 
 ## Phase 6: Polish — Transitions, Accessibility, Responsive (PR6, ~150 lines)
 
-- [ ] 6.1 Add section transition animations to `guided-prayer-container.tsx` — `opacity 400ms ease-in-out` crossfade between sections, respecting `prefers-reduced-motion` via CSS media query.
-- [ ] 6.2 Add ARIA attributes: `role="region"` + `aria-label` per section with section name and position (e.g., "Adoración, sección 1 de 5"), `aria-live="polite"` on progress bar for elapsed time announcements.
-- [ ] 6.3 Add focus management: auto-focus section content area on section change, trap focus within prayer container during active session.
-- [ ] 6.4 Responsive tuning: verify and adjust typography scale, spacing, and timer ring size for viewports 320px–428px. Ensure `pb-safe` and `pt-safe` on container.
-- [ ] 6.5 Remove dead code from `oracion-client.tsx` — extract reusable constants (`VERSES`, `BONUS_PROMPTS`) to shared module if still needed, or remove if fully replaced by guided prayer sections.
-- [ ] 6.6 Final verification: `pnpm build` passes; `pnpm lint` clean; full guided prayer walkthrough on mobile viewport completes all 5 sections + summary.
+- [x] 6.1 Add section transition animations to `guided-prayer-container.tsx` — `opacity 400ms ease-in-out` crossfade between sections, respecting `prefers-reduced-motion` via CSS media query.
+- [x] 6.2 Add ARIA attributes: `role="region"` + `aria-label` per section with section name and position (e.g., "Adoración, sección 1 de 5"), `aria-live="polite"` on progress bar for elapsed time announcements.
+- [x] 6.3 Add focus management: auto-focus section content area on section change, trap focus within prayer container during active session.
+- [x] 6.4 Responsive tuning: verify and adjust typography scale, spacing, and timer ring size for viewports 320px–428px. Ensure `pb-safe` and `pt-safe` on container.
+- [x] 6.5 Remove dead code from `oracion-client.tsx` — extract reusable constants (`VERSES`, `BONUS_PROMPTS`) to shared module if still needed, or remove if fully replaced by guided prayer sections.
+- [x] 6.6 Final verification: `pnpm build` passes; `pnpm lint` clean; full guided prayer walkthrough on mobile viewport completes all 5 sections + summary.

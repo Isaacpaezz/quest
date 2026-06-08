@@ -67,8 +67,8 @@ export function SectionProgressBar({ sections, currentSectionIndex, sectionElaps
 
       {/* Current section label + timer ring */}
       {currentSection && (
-        <div className="flex items-center gap-3">
-          <div className="relative flex h-10 w-10 items-center justify-center">
+        <div className="flex items-center gap-3" aria-live="polite" aria-atomic="true">
+          <div className="relative flex h-10 w-10 items-center justify-center" aria-hidden="true">
             <svg className="absolute inset-0 -rotate-90" viewBox="0 0 40 40">
               <circle cx="20" cy="20" r={R} fill="none" stroke="hsl(var(--muted))" strokeWidth="2.5" />
               <circle
