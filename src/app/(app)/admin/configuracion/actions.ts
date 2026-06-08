@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 import { ActionState } from '@/types/definitions'
+import { SECTION_KEYS, validateSectionConfig } from '@/lib/prayer-sections'
 
 const SettingsSchema = z.object({
   modo_penalizacion: z.enum(['dinero', 'puntos']),
@@ -24,6 +25,7 @@ const SettingsSchema = z.object({
   xp_reto_completado: z.coerce.number().min(0),
   xp_racha_multiplicador: z.coerce.number().min(0),
   xp_racha_cap: z.coerce.number().min(0),
+  oracion_secciones: z.string(), // JSON string of SectionConfig percentages
 })
 
 export async function actualizarConfiguracionAction(prevState: ActionState, formData: FormData): Promise<ActionState> {
@@ -70,6 +72,7 @@ export async function actualizarConfiguracionAction(prevState: ActionState, form
     xp_reto_completado: formData.get('xp_reto_completado'),
     xp_racha_multiplicador: formData.get('xp_racha_multiplicador'),
     xp_racha_cap: formData.get('xp_racha_cap'),
+    oracion_secciones: formData.get('oracion_secciones'),
   })
 
   if (!validatedFields.success) {
@@ -77,6 +80,14 @@ export async function actualizarConfiguracionAction(prevState: ActionState, form
   }
 
   const data = validatedFields.data
+
+  // Deep-validate oracion_secciones: must parse and sum to exactly 100
+  const seccionesValidation = validateSectionConfig(
+    (() => { try { return JSON.parse(data.oracion_secciones) } catch { return {} } })()
+  )
+  if (!seccionesValidation.valid) {
+    return { error: `Secciones de oración inválidas: ${seccionesValidation.error}` }
+  }
 
   // Upsert all settings for this group
   const settings = [
@@ -98,6 +109,7 @@ export async function actualizarConfiguracionAction(prevState: ActionState, form
     { clave: 'xp_reto_completado', valor: data.xp_reto_completado.toString(), grupo_id: grupoId },
     { clave: 'xp_racha_multiplicador', valor: data.xp_racha_multiplicador.toString(), grupo_id: grupoId },
     { clave: 'xp_racha_cap', valor: data.xp_racha_cap.toString(), grupo_id: grupoId },
+    { clave: 'oracion_secciones', valor: data.oracion_secciones, grupo_id: grupoId },
   ]
 
   const { error } = await supabase
