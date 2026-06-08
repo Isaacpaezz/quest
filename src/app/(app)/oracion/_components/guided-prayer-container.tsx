@@ -10,6 +10,7 @@ import { ConfessionSection } from './sections/confession-section'
 import { GratitudeSection } from './sections/gratitude-section'
 import { SupplicationSection } from './sections/supplication-section'
 import { IntercessionSection } from './sections/intercession-section'
+import { SessionSummary } from './session-summary'
 
 const SECTION_PLACEHOLDERS: Record<SectionKey, { emoji: string; prompt: string }> = {
   adoracion: { emoji: '🙌', prompt: 'Adora a Dios por quién Él es' },
@@ -92,6 +93,17 @@ export function GuidedPrayerContainer({
     })
   }, [])
 
+  // Compute per-section elapsed times for summary
+  const sectionElapsedMap = useMemo(() => {
+    return sections.map((section, i) => {
+      const nextOffset = i < sections.length - 1 ? sections[i + 1].startOffset : totalSeconds
+      const sectionDuration = nextOffset - section.startOffset
+      if (totalElapsed <= section.startOffset) return 0
+      if (totalElapsed >= nextOffset) return sectionDuration
+      return totalElapsed - section.startOffset
+    })
+  }, [sections, totalElapsed, totalSeconds])
+
   const completedRef = useRef(false)
 
   useEffect(() => {
@@ -110,8 +122,6 @@ export function GuidedPrayerContainer({
     void onIntercessionBatch(Array.from(intercededIds)).finally(() => setBatchSaving(false))
   }, [phase, intercededIds, batchSaved, onIntercessionBatch])
 
-  void batchSaving
-
   return (
     <div className="flex h-full flex-col">
       <SectionProgressBar
@@ -122,7 +132,15 @@ export function GuidedPrayerContainer({
 
       {/* Section content */}
       <div className="flex min-h-0 flex-1 flex-col items-center justify-center">
-        {phase !== 'complete' && currentSection ? (
+        {phase === 'complete' ? (
+          <SessionSummary
+            totalElapsed={totalElapsed}
+            sections={sections}
+            sectionElapsedMap={sectionElapsedMap}
+            intercessionCount={intercededIds.size}
+            saving={batchSaving}
+          />
+        ) : currentSection ? (
           <div className="flex min-h-0 w-full flex-1 flex-col transition-opacity duration-500">
             {currentSection.key === 'adoracion' ? (
               <AdorationSection sectionElapsed={sectionElapsed} />

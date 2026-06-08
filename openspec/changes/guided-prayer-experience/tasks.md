@@ -63,9 +63,9 @@ Chain strategy: stacked-to-main
 
 - [x] 5.1 Create `src/app/(app)/oracion/_components/sections/supplication-section.tsx` — blue gradient, displays user's own petitions from `peticionesPropias` prop, each petition shows title + category + prayer count.
 - [x] 5.2 Create `src/app/(app)/oracion/_components/sections/intercession-section.tsx` — orange gradient, displays community petitions with requester identity (`usuario_nombre`), "Oré" tap button per petition reusing existing `handleOreTap` pattern, tracks interceded IDs locally for batch save on completion.
-- [ ] 5.3 Create `src/app/(app)/oracion/_components/session-summary.tsx` — replaces `resumen-oracion.tsx`; shows total elapsed, per-section time breakdown, intercession count, completion status. Excludes confession text.
-- [ ] 5.4 Wire `SupplicationSection`, `IntercessionSection` into container slots 3 and 4. Wire `SessionSummary` into `phase === 'complete'` state. Pass `peticionesPropias`, `peticionesComunidad`, `currentUserId` from `OracionClient` through container.
-- [ ] 5.5 Verify: `pnpm build` passes; intercession "Oré" tap increments count; batch save fires on session complete; summary shows correct breakdown.
+- [x] 5.3 Create `src/app/(app)/oracion/_components/session-summary.tsx` — replaces `resumen-oracion.tsx`; shows total elapsed, per-section time breakdown, intercession count, completion status. Excludes confession text.
+- [x] 5.4 Wire `SupplicationSection`, `IntercessionSection` into container slots 3 and 4. Wire `SessionSummary` into `phase === 'complete'` state. Pass `peticionesPropias`, `peticionesComunidad`, `currentUserId` from `OracionClient` through container.
+- [x] 5.5 Verify: `pnpm build` passes; intercession "Oré" tap increments count; batch save fires on session complete; summary shows correct breakdown.
 
 ## Phase 6: Polish — Transitions, Accessibility, Responsive (PR6, ~150 lines)
 
