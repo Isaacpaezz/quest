@@ -1094,6 +1094,17 @@ export type Database = {
       }
       registrar_penalizaciones_diarias: { Args: never; Returns: undefined }
       transicion_automatica_de_plan: { Args: never; Returns: undefined }
+      upsert_progreso_oracion_monotonic: {
+        Args: {
+          p_capitulo_id: number
+          p_fecha_progreso: string
+          p_oracion_completada: boolean
+          p_oracion_completada_en?: string | null
+          p_segundos_oracion_acumulados: number
+          p_usuario_id: string
+        }
+        Returns: undefined
+      }
     }
     Enums: {
       categoria_peticion: "salud" | "familia" | "trabajo" | "espiritual" | "urgente" | "otro"

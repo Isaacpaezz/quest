@@ -168,20 +168,28 @@ export async function actualizarProgresoOracionAction(datos: { segundosAcumulado
   const tz = await getTimezone(supabase)
   const fechaHoy = getToday(tz);
 
-  const { error } = await supabase.from('progreso_usuario').upsert({
-    usuario_id: user.id,
-    fecha_progreso: fechaHoy,
-    capitulo_id: capituloId,
-    segundos_oracion_acumulados: segundosAcumulados,
-    oracion_completada: oracionCompletada,
-    // AÑADIDO: Guardar el timestamp solo si se completa
-    ...(oracionCompletada && { oracion_completada_en: new Date().toISOString() }),
-  }, { onConflict: 'usuario_id,fecha_progreso' });
+  const { error } = await supabase.rpc('upsert_progreso_oracion_monotonic', {
+    p_usuario_id: user.id,
+    p_fecha_progreso: fechaHoy,
+    p_capitulo_id: capituloId,
+    p_segundos_oracion_acumulados: segundosAcumulados,
+    p_oracion_completada: oracionCompletada,
+    p_oracion_completada_en: oracionCompletada ? new Date().toISOString() : null,
+  });
 
   if (error) {
     console.error('Error al guardar progreso de oración:', error);
     return { error: 'Error en la base de datos.' };
   }
+
+  const { data: persistedProgress } = await supabase
+    .from('progreso_usuario')
+    .select('segundos_oracion_acumulados')
+    .eq('usuario_id', user.id)
+    .eq('fecha_progreso', fechaHoy)
+    .single()
+
+  const persistedSegundos = persistedProgress?.segundos_oracion_acumulados ?? segundosAcumulados
 
   // Registrar evento SOLO si la oración se ha completado y no hay entrada duplicada hoy
   // Hoisted for use in XP guard (push notification dedup)
@@ -207,7 +215,7 @@ export async function actualizarProgresoOracionAction(datos: { segundosAcumulado
       const { getConfigGrupo } = await import('@/lib/grupo-helpers')
       const config = await getConfigGrupo(supabase, grupoIdForConfig)
       const bonusMinutos = Number(config['xp_oracion_bonus_minutos']) || 10
-      bonusAchieved = segundosAcumulados >= bonusMinutos * 60
+      bonusAchieved = persistedSegundos >= bonusMinutos * 60
     }
 
     if (!existingActivity?.length) {
@@ -257,7 +265,7 @@ export async function actualizarProgresoOracionAction(datos: { segundosAcumulado
 
       // 2. Bonus si oración supera el umbral configurable (default: 10 minutos)
       const umbralSegundos = (config.oracion_bonus_minutos || 10) * 60
-      if (segundosAcumulados >= umbralSegundos) {
+      if (persistedSegundos >= umbralSegundos) {
         lastResult = await grantXp(supabase, user.id, config.oracion_bonus_10min, 'oracion_bonus_10min', undefined, grupoId)
         totalXp += config.oracion_bonus_10min
       }

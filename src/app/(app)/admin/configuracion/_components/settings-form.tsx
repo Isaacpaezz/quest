@@ -7,6 +7,13 @@ import { actualizarConfiguracionAction } from '../actions'
 import { Toaster } from '@/components/ui/sonner'
 import { ChevronLeft } from 'lucide-react'
 import Link from 'next/link'
+import {
+  SECTION_KEYS,
+  SECTION_LABELS,
+  DEFAULT_SECTIONS,
+  type SectionKey,
+  type SectionConfig,
+} from '@/lib/prayer-sections'
 
 const DIAS_SEMANA = [
   { value: 0, label: 'Dom' },
@@ -41,12 +48,12 @@ const METODOS_RECUPERACION = [
   { value: 'reto_extra', label: 'Reto Extra', desc: 'Completar reto compensatorio' },
 ]
 
-function SubmitButton() {
+function SubmitButton({ extraDisabled }: { extraDisabled?: boolean }) {
   const { pending } = useFormStatus()
   return (
     <button
       type="submit"
-      disabled={pending}
+      disabled={pending || extraDisabled}
       className="w-full h-12 rounded-2xl text-[15px] font-semibold font-sans transition-all active:scale-[0.98] disabled:opacity-50"
       style={{
         backgroundColor: 'hsl(var(--primary))',
@@ -109,6 +116,19 @@ export function SettingsForm({ settings }: { settings: Record<string, string> })
   const [metodosRecuperacion, setMetodosRecuperacion] = useState<string[]>(() => {
     try { return JSON.parse(settings.metodo_recuperacion || '["xp"]') } catch { return ['xp'] }
   })
+  const [seccionesOracion, setSeccionesOracion] = useState<SectionConfig>(() => {
+    try {
+      const parsed = JSON.parse(settings.oracion_secciones || 'null')
+      if (parsed && typeof parsed === 'object') {
+        const result: SectionConfig = { ...DEFAULT_SECTIONS }
+        for (const key of SECTION_KEYS) {
+          if (typeof parsed[key] === 'number' && parsed[key] >= 0) result[key] = parsed[key]
+        }
+        return result
+      }
+      return { ...DEFAULT_SECTIONS }
+    } catch { return { ...DEFAULT_SECTIONS } }
+  })
 
   useEffect(() => {
     if (state.message) toast.success(state.message)
@@ -132,6 +152,23 @@ export function SettingsForm({ settings }: { settings: Record<string, string> })
     setMetodosRecuperacion(prev =>
       prev.includes(metodo) ? prev.filter(m => m !== metodo) : [...prev, metodo]
     )
+  }
+
+  const sectionTotal = SECTION_KEYS.reduce((sum, key) => sum + seccionesOracion[key], 0)
+  const sectionTotalValid = sectionTotal === 100
+
+  const updateSection = (key: SectionKey, value: number) => {
+    setSeccionesOracion(prev => ({ ...prev, [key]: Math.max(0, value) }))
+  }
+
+  const distributeEvenly = () => {
+    const base = Math.floor(100 / SECTION_KEYS.length)
+    const remainder = 100 - base * SECTION_KEYS.length
+    const result: SectionConfig = { ...DEFAULT_SECTIONS }
+    SECTION_KEYS.forEach((key, i) => {
+      result[key] = base + (i < remainder ? 1 : 0)
+    })
+    setSeccionesOracion(result)
   }
 
   return (
@@ -361,7 +398,73 @@ export function SettingsForm({ settings }: { settings: Record<string, string> })
           <input type="hidden" name="dias_libres" value={JSON.stringify(diasLibres)} />
         </div>
 
-        <SubmitButton />
+        {/* Secciones de Oración */}
+        <div
+          className="p-5 rounded-[20px]"
+          style={{ backgroundColor: cardBg, border: `1px solid ${cardBorder}` }}
+        >
+          <h2 className="text-[15px] font-bold font-sans mb-2" style={{ color: textPrimary }}>Secciones de Oración</h2>
+          <p className="mb-4 text-[12px] font-sans" style={{ color: textSecondary }}>
+            Distribuye el tiempo de oración entre las secciones guiadas. El total debe ser exactamente 100%.
+          </p>
+
+          <div className="space-y-3">
+            {SECTION_KEYS.map((key) => (
+              <div key={key} className="flex items-center gap-3">
+                <span className="text-[13px] font-sans flex-1" style={{ color: textPrimary }}>
+                  {SECTION_LABELS[key]}
+                </span>
+                <div className="flex items-center gap-1.5">
+                  <input
+                    type="number"
+                    min={0}
+                    max={100}
+                    value={seccionesOracion[key]}
+                    onChange={(e) => updateSection(key, parseInt(e.target.value) || 0)}
+                    className="w-16 h-9 px-2 rounded-lg text-center text-[14px] font-sans outline-none"
+                    style={{
+                      backgroundColor: 'hsl(var(--input))',
+                      border: `1px solid hsl(var(--border))`,
+                      color: 'hsl(var(--foreground))',
+                    }}
+                  />
+                  <span className="text-[13px] font-sans" style={{ color: textSecondary }}>%</span>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-4 flex items-center justify-between">
+            <button
+              type="button"
+              onClick={distributeEvenly}
+              className="text-[12px] font-semibold font-sans px-3 py-1.5 rounded-lg transition-all"
+              style={{
+                color: accent,
+                backgroundColor: 'hsl(var(--primary) / 0.08)',
+                border: `1px solid hsl(var(--primary) / 0.15)`,
+              }}
+            >
+              Distribuir equitativamente
+            </button>
+            <span
+              className="text-[13px] font-bold font-sans"
+              style={{ color: sectionTotalValid ? '#10B981' : '#EF4444' }}
+            >
+              Total: {sectionTotal}%
+            </span>
+          </div>
+
+          {!sectionTotalValid && (
+            <p className="mt-2 text-[11px] font-sans" style={{ color: '#EF4444' }}>
+              El total debe ser exactamente 100% para guardar.
+            </p>
+          )}
+
+          <input type="hidden" name="oracion_secciones" value={JSON.stringify(seccionesOracion)} />
+        </div>
+
+        <SubmitButton extraDisabled={!sectionTotalValid} />
       </form>
       <Toaster richColors />
     </>

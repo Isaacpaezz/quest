@@ -8,8 +8,10 @@ import { Toaster } from '@/components/ui/sonner'
 import { actualizarProgresoOracionAction } from '@/app/(app)/home/actions'
 import { generarOracionesGuiaBatch, registrarIntercesionesBatch } from '@/app/(app)/peticiones/actions'
 import { useKeepAwake } from '@/hooks/use-keep-awake'
+import type { SectionDuration } from '@/lib/prayer-sections'
 import { PreparacionOracion } from './preparacion-oracion'
 import { ResumenOracion } from './resumen-oracion'
+import { GuidedPrayerContainer } from './guided-prayer-container'
 
 // ── Types & Constants ──────────────────────────────────────────────────
 
@@ -43,6 +45,8 @@ type Props = {
     peticionesPropias?: PeticionPropia[]
     peticionesComunidad?: PeticionComunidad[]
     tieneGrupo?: boolean
+    // Guided prayer section durations (from admin config)
+    sectionDurations?: SectionDuration[]
 }
 
 type Phase = 'timer' | 'bonus' | 'complete'
@@ -51,7 +55,8 @@ const LS_KEY = 'quest_prayer_timer'
 const GUIDE_KEY = 'quest_prayer_guided_state'
 const SYNC_MS = 30_000
 
-const VERSES = [
+// Fallback verses for legacy timer mode (guided prayer sections define their own)
+const FALLBACK_VERSES = [
     { text: '«Orad sin cesar.»', ref: '— 1 Tesalonicenses 5:17' },
     { text: '«Velad y orad, para que no entréis en tentación.»', ref: '— Mateo 26:41' },
     { text: '«Clama a mí, y yo te responderé.»', ref: '— Jeremías 33:3' },
@@ -71,52 +76,9 @@ const BONUS_PROMPTS = [
     { emoji: '✨', text: 'Pide la llenura del Espíritu Santo', sub: 'Deja que Él te guíe hoy' },
 ]
 
-// Daily motivational messages shown after bonus is completed
-const DAILY_MESSAGES = [
-    '«Cada minuto en su presencia transforma tu carácter.»',
-    '«La oración no cambia a Dios — te cambia a ti.»',
-    '«Hoy fuiste más allá de lo mínimo. Dios lo nota.»',
-    '«Los que esperan en el Señor renovarán sus fuerzas.» — Isaías 40:31',
-    '«Tu fidelidad en lo secreto trae recompensa visible.»',
-    '«Cada segundo extra fue una semilla sembrada en el Espíritu.»',
-    '«La intimidad con Dios es el mayor tesoro que puedes encontrar.»',
-    '«Hoy decidiste quedarte más tiempo. Eso habla de tu hambre espiritual.»',
-    '«Bienaventurados los que tienen hambre y sed de justicia.» — Mateo 5:6',
-    '«Tu perseverancia en oración fortalece tu fe.»',
-    '«El tiempo con Dios nunca es tiempo perdido.»',
-    '«Dios se deleita en los que buscan su rostro con todo el corazón.»',
-    '«Has elegido la mejor parte, y no te será quitada.» — Lucas 10:42',
-    '«Orar más allá de lo necesario es el lenguaje del amor.»',
-    '«Tu disciplina espiritual inspira a los que te rodean.»',
-    '«Dios honra a los que le honran.» — 1 Samuel 2:30',
-    '«Esta oración extendida dejó una marca en el cielo.»',
-    '«Los guerreros de oración cambian naciones desde sus rodillas.»',
-    '«Hoy cultivaste un hábito que perdurará para siempre.»',
-    '«La oración constante es la respiración del alma.»',
-    '«Cada minuto extra fue una declaración de fe.»',
-    '«El Señor pelea por ti mientras tú estás en su presencia.» — Éxodo 14:14',
-    '«Tu dedicación hoy cuenta para la eternidad.»',
-    '«Más cerca de Dios, más fuerte tu espíritu.»',
-    '«Has decidido priorizar lo eterno sobre lo temporal.»',
-    '«La oración es el arma más poderosa que tienes.»',
-    '«Dios anhela este tiempo contigo tanto como tú con Él.»',
-    '«Hoy plantaste una semilla que dará fruto en su tiempo.»',
-    '«Tu constancia muestra que tu fe es genuina.»',
-    '«Los héroes de la fe oraban más de lo esperado.»',
-    '«Cada día que oras de más, tu relación con Dios crece.»',
-]
-
 const fmt = (s: number) => {
     const t = Math.max(0, Math.floor(s))
     return `${Math.floor(t / 60).toString().padStart(2, '0')}:${(t % 60).toString().padStart(2, '0')}`
-}
-
-// Daily message: picks based on day of year so it changes daily
-function getDailyMessage(): string {
-    const now = new Date()
-    const start = new Date(now.getFullYear(), 0, 0)
-    const dayOfYear = Math.floor((now.getTime() - start.getTime()) / 86400000)
-    return DAILY_MESSAGES[dayOfYear % DAILY_MESSAGES.length]
 }
 
 // ── localStorage ───────────────────────────────────────────────────────
@@ -225,6 +187,7 @@ export function OracionClient({
     peticionesPropias = [],
     peticionesComunidad = [],
     tieneGrupo = false,
+    sectionDurations,
 }: Props) {
     const router = useRouter()
     const baseSecs = Math.max(0, minutosRequeridos * 60)
@@ -280,7 +243,7 @@ export function OracionClient({
     // Keep screen awake while timer is running (Capacitor native + Web fallback)
     useKeepAwake(isRunning && phase !== 'complete')
 
-    const [verse] = useState(() => VERSES[Math.floor(Math.random() * VERSES.length)])
+    const [verse] = useState(() => FALLBACK_VERSES[Math.floor(Math.random() * FALLBACK_VERSES.length)])
 
     // Rotate guided petitions/prompts every 20 seconds.
     // Selected petitions take priority during the full prayer session,
@@ -679,6 +642,44 @@ export function OracionClient({
         : fmt(Math.min(cur, baseSecs))
 
     const displayLabel = isInBonus ? 'bonus' : 'minutos'
+
+    // ── Guided prayer mode: delegate to GuidedPrayerContainer ──
+    if (sectionDurations && sectionDurations.length > 0) {
+        return (
+            <div className="fixed inset-0 z-[60] flex h-dvh flex-col overflow-hidden quest-bg">
+                {/* Guided prayer container — close button is inside the focus-trapped region.
+                    The guided container handles its own pause/snapshot/intercession flush on close. */}
+                <div className="flex min-h-0 flex-1 flex-col">
+                    <GuidedPrayerContainer
+                        totalSeconds={baseSecs}
+                        sections={sectionDurations}
+                        initialElapsed={segundosIniciales}
+                        onSync={async (elapsed) => { await save(elapsed, baseSavedRef.current) }}
+                        onComplete={async (totalElapsed) => { await handleBaseCompletion(totalElapsed) }}
+                        peticionesPropias={peticionesPropias}
+                        peticionesComunidad={peticionesComunidad}
+                        onClose={() => { lsClear(); router.push('/home') }}
+                        closeDisabled={saving}
+                        onIntercessionBatch={async (ids) => {
+                            if (ids.length === 0) return
+                            const result = await registrarIntercesionesBatch(ids)
+                            if (result.success) {
+                                guideClear()
+                            }
+                            if (result.success && result.inserted > 0) {
+                                toast.success(
+                                    `Intercediste por ${result.inserted} ${result.inserted === 1 ? 'petición' : 'peticiones'}`,
+                                    { description: result.xpGranted > 0 ? `+${result.xpGranted} XP` : undefined, duration: 3000 }
+                                )
+                            }
+                        }}
+                    />
+                </div>
+
+                <Toaster richColors />
+            </div>
+        )
+    }
 
     return (
         <>
