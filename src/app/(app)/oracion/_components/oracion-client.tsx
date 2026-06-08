@@ -713,6 +713,21 @@ export function OracionClient({
                         initialElapsed={segundosIniciales}
                         onSync={(elapsed) => void save(elapsed, baseSavedRef.current)}
                         onComplete={(totalElapsed) => void handleBaseCompletion(totalElapsed)}
+                        peticionesPropias={peticionesPropias}
+                        peticionesComunidad={peticionesComunidad}
+                        onIntercessionBatch={async (ids) => {
+                            if (ids.length === 0) return
+                            const result = await registrarIntercesionesBatch(ids)
+                            if (result.success) {
+                                guideClear()
+                            }
+                            if (result.success && result.inserted > 0) {
+                                toast.success(
+                                    `Intercediste por ${result.inserted} ${result.inserted === 1 ? 'petición' : 'peticiones'}`,
+                                    { description: result.xpGranted > 0 ? `+${result.xpGranted} XP` : undefined, duration: 3000 }
+                                )
+                            }
+                        }}
                     />
                 </div>
 
