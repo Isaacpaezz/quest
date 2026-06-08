@@ -4,7 +4,7 @@
 **Version**: N/A  
 **Mode**: Standard (strict TDD inactive; test infrastructure present)  
 **Verification date**: 2026-06-08  
-**Rerun context**: after remediation commit `683bf38 fix(oracion): stabilize guided prayer timer`
+**Rerun context**: final rerun after commit `deb0da5 fix(oracion): block navigation during guided save`
 
 ### Completeness
 
@@ -13,7 +13,7 @@
 | Tasks total | 31 |
 | Tasks complete | 31 |
 | Tasks incomplete | 0 |
-| Feature branch changed lines vs `main` | 4,068 insertions / 58 deletions |
+| Feature branch changed lines vs `main` | 4,216 insertions / 58 deletions at verification time |
 | Review budget | 400 changed lines |
 | Review workload result | Exceeds budget; chained/stacked PR delivery remains required |
 
@@ -26,7 +26,7 @@ Command: pnpm test
 Result: vitest run completed with exit code 0.
 Test Files: 2 passed (2)
 Tests: 30 passed (30)
-Duration: 4.83s
+Duration: 4.20s
 ```
 
 **Lint**: ✅ Passed
@@ -52,8 +52,8 @@ Warnings: baseline-browser-mapping and Browserslist/caniuse-lite data are stale.
 ```text
 pnpm build modified tracked public/sw.js as a generated PWA artifact.
 The generated diff was restored with: git restore -- public/sw.js
-Final generated-artifact status: no unexpected generated artifacts remain.
-Expected working-tree artifact: openspec/changes/guided-prayer-experience/verify-report.md
+Final generated-artifact status after restore: clean before this report refresh.
+Expected working-tree artifact after verification: openspec/changes/guided-prayer-experience/verify-report.md
 ```
 
 ### Spec Compliance Matrix
@@ -72,11 +72,11 @@ Expected working-tree artifact: openspec/changes/guided-prayer-experience/verify
 | Community intercession identity | User reaches community intercession | Static evidence: page maps requester profile name to `usuario_nombre`; intercession section renders requester name and `Oré` state. | ⚠️ PARTIAL — implemented, no component test. |
 | Confession privacy | User writes in confession section | Static evidence and grep: confession text is local component state only; no upward callback, server action import, FormData, localStorage write, or summary inclusion found. | ⚠️ PARTIAL — privacy boundary verified by source inspection; no component lifecycle test. |
 | Confession privacy | Progress sync runs during confession | Static evidence: guided sync calls `save(elapsed, baseSavedRef.current)`; `save()` sends only `segundosAcumulados`, `capituloId`, and `oracionCompletada`. | ⚠️ PARTIAL — payload boundary verified by source inspection; no spy-based runtime test. |
-| Session completion summary | User completes all sections | Static evidence: `SessionSummary` excludes confession text, includes elapsed/intercession data, routes primary action to `/home`, and disables that button while its `saving` prop is true. | ⚠️ PARTIAL — implemented, no component test; `saving` currently reflects intercession batch save state. |
+| Session completion summary | User completes all sections | Static evidence: `SessionSummary` excludes confession text, includes elapsed/intercession data, routes the primary `/home` action after save, and disables that primary button while `completionSaving || batchSaving` is true. | ⚠️ PARTIAL — implemented, no component test; secondary summary navigation is still enabled during save. |
 | Accessibility basics | Assistive technology reads section state | Static evidence: active section uses `role="region"`, section position label, progress live regions, and focus management. | ⚠️ PARTIAL — implemented, no a11y runtime test. |
 | Accessibility basics | Motion reduction is preferred | Static evidence: reduced-motion media query disables guided section animation. | ⚠️ PARTIAL — implemented, no browser/runtime assertion. |
 
-**Compliance summary**: 4/15 scenarios have passing direct runtime tests. 11/15 scenarios have implementation/static evidence but need component, action, visual, or a11y tests for full runtime compliance. The prior blocking timer/test/config/focus issues are resolved.
+**Compliance summary**: 4/15 scenarios have passing direct runtime tests. 11/15 scenarios have implementation/static evidence but need component, action, visual, or a11y tests for full runtime compliance. The prior blocking timer/test/config/focus issues remain resolved.
 
 ### Correctness (Static Evidence)
 
@@ -90,9 +90,9 @@ Expected working-tree artifact: openspec/changes/guided-prayer-experience/verify
 | Duration calculation | ✅ Implemented and tested | `computeSectionDurations()` floors each section, assigns the remainder to the final section, and preserves exact total seconds. |
 | Confession privacy | ✅ Implemented, partially tested | Confession value is local state in `ConfessionSection`; grep found no server action, FormData, localStorage write, parent callback carrying text, or summary inclusion. |
 | Community intercession identity | ✅ Implemented, partially tested | Community petitions include requester identity from `perfiles:usuario_id(nombre_usuario)` and render `usuario_nombre` in the intercession section. |
-| Session summary | ✅ Implemented, partially tested | Summary excludes confession text, displays elapsed/intercession data, routes to `/home`, and disables the home button when `saving` is true. The current `saving` prop is driven by intercession batch saving. |
+| Session summary save guard | ⚠️ Mostly implemented, partially tested | Commit `deb0da5` changes `onComplete` to a Promise, tracks `completionSaving`, and passes `saving={completionSaving || batchSaving}` to `SessionSummary`, so the primary `/home` button is disabled for both guided progress save and intercession batch save. `SessionSummary` still allows the secondary `/peticiones/mis-peticiones` navigation while `saving` is true. |
 | Accessibility basics | ✅ Implemented, partially tested | Focus management, focus trap, close control inside the trapped container, section region labels, live progress, safe-area spacing, and reduced-motion handling are present. |
-| Generated artifacts | ✅ Clean | `public/sw.js` was modified by build and restored; no unexpected generated artifacts remain. |
+| Generated artifacts | ✅ Clean | `public/sw.js` was modified by build and restored; no unexpected generated artifacts remain before the report refresh. |
 
 ### Coherence (Design)
 
@@ -117,6 +117,14 @@ Expected working-tree artifact: openspec/changes/guided-prayer-experience/verify
 | `parseSectionConfig()` accepted invalid persisted totals | ✅ Resolved | Tests reject totals 99, 101, missing keys, invalid JSON, non-number values, and negatives. |
 | Focus trap excluded the close control | ✅ Resolved | Close button is rendered inside `GuidedPrayerContainer`'s `containerRef`, the focus-trapped region. |
 
+### Final Warning Remediation Check
+
+| Warning | Status | Evidence |
+|---------|--------|----------|
+| SessionSummary primary navigation should block while guided completion progress save is in-flight | ✅ Resolved | `onComplete` now returns `Promise<void>` from `OracionClient`, `GuidedPrayerContainer` sets `completionSaving` around it, and `SessionSummary` receives `saving={completionSaving || batchSaving}`. |
+| SessionSummary primary navigation should block while intercession batch save is in-flight | ✅ Resolved | Existing `batchSaving` is included in the same `SessionSummary.saving` prop, disabling the primary `/home` button. |
+| All summary navigation targets should be blocked while save is in-flight | ⚠️ Partial | The secondary `Ver mis peticiones` button still calls `router.push('/peticiones/mis-peticiones')` without checking `saving`. If the intended guard means every route-changing summary action, this remains a non-blocking warning. |
+
 ### Issues Found
 
 **CRITICAL**: None.
@@ -124,13 +132,13 @@ Expected working-tree artifact: openspec/changes/guided-prayer-experience/verify
 **WARNING**
 
 1. **Review workload exceeds the configured 400-line budget.**  
-   Evidence: `git diff --stat main...HEAD` reports 4,068 insertions and 58 deletions across the feature branch. The SDD task plan already selected `auto-chain` / `stacked-to-main`; do not present this as a single review slice without an accepted `size:exception`.
+   Evidence: `git diff --shortstat main...HEAD` reports 26 files changed, 4,216 insertions, and 58 deletions at verification time. The SDD task plan already selected `auto-chain` / `stacked-to-main`; do not present this as a single review slice without an accepted `size:exception`.
 
 2. **Runtime tests cover key timing/config utility behavior, but not all UI, admin action, privacy lifecycle, and accessibility scenarios.**  
-   Evidence: 30 tests pass for `usePrayerSession` and `prayer-sections`, while admin form/action behavior, component rendering, focus trap behavior, visual transitions, intercession UI, and confession lifecycle cleanup are verified by source inspection only.
+   Evidence: 30 tests pass for `usePrayerSession` and `prayer-sections`, while admin form/action behavior, component rendering, focus trap behavior, visual transitions, intercession UI, summary save guards, and confession lifecycle cleanup are verified by source inspection only.
 
-3. **Session summary disables the `/home` action for intercession batch saving, not for the separate guided progress save.**  
-   Evidence: `SessionSummary` receives `saving={batchSaving}` from `GuidedPrayerContainer`; `onComplete()` invokes `handleBaseCompletion()` asynchronously through `void` and does not toggle the same saving flag. The save still starts, but the button disabled state does not represent that in-flight progress save.
+3. **Secondary SessionSummary navigation remains enabled while save state is true.**  
+   Evidence: the primary `/home` button is disabled by `saving`, but the `Ver mis peticiones` button still routes immediately. This does not reintroduce the original primary `/home` warning, but it is a remaining edge if the desired behavior is to block every summary navigation path during saves.
 
 **SUGGESTION**
 
@@ -143,4 +151,4 @@ Expected working-tree artifact: openspec/changes/guided-prayer-experience/verify
 
 PASS WITH WARNINGS
 
-The remediation commit resolves the previous blocking timer, manual navigation, missing test infrastructure, defensive config parsing, and focus-trap issues. `pnpm test`, `pnpm lint`, and `pnpm build` all pass, and generated build artifacts were restored. Remaining risks are review-size governance and runtime coverage gaps for UI/admin/a11y behaviors, not confirmed blocking defects in the guided prayer implementation.
+The remediation commit resolves the previous blocking timer, manual navigation, missing test infrastructure, defensive config parsing, focus-trap, and primary SessionSummary save-navigation issues. `pnpm test`, `pnpm lint`, and `pnpm build` all pass, and generated build artifacts were restored. Remaining risks are review-size governance, runtime coverage gaps for UI/admin/a11y behaviors, and the secondary summary navigation edge while save state is true; no CRITICAL archive blocker was found.
