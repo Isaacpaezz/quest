@@ -20,6 +20,8 @@ type PrayerSessionActions = {
   resume: () => void
   nextSection: () => void
   prevSection: () => void
+  /** Returns current elapsed seconds without mutating state (for close snapshots). */
+  getSnapshot: () => number
 }
 
 const LS_KEY = 'quest_prayer_session'
@@ -109,12 +111,9 @@ export function usePrayerSession(
     const newIdx = findSectionIndex(cur, sections)
     setCurrentSectionIndex((prev) => (prev !== newIdx ? newIdx : prev))
 
-    if (cur - lastSyncRef.current >= SYNC_INTERVAL_MS / 1000) {
-      lastSyncRef.current = cur
-      onSyncRef.current(cur)
-      writeSession(cur, newIdx)
-    }
-
+    // Check completion BEFORE periodic sync so the container's onComplete
+    // effect is the sole authority for the final save — no stale sync can
+    // write oracionCompletada=false after a true completion.
     if (cur >= totalSeconds) {
       elapsedRef.current = totalSeconds
       runStartRef.current = null
@@ -123,8 +122,16 @@ export function usePrayerSession(
       setPhase('complete')
       phaseRef.current = 'complete'
       clearSession()
-      onSyncRef.current(totalSeconds)
+      // NOTE: Do NOT call onSync here — the container's onComplete effect
+      // handles the final save with the correct completion flag, avoiding
+      // a race where a false-completion write overwrites a true one.
       return
+    }
+
+    if (cur - lastSyncRef.current >= SYNC_INTERVAL_MS / 1000) {
+      lastSyncRef.current = cur
+      onSyncRef.current(cur)
+      writeSession(cur, newIdx)
     }
 
     rafIdRef.current = requestAnimationFrame(loop)
@@ -193,6 +200,10 @@ export function usePrayerSession(
     writeSession(prevStart, prevIdx)
   }, [currentSectionIndex, sections])
 
+  const getSnapshot = useCallback((): number => {
+    return now()
+  }, [now])
+
   useEffect(() => {
     return () => { if (rafIdRef.current !== null) cancelAnimationFrame(rafIdRef.current) }
   }, [])
@@ -204,5 +215,5 @@ export function usePrayerSession(
     sectionElapsed: Math.max(0, sectionElapsed),
   }
 
-  return [state, { start, pause, resume, nextSection, prevSection }]
+  return [state, { start, pause, resume, nextSection, prevSection, getSnapshot }]
 }

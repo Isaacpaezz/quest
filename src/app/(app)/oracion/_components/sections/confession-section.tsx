@@ -88,6 +88,8 @@ export function ConfessionSection({ sectionElapsed }: Props) {
           onChange={(e) => setConfession(e.target.value)}
           placeholder="Escribe tu confesión aquí..."
           rows={4}
+          spellCheck={false}
+          autoComplete="off"
           className="w-full resize-none rounded-xl border bg-background/60 px-4 py-3 text-sm leading-relaxed placeholder:text-muted-foreground/40 focus:outline-none focus:ring-2 focus:ring-[var(--section-confession-accent)]"
           style={{
             borderColor: 'hsl(var(--border))',

@@ -62,6 +62,11 @@ export type SectionDuration = {
 export function validateSectionConfig(
   config: Record<string, unknown>
 ): { valid: true; config: SectionConfig } | { valid: false; error: string } {
+  // Defense in depth: reject null, undefined, arrays, or non-object inputs
+  if (!config || typeof config !== 'object' || Array.isArray(config)) {
+    return { valid: false, error: 'Section config must be a non-null object' }
+  }
+
   const result: SectionConfig = { ...DEFAULT_SECTIONS }
   let sum = 0
 

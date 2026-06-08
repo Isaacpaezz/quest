@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState, useCallback, type KeyboardEvent }
 import { ChevronLeft, ChevronRight, Play, Pause, X } from 'lucide-react'
 import type { SectionDuration, SectionKey } from '@/lib/prayer-sections'
 import { usePrayerSession } from '@/hooks/use-prayer-session'
+import { useKeepAwake } from '@/hooks/use-keep-awake'
 import { SectionProgressBar } from './sections/section-progress-bar'
 import { AdorationSection } from './sections/adoration-section'
 import { ConfessionSection } from './sections/confession-section'
@@ -46,7 +47,7 @@ type Props = {
   totalSeconds: number
   sections: SectionDuration[]
   initialElapsed: number
-  onSync: (elapsed: number) => void
+  onSync: (elapsed: number) => void | Promise<void>
   onComplete: (totalElapsed: number) => Promise<void>
   peticionesPropias?: PeticionPropia[]
   peticionesComunidad?: PeticionComunidad[]
@@ -74,6 +75,10 @@ export function GuidedPrayerContainer({
 }: Props) {
   const [state, actions] = usePrayerSession(totalSeconds, sections, initialElapsed, onSync)
   const { phase, currentSectionIndex, totalElapsed, sectionElapsed } = state
+
+  // Keep screen awake while guided session is running (Issue #3 fix)
+  useKeepAwake(phase === 'running')
+
   const currentSection = sections[currentSectionIndex]
   const placeholder = currentSection ? SECTION_PLACEHOLDERS[currentSection.key] : null
   const isFirst = currentSectionIndex === 0
@@ -97,6 +102,30 @@ export function GuidedPrayerContainer({
       return next
     })
   }, [])
+
+  // Close handler: snapshots guided elapsed, persists progress, flushes
+  // intercessions, then delegates navigation to the parent onClose.
+  // This replaces the legacy OracionClient pause/close path (Issue #1 fix).
+  const [closing, setClosing] = useState(false)
+  const handleCloseClick = useCallback(async () => {
+    if (closing || batchSaving) return
+    setClosing(true)
+    try {
+      // Pause the guided session and snapshot current elapsed
+      const pausedElapsed = actions.pause()
+      // Persist progress via the parent's onSync (which calls save)
+      await onSync(pausedElapsed)
+      // Flush any pending guided intercessions before leaving
+      if (!batchSaved && intercededIds.size > 0 && onIntercessionBatch) {
+        await onIntercessionBatch(Array.from(intercededIds))
+      }
+    } catch (err) {
+      console.error('Guided close error:', err)
+    } finally {
+      setClosing(false)
+      onClose?.()
+    }
+  }, [closing, batchSaving, actions, onSync, batchSaved, intercededIds, onIntercessionBatch, onClose])
 
   // Compute per-section elapsed times for summary
   const sectionElapsedMap = useMemo(() => {
@@ -172,8 +201,8 @@ export function GuidedPrayerContainer({
       {onClose && (
         <div className="flex h-[calc(env(safe-area-inset-top)+48px)] shrink-0 items-end justify-between px-3 pb-1.5 pt-[env(safe-area-inset-top)]">
           <button
-            onClick={onClose}
-            disabled={closeDisabled || completionSaving}
+            onClick={handleCloseClick}
+            disabled={closeDisabled || completionSaving || batchSaving || closing}
             className="flex h-11 w-11 items-center justify-center rounded-full active:scale-95 disabled:opacity-50"
             aria-label="Cerrar oración"
           >

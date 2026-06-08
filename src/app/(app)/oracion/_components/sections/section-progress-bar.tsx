@@ -39,17 +39,15 @@ export function SectionProgressBar({ sections, currentSectionIndex, sectionElaps
 
   return (
     <div className="flex flex-col items-center gap-3 px-4 pt-2">
-      {/* Section dots */}
-      <div className="flex items-center gap-2.5" role="tablist" aria-label="Secciones de oración">
+      {/* Section dots — non-interactive progress indicator (not tabs) */}
+      <div className="flex items-center gap-2.5" role="list" aria-label="Progreso de secciones de oración">
         {sections.map((section, i) => {
           const isCompleted = i < currentSectionIndex
           const isActive = i === currentSectionIndex
           const dotAccent = SECTION_ACCENTS[section.key]
           return (
-            <div key={section.key} className="flex flex-col items-center gap-1">
+            <div key={section.key} className="flex flex-col items-center gap-1" role="listitem">
               <div
-                role="tab"
-                aria-selected={isActive}
                 aria-label={`${section.label}${isCompleted ? ' (completada)' : isActive ? ' (actual)' : ''}`}
                 className="flex h-7 w-7 items-center justify-center rounded-full text-[10px] font-bold transition-all duration-300"
                 style={{

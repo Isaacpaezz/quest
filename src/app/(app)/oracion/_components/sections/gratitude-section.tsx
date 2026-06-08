@@ -81,6 +81,8 @@ export function GratitudeSection({ sectionElapsed }: Props) {
           onChange={(e) => setReflection(e.target.value)}
           placeholder="Escribe por qué estás agradecido..."
           rows={3}
+          spellCheck={false}
+          autoComplete="off"
           className="w-full resize-none rounded-xl border bg-background/60 px-4 py-3 text-sm leading-relaxed placeholder:text-muted-foreground/40 focus:outline-none focus:ring-2 focus:ring-[var(--section-gratitude-accent)]"
           style={{
             borderColor: 'hsl(var(--border))',

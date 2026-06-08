@@ -647,17 +647,18 @@ export function OracionClient({
     if (sectionDurations && sectionDurations.length > 0) {
         return (
             <div className="fixed inset-0 z-[60] flex h-dvh flex-col overflow-hidden quest-bg">
-                {/* Guided prayer container — close button is inside the focus-trapped region */}
+                {/* Guided prayer container — close button is inside the focus-trapped region.
+                    The guided container handles its own pause/snapshot/intercession flush on close. */}
                 <div className="flex min-h-0 flex-1 flex-col">
                     <GuidedPrayerContainer
                         totalSeconds={baseSecs}
                         sections={sectionDurations}
                         initialElapsed={segundosIniciales}
-                        onSync={(elapsed) => void save(elapsed, baseSavedRef.current)}
+                        onSync={async (elapsed) => { await save(elapsed, baseSavedRef.current) }}
                         onComplete={async (totalElapsed) => { await handleBaseCompletion(totalElapsed) }}
                         peticionesPropias={peticionesPropias}
                         peticionesComunidad={peticionesComunidad}
-                        onClose={handleClose}
+                        onClose={() => { lsClear(); router.push('/home') }}
                         closeDisabled={saving}
                         onIntercessionBatch={async (ids) => {
                             if (ids.length === 0) return

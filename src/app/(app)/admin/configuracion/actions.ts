@@ -82,8 +82,10 @@ export async function actualizarConfiguracionAction(prevState: ActionState, form
   const data = validatedFields.data
 
   // Deep-validate oracion_secciones: must parse and sum to exactly 100
+  // Guard against crafted payloads (null, arrays, primitives) that JSON.parse accepts
+  const rawParsed = (() => { try { return JSON.parse(data.oracion_secciones) } catch { return {} } })()
   const seccionesValidation = validateSectionConfig(
-    (() => { try { return JSON.parse(data.oracion_secciones) } catch { return {} } })()
+    rawParsed && typeof rawParsed === 'object' && !Array.isArray(rawParsed) ? rawParsed : {}
   )
   if (!seccionesValidation.valid) {
     return { error: `Secciones de oración inválidas: ${seccionesValidation.error}` }
