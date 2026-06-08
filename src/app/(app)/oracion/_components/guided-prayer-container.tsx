@@ -5,6 +5,8 @@ import { ChevronLeft, ChevronRight, Play, Pause } from 'lucide-react'
 import type { SectionDuration, SectionKey } from '@/lib/prayer-sections'
 import { usePrayerSession } from '@/hooks/use-prayer-session'
 import { SectionProgressBar } from './sections/section-progress-bar'
+import { AdorationSection } from './sections/adoration-section'
+import { GratitudeSection } from './sections/gratitude-section'
 
 const SECTION_PLACEHOLDERS: Record<SectionKey, { emoji: string; prompt: string }> = {
   adoracion: { emoji: '🙌', prompt: 'Adora a Dios por quién Él es' },
@@ -61,21 +63,29 @@ export function GuidedPrayerContainer({ totalSeconds, sections, initialElapsed, 
         sectionElapsed={sectionElapsed}
       />
 
-      {/* Section content (placeholder — real sections in PR3-5) */}
-      <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-4 px-6">
+      {/* Section content */}
+      <div className="flex min-h-0 flex-1 flex-col items-center justify-center">
         {phase === 'complete' ? (
-          <div className="flex flex-col items-center gap-3 text-center">
+          <div className="flex flex-col items-center gap-3 px-6 text-center">
             <span className="text-4xl">✨</span>
             <p className="text-lg font-semibold" style={{ color: 'hsl(var(--primary))' }}>Oración completada</p>
             <p className="text-sm text-muted-foreground">{fmt(totalElapsed)} de oración guiada</p>
           </div>
-        ) : currentSection && placeholder ? (
-          <div className="flex flex-col items-center gap-3 text-center transition-opacity duration-500">
-            <span className="text-4xl leading-none">{placeholder.emoji}</span>
-            <p className="max-w-xs text-base font-medium leading-snug" style={{ color: 'hsl(var(--foreground) / 0.80)' }}>
-              {placeholder.prompt}
-            </p>
-            <p className="text-sm text-muted-foreground">{fmt(sectionElapsed)} / {fmt(currentSection.seconds)}</p>
+        ) : currentSection ? (
+          <div className="flex min-h-0 w-full flex-1 flex-col transition-opacity duration-500">
+            {currentSection.key === 'adoracion' ? (
+              <AdorationSection sectionElapsed={sectionElapsed} />
+            ) : currentSection.key === 'gratitud' ? (
+              <GratitudeSection sectionElapsed={sectionElapsed} />
+            ) : placeholder ? (
+              <div className="flex flex-1 flex-col items-center justify-center gap-4 px-6 text-center">
+                <span className="text-4xl leading-none">{placeholder.emoji}</span>
+                <p className="max-w-xs text-base font-medium leading-snug" style={{ color: 'hsl(var(--foreground) / 0.80)' }}>
+                  {placeholder.prompt}
+                </p>
+                <p className="text-sm text-muted-foreground">{fmt(sectionElapsed)} / {fmt(currentSection.seconds)}</p>
+              </div>
+            ) : null}
           </div>
         ) : null}
       </div>

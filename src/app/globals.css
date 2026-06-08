@@ -65,6 +65,23 @@
   --quest-text-secondary: #6B7080;
   --quest-shadow-card: 0 4px 40px #11131810;
   --quest-glass-border: #00000008;
+
+  /* Guided prayer section gradients (light mode) */
+  --section-adoration-from: #FFF8E7;
+  --section-adoration-to: #FFF3D4;
+  --section-adoration-accent: #D4A017;
+  --section-confession-from: #F3EEFF;
+  --section-confession-to: #E8DEFF;
+  --section-confession-accent: #8B5CF6;
+  --section-gratitude-from: #E8FFF3;
+  --section-gratitude-to: #D4FFE8;
+  --section-gratitude-accent: #10B981;
+  --section-supplication-from: #E8F4FF;
+  --section-supplication-to: #D4ECFF;
+  --section-supplication-accent: #3B82F6;
+  --section-intercession-from: #FFF0E8;
+  --section-intercession-to: #FFE4D4;
+  --section-intercession-accent: #F59E0B;
 }
 
 .dark {
@@ -126,6 +143,23 @@
   --quest-text-secondary: #7A8090;
   --quest-shadow-card: 0 2px 16px #00000020;
   --quest-glass-border: #FFFFFF0D;
+
+  /* Guided prayer section gradients (dark mode) */
+  --section-adoration-from: #1A1810;
+  --section-adoration-to: #15130A;
+  --section-adoration-accent: #D4A017;
+  --section-confession-from: #14101A;
+  --section-confession-to: #0F0C14;
+  --section-confession-accent: #8B5CF6;
+  --section-gratitude-from: #0A1A14;
+  --section-gratitude-to: #081410;
+  --section-gratitude-accent: #10B981;
+  --section-supplication-from: #0A141A;
+  --section-supplication-to: #081014;
+  --section-supplication-accent: #3B82F6;
+  --section-intercession-from: #1A120A;
+  --section-intercession-to: #140E08;
+  --section-intercession-accent: #F59E0B;
 }
 
 @theme inline {
@@ -191,6 +225,23 @@
 
   .dark .quest-bg {
     background: radial-gradient(120% 140% at 50% 30%, #1A1E2A 0%, #10131C 45%, #080A10 100%);
+  }
+
+  /* Guided prayer section gradient utilities */
+  .section-bg-adoration {
+    background: linear-gradient(180deg, var(--section-adoration-from), var(--section-adoration-to));
+  }
+  .section-bg-confession {
+    background: linear-gradient(180deg, var(--section-confession-from), var(--section-confession-to));
+  }
+  .section-bg-gratitude {
+    background: linear-gradient(180deg, var(--section-gratitude-from), var(--section-gratitude-to));
+  }
+  .section-bg-supplication {
+    background: linear-gradient(180deg, var(--section-supplication-from), var(--section-supplication-to));
+  }
+  .section-bg-intercession {
+    background: linear-gradient(180deg, var(--section-intercession-from), var(--section-intercession-to));
   }
 
   /* Touch feedback utilities */

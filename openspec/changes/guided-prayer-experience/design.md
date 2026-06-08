@@ -151,6 +151,8 @@ Each section gets a calm gradient background using CSS vars in `globals.css`:
 
 Section transitions use `transition: opacity 400ms ease-in-out` (matches Quest UI motion guidelines). Timer ring per section reuses existing SVG circle pattern with section accent color.
 
+Adoration may use section-specific worship scripture instead of the older generic prayer verse list. If verse reuse is still desirable after the guided section rollout, extract the shared source during PR6 cleanup rather than importing from the monolithic `oracion-client.tsx`.
+
 ## Testing Strategy
 
 | Layer | What | Approach |

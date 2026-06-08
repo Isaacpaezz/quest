@@ -46,11 +46,11 @@ Chain strategy: stacked-to-main
 
 ## Phase 3: Adoration + Gratitude Sections + Visual Foundation (PR3, ~180 lines)
 
-- [ ] 3.1 Add prayer section CSS variables to `src/app/globals.css` — `--section-adoration`, `--section-confession`, `--section-gratitude`, `--section-supplication`, `--section-intercession` gradient pairs for light and dark mode per design visual system table.
-- [ ] 3.2 Create `src/app/(app)/oracion/_components/sections/adoration-section.tsx` — full-screen calm layout with warm gold gradient, scripture verse display (reuse `VERSES` from oracion-client), worship prompt text, section accent icon.
-- [ ] 3.3 Create `src/app/(app)/oracion/_components/sections/gratitude-section.tsx` — green gradient, thanksgiving prompts, optional reflection textarea (client-only, same ephemeral pattern as confession but lower risk).
-- [ ] 3.4 Wire `AdorationSection` and `GratitudeSection` into `GuidedPrayerContainer` slot rendering for sections 0 and 2.
-- [ ] 3.5 Verify: `pnpm build` passes; sections render with correct gradients on mobile viewport; transitions between sections are smooth.
+- [x] 3.1 Add prayer section CSS variables to `src/app/globals.css` — `--section-adoration`, `--section-confession`, `--section-gratitude`, `--section-supplication`, `--section-intercession` gradient pairs for light and dark mode per design visual system table.
+- [x] 3.2 Create `src/app/(app)/oracion/_components/sections/adoration-section.tsx` — full-screen calm layout with warm gold gradient, scripture verse display (reuse `VERSES` from oracion-client), worship prompt text, section accent icon.
+- [x] 3.3 Create `src/app/(app)/oracion/_components/sections/gratitude-section.tsx` — green gradient, thanksgiving prompts, optional reflection textarea (client-only, same ephemeral pattern as confession but lower risk).
+- [x] 3.4 Wire `AdorationSection` and `GratitudeSection` into `GuidedPrayerContainer` slot rendering for sections 0 and 2.
+- [x] 3.5 Verify: `pnpm build` passes; sections render with correct gradients on mobile viewport; transitions between sections are smooth.
 
 ## Phase 4: Confession Section — Ephemeral Client-Only (PR4, ~100 lines)
 
