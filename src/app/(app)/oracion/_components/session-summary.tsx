@@ -135,7 +135,8 @@ export function SessionSummary({
       <div className="flex flex-col items-center gap-3 mt-2">
         <button
           onClick={() => router.push('/peticiones/mis-peticiones')}
-          className="flex items-center gap-2 text-sm font-medium text-primary"
+          disabled={saving}
+          className="flex items-center gap-2 text-sm font-medium text-primary disabled:opacity-50"
         >
           <Heart className="h-4 w-4" />
           Ver mis peticiones
