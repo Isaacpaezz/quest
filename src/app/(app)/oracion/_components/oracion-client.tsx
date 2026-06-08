@@ -654,7 +654,7 @@ export function OracionClient({
                         sections={sectionDurations}
                         initialElapsed={segundosIniciales}
                         onSync={(elapsed) => void save(elapsed, baseSavedRef.current)}
-                        onComplete={(totalElapsed) => void handleBaseCompletion(totalElapsed)}
+                        onComplete={async (totalElapsed) => { await handleBaseCompletion(totalElapsed) }}
                         peticionesPropias={peticionesPropias}
                         peticionesComunidad={peticionesComunidad}
                         onClose={handleClose}

@@ -47,7 +47,7 @@ type Props = {
   sections: SectionDuration[]
   initialElapsed: number
   onSync: (elapsed: number) => void
-  onComplete: (totalElapsed: number) => void
+  onComplete: (totalElapsed: number) => Promise<void>
   peticionesPropias?: PeticionPropia[]
   peticionesComunidad?: PeticionComunidad[]
   onIntercessionBatch?: (intercededIds: string[]) => Promise<void>
@@ -88,6 +88,7 @@ export function GuidedPrayerContainer({
   const [intercededIds, setIntercededIds] = useState<Set<string>>(new Set())
   const [batchSaved, setBatchSaved] = useState(false)
   const [batchSaving, setBatchSaving] = useState(false)
+  const [completionSaving, setCompletionSaving] = useState(false)
 
   const handleIntercede = useCallback((petitionId: string) => {
     setIntercededIds(prev => {
@@ -124,7 +125,8 @@ export function GuidedPrayerContainer({
   useEffect(() => {
     if (phase === 'complete' && !completedRef.current) {
       completedRef.current = true
-      onComplete(totalElapsed)
+      setCompletionSaving(true)
+      void onComplete(totalElapsed).finally(() => setCompletionSaving(false))
     }
   }, [phase, totalElapsed, onComplete])
 
@@ -171,7 +173,7 @@ export function GuidedPrayerContainer({
         <div className="flex h-[calc(env(safe-area-inset-top)+48px)] shrink-0 items-end justify-between px-3 pb-1.5 pt-[env(safe-area-inset-top)]">
           <button
             onClick={onClose}
-            disabled={closeDisabled}
+            disabled={closeDisabled || completionSaving}
             className="flex h-11 w-11 items-center justify-center rounded-full active:scale-95 disabled:opacity-50"
             aria-label="Cerrar oración"
           >
@@ -198,7 +200,7 @@ export function GuidedPrayerContainer({
             sections={sections}
             sectionElapsedMap={sectionElapsedMap}
             intercessionCount={intercededIds.size}
-            saving={batchSaving}
+            saving={completionSaving || batchSaving}
           />
         ) : currentSection ? (
           <div
