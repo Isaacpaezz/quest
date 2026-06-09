@@ -57,6 +57,7 @@ type Phase = 'timer' | 'bonus' | 'complete'
 const LS_KEY = 'quest_prayer_timer'
 const GUIDE_KEY = 'quest_prayer_guided_state'
 const SYNC_MS = 30_000
+const BONUS_RETRY_BACKOFF_SECONDS = 0.001
 
 // Fallback verses for legacy timer mode (guided prayer sections define their own)
 const FALLBACK_VERSES = [
@@ -106,6 +107,10 @@ function lsWrite(elapsed: number) {
 }
 function lsClear() {
     try { localStorage.removeItem(LS_KEY) } catch { /* ignore */ }
+}
+
+function getFailedBonusRetryElapsed(bonusSecs: number): number {
+    return Math.max(0, bonusSecs - BONUS_RETRY_BACKOFF_SECONDS)
 }
 
 type GuidedPrayerState = {
@@ -242,6 +247,8 @@ export function OracionClient({
     const rafId = useRef<number | null>(null)
     const phaseRef = useRef(getInitialPhase())
     const baseSavedRef = useRef(oracionCompletada) // tracks if base oración was already saved
+    const baseSaveInFlightRef = useRef(false)
+    const bonusSaveInFlightRef = useRef(false)
 
     // Keep screen awake while timer is running (Capacitor native + Web fallback)
     useKeepAwake(isRunning && phase !== 'complete')
@@ -343,13 +350,35 @@ export function OracionClient({
 
     // ── Handle base completion (minimum reached) ──
     const handleBaseCompletion = useCallback(async (currentSecs: number) => {
-        if (baseSavedRef.current) return // already saved base
-        baseSavedRef.current = true
-        phaseRef.current = 'bonus'
-        setPhase('bonus')
+        if (baseSavedRef.current) return true // already saved base
+        if (baseSaveInFlightRef.current) return false // already saving base
+        baseSaveInFlightRef.current = true
+        setSaving(true)
 
         // Save as completed
         const result = await save(currentSecs, true)
+
+        if (!result || result.error) {
+            const frozen = Math.floor(currentSecs)
+            if (rafId.current !== null) cancelAnimationFrame(rafId.current)
+            rafId.current = null
+            runStartRef.current = null
+            elapsedRef.current = frozen
+            setElapsed(frozen)
+            setIsRunning(false)
+            lsWrite(frozen)
+            toast.error(result?.error || 'No se pudo guardar tu oración', {
+                description: 'Reintentá en unos segundos.',
+                duration: 5000,
+            })
+            setSaving(false)
+            baseSaveInFlightRef.current = false
+            return false
+        }
+
+        baseSavedRef.current = true
+        phaseRef.current = 'bonus'
+        setPhase('bonus')
         const xp = result?.xpGanado ?? 0
         toast.success('¡Oración completada!', {
             description: xp > 0 ? `+${xp} XP 🙏` : '¡Has completado tu tiempo de oración!',
@@ -363,29 +392,53 @@ export function OracionClient({
             setIsRunning(false)
             lsClear()
         }
+        setSaving(false)
+        baseSaveInFlightRef.current = false
+        return true
         // Otherwise: timer keeps running into bonus phase
     }, [save, bonusReachable])
 
     // ── Handle bonus completion ──
     const handleBonusCompletion = useCallback(async () => {
+        if (bonusSaveInFlightRef.current) return false
+        bonusSaveInFlightRef.current = true
+
+        if (rafId.current !== null) cancelAnimationFrame(rafId.current)
         rafId.current = null
         runStartRef.current = null
         elapsedRef.current = bonusSecs
         setElapsed(bonusSecs)
         setIsRunning(false)
-        phaseRef.current = 'complete'
-        setPhase('complete')
-        lsClear()
 
         setSaving(true)
         try {
-            await save(bonusSecs, true)
+            const result = await save(bonusSecs, true)
+
+            if (!result || result.error) {
+                const retryElapsed = getFailedBonusRetryElapsed(bonusSecs)
+                elapsedRef.current = retryElapsed
+                setElapsed(retryElapsed)
+                phaseRef.current = 'bonus'
+                setPhase('bonus')
+                lsWrite(retryElapsed)
+                toast.error(result?.error || 'No se pudo guardar tu bonus de oración', {
+                    description: 'Reintentá en unos segundos.',
+                    duration: 5000,
+                })
+                return false
+            }
+
+            phaseRef.current = 'complete'
+            setPhase('complete')
+            lsClear()
             toast.success(`¡Bonus de oración! +${bonusXp} XP 🔥`, {
                 description: 'Tu dedicación extra fue recompensada',
                 duration: 5000,
             })
+            return true
         } finally {
             setSaving(false)
+            bonusSaveInFlightRef.current = false
         }
     }, [bonusSecs, bonusXp, save])
 
@@ -425,7 +478,7 @@ export function OracionClient({
         }
 
         // Check bonus completion threshold
-        if (bonusReachable && cur >= bonusSecs) {
+        if (bonusReachable && cur >= bonusSecs && baseSavedRef.current) {
             void handleBonusCompletion()
             return
         }
@@ -658,10 +711,16 @@ export function OracionClient({
                         sections={sectionDurations}
                         initialElapsed={segundosIniciales}
                         onSync={async (elapsed) => { await save(elapsed, baseSavedRef.current) }}
-                        onComplete={async (totalElapsed) => { await handleBaseCompletion(totalElapsed) }}
+                        onComplete={async (totalElapsed) => {
+                            const saved = await handleBaseCompletion(totalElapsed)
+                            if (!saved) throw new Error('Prayer completion was not saved')
+                        }}
                         peticionesPropias={peticionesPropias}
                         peticionesComunidad={peticionesComunidad}
-                        onClose={() => { lsClear(); router.push('/home') }}
+                        onClose={({ clearSession = true } = {}) => {
+                            if (clearSession) lsClear()
+                            router.push('/home')
+                        }}
                         closeDisabled={saving}
                         onIntercessionBatch={async (ids) => {
                             if (ids.length === 0) return

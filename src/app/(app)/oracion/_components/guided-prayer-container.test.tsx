@@ -1,9 +1,13 @@
-import { render, screen, waitFor } from '@testing-library/react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { SectionDuration } from '@/lib/prayer-sections'
 import { GuidedPrayerContainer } from './guided-prayer-container'
 
 const generarOracionesGuiaBatchMock = vi.hoisted(() => vi.fn())
+
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ push: vi.fn() }),
+}))
 
 vi.mock('@/app/(app)/peticiones/actions', () => ({
   generarOracionesGuiaBatch: generarOracionesGuiaBatchMock,
@@ -84,6 +88,10 @@ describe('GuidedPrayerContainer intercession guide generation', () => {
     localStorage.clear()
     generarOracionesGuiaBatchMock.mockReset()
     generarOracionesGuiaBatchMock.mockResolvedValue({ success: true, oraciones: {} })
+  })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
   })
 
   it('shows the empty intercession state without requesting AI guides', () => {
@@ -282,5 +290,75 @@ describe('GuidedPrayerContainer intercession guide generation', () => {
     await waitFor(() => {
       expect(generarOracionesGuiaBatchMock).toHaveBeenCalledTimes(2)
     })
+  })
+
+  it('does not show the completion summary or clear retry state when completion persistence fails', async () => {
+    const onClose = vi.fn()
+    const onComplete = vi
+      .fn()
+      .mockRejectedValueOnce(new Error('Database unavailable'))
+      .mockResolvedValueOnce(undefined)
+
+    vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => (
+      window.setTimeout(() => callback(performance.now()), 1)
+    ))
+    vi.stubGlobal('cancelAnimationFrame', (id: number) => {
+      window.clearTimeout(id)
+    })
+
+    const { unmount } = render(
+      <GuidedPrayerContainer
+        totalSeconds={0.001}
+        sections={[{ ...intercessionSections[0], seconds: 0.001 }]}
+        initialElapsed={0}
+        onSync={vi.fn()}
+        onComplete={onComplete}
+        onClose={onClose}
+        peticionesComunidad={[]}
+        onIntercessionBatch={vi.fn(async () => undefined)}
+      />
+    )
+
+    fireEvent.click(screen.getByLabelText('Iniciar oración'))
+
+    await waitFor(() => {
+      expect(onComplete).toHaveBeenCalledTimes(1)
+    })
+
+    expect(screen.queryByText('✨ Oración guiada completada')).toBeNull()
+    expect(screen.getByText('No se pudo guardar tu oración')).toBeTruthy()
+    expect(localStorage.getItem('quest_prayer_session')).toContain('"elapsed":0.001')
+
+    fireEvent.click(screen.getByLabelText('Cerrar oración'))
+
+    expect(onClose).toHaveBeenCalledWith({ clearSession: false })
+    expect(localStorage.getItem('quest_prayer_session')).toContain('"elapsed":0.001')
+
+    unmount()
+
+    render(
+      <GuidedPrayerContainer
+        totalSeconds={0.001}
+        sections={[{ ...intercessionSections[0], seconds: 0.001 }]}
+        initialElapsed={0}
+        onSync={vi.fn()}
+        onComplete={onComplete}
+        onClose={onClose}
+        peticionesComunidad={[]}
+        onIntercessionBatch={vi.fn(async () => undefined)}
+      />
+    )
+
+    fireEvent.click(screen.getByLabelText('Iniciar oración'))
+
+    await waitFor(() => {
+      expect(onComplete).toHaveBeenCalledTimes(2)
+    })
+    expect(await screen.findByText('✨ Oración guiada completada')).toBeTruthy()
+    expect(localStorage.getItem('quest_prayer_session')).toBeNull()
+
+    fireEvent.click(screen.getByLabelText('Cerrar oración'))
+
+    expect(onClose).toHaveBeenLastCalledWith({ clearSession: true })
   })
 })

@@ -74,6 +74,10 @@ type PeticionComunidad = {
   has_prayed?: boolean
 }
 
+type CloseOptions = {
+  clearSession: boolean
+}
+
 type Props = {
   totalSeconds: number
   sections: SectionDuration[]
@@ -83,7 +87,7 @@ type Props = {
   peticionesPropias?: PeticionPropia[]
   peticionesComunidad?: PeticionComunidad[]
   onIntercessionBatch?: (intercededIds: string[]) => Promise<void>
-  onClose?: () => void
+  onClose?: (options?: CloseOptions) => void
   closeDisabled?: boolean
 }
 
@@ -125,6 +129,10 @@ export function GuidedPrayerContainer({
   const [batchSaved, setBatchSaved] = useState(false)
   const [batchSaving, setBatchSaving] = useState(false)
   const [completionSaving, setCompletionSaving] = useState(false)
+  const [completionPersisted, setCompletionPersisted] = useState(false)
+  const [completionError, setCompletionError] = useState<string | null>(null)
+  const completionSavingRef = useRef(false)
+  const completionPersistedRef = useRef(false)
   const selectedCommunityPetitionIds = useMemo(
     () => peticionesComunidad.map((petition) => petition.id),
     [peticionesComunidad]
@@ -234,6 +242,10 @@ export function GuidedPrayerContainer({
   const [closing, setClosing] = useState(false)
   const handleCloseClick = useCallback(async () => {
     if (closing || batchSaving) return
+    if (phase === 'complete') {
+      onClose?.({ clearSession: completionPersistedRef.current })
+      return
+    }
     setClosing(true)
     try {
       // Pause the guided session and snapshot current elapsed
@@ -248,9 +260,9 @@ export function GuidedPrayerContainer({
       console.error('Guided close error:', err)
     } finally {
       setClosing(false)
-      onClose?.()
+      onClose?.({ clearSession: true })
     }
-  }, [closing, batchSaving, actions, onSync, batchSaved, intercededIds, onIntercessionBatch, onClose])
+  }, [closing, batchSaving, phase, actions, onSync, batchSaved, intercededIds, onIntercessionBatch, onClose])
 
   // Compute per-section elapsed times for summary
   const sectionElapsedMap = useMemo(() => {
@@ -267,6 +279,27 @@ export function GuidedPrayerContainer({
   const containerRef = useRef<HTMLDivElement>(null)
   const sectionContentRef = useRef<HTMLDivElement>(null)
 
+  const persistCompletion = useCallback(async () => {
+    if (completionSavingRef.current || completionPersistedRef.current) return
+
+    completionSavingRef.current = true
+    setCompletionSaving(true)
+    setCompletionError(null)
+
+    try {
+      await onComplete(totalElapsed)
+      completionPersistedRef.current = true
+      setCompletionPersisted(true)
+      actions.clearPersistedSession()
+    } catch (error) {
+      console.error('Guided completion save error:', error)
+      setCompletionError('No se pudo guardar tu oración. Revisá tu conexión y reintentá.')
+    } finally {
+      completionSavingRef.current = false
+      setCompletionSaving(false)
+    }
+  }, [actions, onComplete, totalElapsed])
+
   // Focus management: auto-focus section content area on section change
   useEffect(() => {
     if (phase === 'complete' || phase === 'idle') return
@@ -279,19 +312,18 @@ export function GuidedPrayerContainer({
   useEffect(() => {
     if (phase === 'complete' && !completedRef.current) {
       completedRef.current = true
-      setCompletionSaving(true)
-      void onComplete(totalElapsed).finally(() => setCompletionSaving(false))
+      void persistCompletion()
     }
-  }, [phase, totalElapsed, onComplete])
+  }, [phase, persistCompletion])
 
   // Batch save intercessions on completion
   useEffect(() => {
-    if (phase !== 'complete' || batchSaved) return
+    if (phase !== 'complete' || !completionPersisted || batchSaved) return
     if (intercededIds.size === 0 || !onIntercessionBatch) return
     setBatchSaved(true)
     setBatchSaving(true)
     void onIntercessionBatch(Array.from(intercededIds)).finally(() => setBatchSaving(false))
-  }, [phase, intercededIds, batchSaved, onIntercessionBatch])
+  }, [phase, completionPersisted, intercededIds, batchSaved, onIntercessionBatch])
 
   const trapFocus = useCallback((event: KeyboardEvent<HTMLDivElement>) => {
     if (event.key !== 'Tab') return
@@ -348,7 +380,37 @@ export function GuidedPrayerContainer({
 
       {/* Section content — crossfade with reduced-motion support */}
       <div className="flex min-h-0 flex-1 flex-col items-center justify-center">
-        {phase === 'complete' ? (
+        {phase === 'complete' && !completionPersisted ? (
+          <div className="flex max-w-sm flex-col items-center gap-4 px-6 text-center" role={completionError ? 'alert' : 'status'}>
+            <div
+              className="rounded-2xl px-6 py-4"
+              style={{ background: completionError ? 'hsl(var(--destructive) / 0.10)' : 'hsl(var(--primary) / 0.10)' }}
+            >
+              <p className="text-base font-semibold" style={{ color: completionError ? 'hsl(var(--destructive))' : 'hsl(var(--primary))' }}>
+                {completionError ? 'No se pudo guardar tu oración' : 'Guardando tu oración…'}
+              </p>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              {completionError
+                ? 'Tu progreso sigue guardado en este dispositivo. Reintentá para completar el registro.'
+                : 'Esperá unos segundos antes de cerrar.'}
+            </p>
+            {completionError && (
+              <button
+                type="button"
+                onClick={persistCompletion}
+                disabled={completionSaving}
+                className="rounded-xl px-6 py-3 text-sm font-semibold active:scale-95 disabled:opacity-50"
+                style={{
+                  background: 'hsl(var(--primary))',
+                  color: 'hsl(var(--primary-foreground))',
+                }}
+              >
+                {completionSaving ? 'Guardando…' : 'Reintentar guardado'}
+              </button>
+            )}
+          </div>
+        ) : phase === 'complete' ? (
           <SessionSummary
             totalElapsed={totalElapsed}
             sections={sections}

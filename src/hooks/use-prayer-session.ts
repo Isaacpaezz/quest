@@ -22,6 +22,8 @@ type PrayerSessionActions = {
   prevSection: () => void
   /** Returns current elapsed seconds without mutating state (for close snapshots). */
   getSnapshot: () => number
+  /** Clears the persisted guided session after completion has been saved remotely. */
+  clearPersistedSession: () => void
 }
 
 const LS_KEY = 'quest_prayer_session'
@@ -121,10 +123,12 @@ export function usePrayerSession(
       setTotalElapsed(totalSeconds)
       setPhase('complete')
       phaseRef.current = 'complete'
-      clearSession()
+      writeSession(totalSeconds, newIdx)
       // NOTE: Do NOT call onSync here — the container's onComplete effect
       // handles the final save with the correct completion flag, avoiding
       // a race where a false-completion write overwrites a true one.
+      // Keep the local session until that final save succeeds, so failures
+      // can be retried without losing the completed elapsed time.
       return
     }
 
@@ -204,6 +208,10 @@ export function usePrayerSession(
     return now()
   }, [now])
 
+  const clearPersistedSession = useCallback(() => {
+    clearSession()
+  }, [])
+
   useEffect(() => {
     return () => { if (rafIdRef.current !== null) cancelAnimationFrame(rafIdRef.current) }
   }, [])
@@ -215,5 +223,5 @@ export function usePrayerSession(
     sectionElapsed: Math.max(0, sectionElapsed),
   }
 
-  return [state, { start, pause, resume, nextSection, prevSection, getSnapshot }]
+  return [state, { start, pause, resume, nextSection, prevSection, getSnapshot, clearPersistedSession }]
 }
