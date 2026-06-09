@@ -30,7 +30,10 @@ type PeticionComunidad = {
     categoria: string
     usuario_nombre: string
     oraciones_count: number
+    creado_en?: string | null
+    actualizado_en?: string | null
     oracion_guia: string | null
+    has_prayed?: boolean
 }
 
 type Props = {
