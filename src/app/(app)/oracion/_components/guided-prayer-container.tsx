@@ -75,7 +75,7 @@ type PeticionComunidad = {
 }
 
 type CloseOptions = {
-  clearSession: boolean
+  clearSession?: boolean
 }
 
 type Props = {
