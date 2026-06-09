@@ -95,10 +95,11 @@ describe('GuidedPrayerContainer intercession guide generation', () => {
   })
 
   it('shows the empty intercession state without requesting AI guides', () => {
-    renderGuidedPrayer([])
+    const { container } = renderGuidedPrayer([])
 
     expect(screen.getByText('No hay peticiones comunitarias en este momento')).toBeTruthy()
     expect(generarOracionesGuiaBatchMock).not.toHaveBeenCalled()
+    expect(container.querySelector('.overflow-y-auto')).toBeTruthy()
   })
 
   it('requests guide generation only for selected petition IDs', async () => {
