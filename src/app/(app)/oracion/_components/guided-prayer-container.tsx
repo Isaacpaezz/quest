@@ -277,6 +277,7 @@ export function GuidedPrayerContainer({
 
   const completedRef = useRef(false)
   const containerRef = useRef<HTMLDivElement>(null)
+  const sectionScrollRef = useRef<HTMLDivElement>(null)
   const sectionContentRef = useRef<HTMLDivElement>(null)
 
   const persistCompletion = useCallback(async () => {
@@ -378,10 +379,10 @@ export function GuidedPrayerContainer({
         sectionElapsed={sectionElapsed}
       />
 
-      {/* Section content — crossfade with reduced-motion support */}
-      <div className="flex min-h-0 flex-1 flex-col items-center justify-center">
+      {/* Section content — scroll-safe above fixed bottom controls */}
+      <div ref={sectionScrollRef} className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
         {phase === 'complete' && !completionPersisted ? (
-          <div className="flex max-w-sm flex-col items-center gap-4 px-6 text-center" role={completionError ? 'alert' : 'status'}>
+          <div className="mx-auto flex min-h-full max-w-sm flex-col items-center justify-center gap-4 px-6 text-center" role={completionError ? 'alert' : 'status'}>
             <div
               className="rounded-2xl px-6 py-4"
               style={{ background: completionError ? 'hsl(var(--destructive) / 0.10)' : 'hsl(var(--primary) / 0.10)' }}
@@ -411,13 +412,15 @@ export function GuidedPrayerContainer({
             )}
           </div>
         ) : phase === 'complete' ? (
-          <SessionSummary
-            totalElapsed={totalElapsed}
-            sections={sections}
-            sectionElapsedMap={sectionElapsedMap}
-            intercessionCount={intercededIds.size}
-            saving={completionSaving || batchSaving}
-          />
+          <div className="flex min-h-full items-center justify-center">
+            <SessionSummary
+              totalElapsed={totalElapsed}
+              sections={sections}
+              sectionElapsedMap={sectionElapsedMap}
+              intercessionCount={intercededIds.size}
+              saving={completionSaving || batchSaving}
+            />
+          </div>
         ) : currentSection ? (
           <div
             key={currentSectionIndex}
@@ -425,7 +428,7 @@ export function GuidedPrayerContainer({
             role="region"
             aria-label={`${currentSection.label}, sección ${currentSectionIndex + 1} de ${sections.length}`}
             tabIndex={-1}
-            className="guided-section-crossfade flex min-h-0 w-full flex-1 flex-col outline-none"
+            className="guided-section-crossfade flex min-h-full w-full flex-col outline-none"
           >
             {currentSection.key === 'adoracion' ? (
               <AdorationSection sectionElapsed={sectionElapsed} />
@@ -448,6 +451,7 @@ export function GuidedPrayerContainer({
                 guideTextByPetitionId={guideTextByPetitionId}
                 guideLoadingByPetitionId={guideLoadingByPetitionId}
                 guideErrorByPetitionId={guideErrorByPetitionId}
+                scrollContainerRef={sectionScrollRef}
                 onIntercede={handleIntercede}
               />
             ) : placeholder ? (

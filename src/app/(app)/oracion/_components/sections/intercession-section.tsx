@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback } from 'react'
+import { useCallback, useLayoutEffect, useRef, type RefObject } from 'react'
 import { Users, Check, Sparkles, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -32,6 +32,7 @@ type Props = {
   guideTextByPetitionId: Record<string, string>
   guideLoadingByPetitionId: Record<string, boolean>
   guideErrorByPetitionId: Record<string, string>
+  scrollContainerRef?: RefObject<HTMLElement | null>
   onIntercede: (petitionId: string) => void
 }
 
@@ -49,6 +50,7 @@ export function IntercessionSection({
   guideTextByPetitionId,
   guideLoadingByPetitionId,
   guideErrorByPetitionId,
+  scrollContainerRef,
   onIntercede,
 }: Props) {
   const activePetitionSeconds = petitions.length > 0
@@ -66,6 +68,27 @@ export function IntercessionSection({
   const guideLoading = activePetition ? guideLoadingByPetitionId[activePetition.id] : false
   const guideError = activePetition ? guideErrorByPetitionId[activePetition.id] : null
   const displayIndex = activeIndex + 1
+  const activePetitionId = activePetition?.id ?? null
+  const lastActivePetitionIdRef = useRef<string | null>(null)
+
+  useLayoutEffect(() => {
+    if (!activePetitionId) {
+      lastActivePetitionIdRef.current = null
+      return
+    }
+
+    if (lastActivePetitionIdRef.current === activePetitionId) return
+
+    lastActivePetitionIdRef.current = activePetitionId
+    const scrollContainer = scrollContainerRef?.current
+    if (!scrollContainer) return
+
+    if (typeof scrollContainer.scrollTo === 'function') {
+      scrollContainer.scrollTo({ top: 0, behavior: 'auto' })
+    } else {
+      scrollContainer.scrollTop = 0
+    }
+  }, [activePetitionId, scrollContainerRef])
 
   const handleOreTap = useCallback((petitionId: string) => {
     const petition = petitions.find(item => item.id === petitionId)
@@ -75,7 +98,7 @@ export function IntercessionSection({
   }, [intercededIds, onIntercede, petitions])
 
   return (
-    <div className="section-bg-intercession flex min-h-0 flex-1 flex-col items-center justify-center gap-5 px-8">
+    <div className="section-bg-intercession flex min-h-full flex-col items-center justify-center gap-5 px-8 py-6">
       {/* Section icon */}
       <div
         className="flex h-14 w-14 items-center justify-center rounded-full"
@@ -122,7 +145,7 @@ export function IntercessionSection({
               {activePetition.titulo}
             </h3>
             {activePetition.descripcion && (
-              <p className="mt-2 max-h-20 overflow-y-auto text-sm leading-relaxed" style={{ color: 'hsl(var(--foreground) / 0.68)' }}>
+              <p className="mt-2 text-sm leading-relaxed" style={{ color: 'hsl(var(--foreground) / 0.68)' }}>
                 {activePetition.descripcion}
               </p>
             )}
@@ -139,7 +162,7 @@ export function IntercessionSection({
             </span>
           </div>
 
-          <div className="mt-4 rounded-xl px-4 py-3" style={{ background: 'hsl(var(--foreground) / 0.05)' }}>
+          <div className="mt-4 min-h-96 rounded-xl px-4 py-3" style={{ background: 'hsl(var(--foreground) / 0.05)' }}>
             <div className="mb-2 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.16em]" style={{ color: 'var(--section-intercession-accent)' }}>
               <Sparkles className="h-3.5 w-3.5" />
               Guía de oración
@@ -149,9 +172,11 @@ export function IntercessionSection({
                 {guideText}
               </p>
             ) : guideLoading ? (
-              <p className="flex items-center gap-2 text-sm leading-relaxed" style={{ color: 'hsl(var(--foreground) / 0.62)' }}>
+              <p className="flex items-start gap-2 text-sm leading-relaxed" style={{ color: 'hsl(var(--foreground) / 0.62)' }}>
                 <Loader2 className="h-4 w-4 animate-spin" />
-                Preparando una guía serena para esta petición…
+                <span>
+                  Preparando una guía serena para esta petición… Señor, acompaña a {activePetition.usuario_nombre} en esta necesidad y guíanos a interceder con fe y amor.
+                </span>
               </p>
             ) : (
               <p className="text-sm leading-relaxed" style={{ color: 'hsl(var(--foreground) / 0.62)' }}>

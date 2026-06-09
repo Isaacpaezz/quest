@@ -70,6 +70,14 @@ describe('IntercessionSection', () => {
     expect(screen.getByText('Lord, guide us as we pray for Ana with faith and peace.')).toBeTruthy()
   })
 
+  it('keeps petition description readable without an internal scrollbar', () => {
+    render(<IntercessionSection {...baseProps} petitions={petitions} />)
+
+    const description = screen.getByText('Ana is recovering from surgery.')
+    expect(description.className).not.toContain('max-h-20')
+    expect(description.className).not.toContain('overflow-y-auto')
+  })
+
   it('shows the active petition based on elapsed section time', () => {
     render(
       <IntercessionSection
@@ -84,6 +92,47 @@ describe('IntercessionSection', () => {
     expect(screen.getByText('Ora por Luis')).toBeTruthy()
     expect(screen.getByText('Work discernment')).toBeTruthy()
     expect(screen.getByText('Lord, guide Luis with wisdom.')).toBeTruthy()
+  })
+
+  it('resets the provided scroll container when the active petition changes', () => {
+    const scrollContainer = document.createElement('div')
+    const scrollTo = vi.fn()
+    Object.defineProperty(scrollContainer, 'scrollTo', { value: scrollTo, configurable: true })
+    const scrollContainerRef = { current: scrollContainer }
+
+    const { rerender } = render(
+      <IntercessionSection
+        {...baseProps}
+        petitions={petitions}
+        scrollContainerRef={scrollContainerRef}
+      />
+    )
+
+    expect(scrollTo).toHaveBeenCalledWith({ top: 0, behavior: 'auto' })
+    scrollTo.mockClear()
+
+    rerender(
+      <IntercessionSection
+        {...baseProps}
+        sectionElapsed={10}
+        petitions={petitions}
+        scrollContainerRef={scrollContainerRef}
+      />
+    )
+
+    expect(scrollTo).not.toHaveBeenCalled()
+
+    rerender(
+      <IntercessionSection
+        {...baseProps}
+        sectionElapsed={75}
+        petitions={petitions}
+        scrollContainerRef={scrollContainerRef}
+      />
+    )
+
+    expect(scrollTo).toHaveBeenCalledTimes(1)
+    expect(scrollTo).toHaveBeenCalledWith({ top: 0, behavior: 'auto' })
   })
 
   it('distributes active petition timing across long capped intercession sections', () => {
@@ -162,7 +211,7 @@ describe('IntercessionSection', () => {
       />
     )
 
-    expect(screen.getByText('Preparando una guía serena para esta petición…')).toBeTruthy()
+    expect(screen.getByText(/Preparando una guía serena para esta petición/)).toBeTruthy()
     expect((screen.getByRole('button', { name: /oré/i }) as HTMLButtonElement).disabled).toBe(false)
 
     rerender(
@@ -176,5 +225,20 @@ describe('IntercessionSection', () => {
     expect(screen.getByText(/No se pudo preparar la guía/)).toBeTruthy()
     expect(screen.getByText(/Señor, acompaña a Ana/)).toBeTruthy()
     expect((screen.getByRole('button', { name: /oré/i }) as HTMLButtonElement).disabled).toBe(false)
+  })
+
+  it('reserves a taller guide area without hiding overflow content', () => {
+    render(
+      <IntercessionSection
+        {...baseProps}
+        petitions={petitions}
+        guideLoadingByPetitionId={{ 'petition-1': true }}
+      />
+    )
+
+    const guideArea = screen.getByText('Guía de oración').parentElement
+    expect(guideArea?.className).toContain('min-h-96')
+    expect(guideArea?.className).not.toContain('max-h')
+    expect(guideArea?.className).not.toContain('overflow')
   })
 })
