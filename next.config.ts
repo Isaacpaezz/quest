@@ -23,8 +23,8 @@ const withPWA = withPWAInit({
   },
   // Nota: si extendDefaultSW no funciona en tu versión, podemos volver a injectManifest con swSrc
   // swSrc: "src/app/sw.js",
-  cacheOnFrontEndNav: true,
-  aggressiveFrontEndNavCaching: true,
+  cacheOnFrontEndNav: false,
+  aggressiveFrontEndNavCaching: false,
 });
 
 export default withPWA(nextConfig);

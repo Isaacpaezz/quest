@@ -60,15 +60,6 @@ const selectedPetitions = [
   },
 ]
 
-function createDeferred<T>() {
-  let resolve!: (value: T) => void
-  const promise = new Promise<T>((promiseResolve) => {
-    resolve = promiseResolve
-  })
-
-  return { promise, resolve }
-}
-
 function renderGuidedPrayer(petitions = selectedPetitions) {
   return render(
     <GuidedPrayerContainer
@@ -83,7 +74,7 @@ function renderGuidedPrayer(petitions = selectedPetitions) {
   )
 }
 
-describe('GuidedPrayerContainer intercession guide generation', () => {
+describe('GuidedPrayerContainer intercession guide display', () => {
   beforeEach(() => {
     localStorage.clear()
     generarOracionesGuiaBatchMock.mockReset()
@@ -102,39 +93,23 @@ describe('GuidedPrayerContainer intercession guide generation', () => {
     expect(container.querySelector('.overflow-y-auto')).toBeTruthy()
   })
 
-  it('requests guide generation only for selected petition IDs', async () => {
-    generarOracionesGuiaBatchMock.mockResolvedValueOnce({
-      success: true,
-      oraciones: {
-        [selectedPetitions[0].id]: 'Validated guide for Ana.',
-        [selectedPetitions[1].id]: 'Validated guide for Luis.',
-      },
-    })
-
+  it('does not auto-generate guides on mount and renders fallback guide text', () => {
     renderGuidedPrayer()
 
-    await waitFor(() => {
-      expect(generarOracionesGuiaBatchMock).toHaveBeenCalledTimes(1)
-    })
-
-    expect(generarOracionesGuiaBatchMock).toHaveBeenCalledWith(selectedPetitions.map(petition => petition.id))
-    expect(generarOracionesGuiaBatchMock).not.toHaveBeenCalledWith(
-      expect.arrayContaining(['unselected-petition-id'])
-    )
+    expect(generarOracionesGuiaBatchMock).not.toHaveBeenCalled()
+    expect(screen.getByText(/Señor, acompaña a Ana en esta necesidad/)).toBeTruthy()
   })
 
-  it('renders validated guide text returned by the action and does not repeat calls across re-renders', async () => {
-    generarOracionesGuiaBatchMock.mockResolvedValueOnce({
-      success: true,
-      oraciones: {
-        [selectedPetitions[0].id]: 'Validated cached guide for Ana.',
-      },
-    })
+  it('renders provided guide text without requesting new guides across re-renders', () => {
+    const petitionsWithGuide = selectedPetitions.map((petition, index) => ({
+      ...petition,
+      oracion_guia: index === 0 ? 'Stored guide for Ana.' : null,
+    }))
 
-    const { rerender } = renderGuidedPrayer()
+    const { rerender } = renderGuidedPrayer(petitionsWithGuide)
 
-    expect(await screen.findByText('Validated cached guide for Ana.')).toBeTruthy()
-    expect(generarOracionesGuiaBatchMock).toHaveBeenCalledTimes(1)
+    expect(screen.getByText('Stored guide for Ana.')).toBeTruthy()
+    expect(generarOracionesGuiaBatchMock).not.toHaveBeenCalled()
 
     rerender(
       <GuidedPrayerContainer
@@ -143,83 +118,22 @@ describe('GuidedPrayerContainer intercession guide generation', () => {
         initialElapsed={0}
         onSync={vi.fn()}
         onComplete={vi.fn(async () => undefined)}
-        peticionesComunidad={selectedPetitions}
+        peticionesComunidad={petitionsWithGuide}
         onIntercessionBatch={vi.fn(async () => undefined)}
       />
     )
 
-    expect(screen.getByText('Validated cached guide for Ana.')).toBeTruthy()
-    expect(generarOracionesGuiaBatchMock).toHaveBeenCalledTimes(1)
+    expect(screen.getByText('Stored guide for Ana.')).toBeTruthy()
+    expect(generarOracionesGuiaBatchMock).not.toHaveBeenCalled()
   })
 
-  it('requests guides again after a completed request remounts with the same selected IDs', async () => {
-    generarOracionesGuiaBatchMock.mockResolvedValueOnce({
-      success: true,
-      oraciones: {
-        [selectedPetitions[0].id]: 'Initial server-validated guide for Ana.',
-      },
-    }).mockResolvedValueOnce({
-      success: true,
-      oraciones: {
-        [selectedPetitions[0].id]: 'Revalidated guide for Ana after remount.',
-      },
-    })
-
-    const { unmount } = renderGuidedPrayer()
-
-    expect(await screen.findByText('Initial server-validated guide for Ana.')).toBeTruthy()
-    expect(generarOracionesGuiaBatchMock).toHaveBeenCalledTimes(1)
-
-    unmount()
-    renderGuidedPrayer(selectedPetitions.map(petition => ({ ...petition })))
-
-    expect(await screen.findByText('Revalidated guide for Ana after remount.')).toBeTruthy()
-    expect(generarOracionesGuiaBatchMock).toHaveBeenCalledTimes(2)
-  })
-
-  it('reuses an in-flight guide request across remounts and updates the remounted component', async () => {
-    const deferred = createDeferred<{
-      success: true
-      oraciones: Record<string, string>
-    }>()
-    generarOracionesGuiaBatchMock.mockReturnValueOnce(deferred.promise)
-
-    const { unmount } = renderGuidedPrayer()
-
-    await waitFor(() => {
-      expect(generarOracionesGuiaBatchMock).toHaveBeenCalledTimes(1)
-    })
-
-    unmount()
-    renderGuidedPrayer(selectedPetitions.map(petition => ({ ...petition })))
-
-    expect(generarOracionesGuiaBatchMock).toHaveBeenCalledTimes(1)
-
-    deferred.resolve({
-      success: true,
-      oraciones: {
-        [selectedPetitions[0].id]: 'In-flight guide reused for Ana.',
-      },
-    })
-
-    expect(await screen.findByText('In-flight guide reused for Ana.')).toBeTruthy()
-    expect(generarOracionesGuiaBatchMock).toHaveBeenCalledTimes(1)
-  })
-
-  it('does not read or write completed guide text from sessionStorage', async () => {
+  it('does not read or write completed guide text from sessionStorage', () => {
     const getItemSpy = vi.spyOn(Storage.prototype, 'getItem')
     const setItemSpy = vi.spyOn(Storage.prototype, 'setItem')
 
-    generarOracionesGuiaBatchMock.mockResolvedValueOnce({
-      success: true,
-      oraciones: {
-        [selectedPetitions[0].id]: 'Server-only validated guide for Ana.',
-      },
-    })
-
     renderGuidedPrayer()
 
-    expect(await screen.findByText('Server-only validated guide for Ana.')).toBeTruthy()
+    expect(screen.getByText(/Señor, acompaña a Ana en esta necesidad/)).toBeTruthy()
     expect(getItemSpy).not.toHaveBeenCalledWith(expect.stringContaining('quest:guided-intercession-guides'))
     expect(setItemSpy).not.toHaveBeenCalledWith(
       expect.stringContaining('quest:guided-intercession-guides'),
@@ -230,48 +144,10 @@ describe('GuidedPrayerContainer intercession guide generation', () => {
     setItemSpy.mockRestore()
   })
 
-  it('requests guides again when the selected petition fingerprint changes with the same IDs', async () => {
-    generarOracionesGuiaBatchMock
-      .mockResolvedValueOnce({
-        success: true,
-        oraciones: {
-          [selectedPetitions[0].id]: 'Original guide for Ana.',
-        },
-      })
-      .mockResolvedValueOnce({
-        success: true,
-        oraciones: {
-          [selectedPetitions[0].id]: 'Fresh guide for updated Ana context.',
-        },
-      })
-
+  it('does not request guides after remounting with a new selected ID set', () => {
     const { unmount } = renderGuidedPrayer()
 
-    expect(await screen.findByText('Original guide for Ana.')).toBeTruthy()
-    expect(generarOracionesGuiaBatchMock).toHaveBeenCalledTimes(1)
-
-    unmount()
-    renderGuidedPrayer([
-      {
-        ...selectedPetitions[0],
-        descripcion: 'Ana is recovering and needs encouragement after a new update.',
-        actualizado_en: '2026-06-08T12:00:00.000Z',
-      },
-      { ...selectedPetitions[1] },
-    ])
-
-    await waitFor(() => {
-      expect(generarOracionesGuiaBatchMock).toHaveBeenCalledTimes(2)
-    })
-    expect(await screen.findByText('Fresh guide for updated Ana context.')).toBeTruthy()
-  })
-
-  it('requests guides for a new selected ID set after remount', async () => {
-    const { unmount } = renderGuidedPrayer()
-
-    await waitFor(() => {
-      expect(generarOracionesGuiaBatchMock).toHaveBeenCalledTimes(1)
-    })
+    expect(generarOracionesGuiaBatchMock).not.toHaveBeenCalled()
 
     unmount()
     renderGuidedPrayer([
@@ -288,9 +164,7 @@ describe('GuidedPrayerContainer intercession guide generation', () => {
       },
     ])
 
-    await waitFor(() => {
-      expect(generarOracionesGuiaBatchMock).toHaveBeenCalledTimes(2)
-    })
+    expect(generarOracionesGuiaBatchMock).not.toHaveBeenCalled()
   })
 
   it('does not show the completion summary or clear retry state when completion persistence fails', async () => {

@@ -182,6 +182,10 @@ export async function actualizarProgresoOracionAction(datos: { segundosAcumulado
     return { error: 'Error en la base de datos.' };
   }
 
+  if (!oracionCompletada) {
+    return { message: 'Progreso guardado.' }
+  }
+
   const { data: persistedProgress } = await supabase
     .from('progreso_usuario')
     .select('segundos_oracion_acumulados')
@@ -196,48 +200,46 @@ export async function actualizarProgresoOracionAction(datos: { segundosAcumulado
   let existingActivity: { id: string; referencia_contenido: string | null }[] | null = null
   const grupoIdForConfig = await getGrupoActivo(supabase)
 
-  if (oracionCompletada) {
-    // Check if we already posted a prayer activity today (timezone-aware bounds)
-    const { start: todayStart, end: todayEnd } = getGroupDateBounds(tz)
-    const { data } = await supabase
-      .from('actividad_comunidad')
-      .select('id, referencia_contenido')
-      .eq('usuario_id', user.id)
-      .eq('tipo_actividad', 'oracion_completada')
-      .gte('creado_en', todayStart)
-      .lte('creado_en', todayEnd)
-      .limit(1)
-    existingActivity = data
+  // Check if we already posted a prayer activity today (timezone-aware bounds)
+  const { start: todayStart, end: todayEnd } = getGroupDateBounds(tz)
+  const { data } = await supabase
+    .from('actividad_comunidad')
+    .select('id, referencia_contenido')
+    .eq('usuario_id', user.id)
+    .eq('tipo_actividad', 'oracion_completada')
+    .gte('creado_en', todayStart)
+    .lte('creado_en', todayEnd)
+    .limit(1)
+  existingActivity = data
 
-    // Detect bonus: check if seconds exceed bonus threshold
-    let bonusAchieved = false
-    if (grupoIdForConfig) {
-      const { getConfigGrupo } = await import('@/lib/grupo-helpers')
-      const config = await getConfigGrupo(supabase, grupoIdForConfig)
-      const bonusMinutos = Number(config['xp_oracion_bonus_minutos']) || 10
-      bonusAchieved = persistedSegundos >= bonusMinutos * 60
-    }
+  // Detect bonus: check if seconds exceed bonus threshold
+  let bonusAchieved = false
+  if (grupoIdForConfig) {
+    const { getConfigGrupo } = await import('@/lib/grupo-helpers')
+    const config = await getConfigGrupo(supabase, grupoIdForConfig)
+    const bonusMinutos = Number(config['xp_oracion_bonus_minutos']) || 10
+    bonusAchieved = persistedSegundos >= bonusMinutos * 60
+  }
 
-    if (!existingActivity?.length) {
-      // First prayer completion today — insert
-      await supabase.from('actividad_comunidad').insert({
-        usuario_id: user.id,
-        tipo_actividad: 'oracion_completada',
-        referencia_contenido: bonusAchieved ? 'Tiempo de Oración + Bonus 🔥' : 'Tiempo de Oración',
-        resumen_actividad: bonusAchieved
-          ? 'Ha completado su tiempo de oración con bonus extra.'
-          : 'Ha completado su tiempo de oración de hoy.',
-        grupo_id: grupoIdForConfig,
+  if (!existingActivity?.length) {
+    // First prayer completion today — insert
+    await supabase.from('actividad_comunidad').insert({
+      usuario_id: user.id,
+      tipo_actividad: 'oracion_completada',
+      referencia_contenido: bonusAchieved ? 'Tiempo de Oración + Bonus 🔥' : 'Tiempo de Oración',
+      resumen_actividad: bonusAchieved
+        ? 'Ha completado su tiempo de oración con bonus extra.'
+        : 'Ha completado su tiempo de oración de hoy.',
+      grupo_id: grupoIdForConfig,
+    })
+  } else if (bonusAchieved && !existingActivity[0].referencia_contenido?.includes('Bonus')) {
+    // Already posted, but bonus just achieved — update the existing entry
+    await supabase.from('actividad_comunidad')
+      .update({
+        referencia_contenido: 'Tiempo de Oración + Bonus 🔥',
+        resumen_actividad: 'Ha completado su tiempo de oración con bonus extra.',
       })
-    } else if (bonusAchieved && !existingActivity[0].referencia_contenido?.includes('Bonus')) {
-      // Already posted, but bonus just achieved — update the existing entry
-      await supabase.from('actividad_comunidad')
-        .update({
-          referencia_contenido: 'Tiempo de Oración + Bonus 🔥',
-          resumen_actividad: 'Ha completado su tiempo de oración con bonus extra.',
-        })
-        .eq('id', existingActivity[0].id)
-    }
+      .eq('id', existingActivity[0].id)
   }
 
   // ─── XP System ─────────────────────────────────────────────────────────────

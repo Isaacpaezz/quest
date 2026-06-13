@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useRef, useState, useCallback, type KeyboardEvent } from 'react'
 import { ChevronLeft, ChevronRight, Play, Pause, X } from 'lucide-react'
-import { generarOracionesGuiaBatch } from '@/app/(app)/peticiones/actions'
 import type { SectionDuration, SectionKey } from '@/lib/prayer-sections'
 import { SECONDS_PER_INTERCESSION_PETITION } from '@/lib/guided-intercession'
 import { usePrayerSession } from '@/hooks/use-prayer-session'
@@ -27,10 +26,6 @@ const fmt = (s: number): string => {
   const t = Math.max(0, Math.floor(s))
   return `${Math.floor(t / 60).toString().padStart(2, '0')}:${(t % 60).toString().padStart(2, '0')}`
 }
-
-type GuideBatchResult = Awaited<ReturnType<typeof generarOracionesGuiaBatch>>
-
-const guideBatchRequestsByFingerprint = new Map<string, Promise<GuideBatchResult>>()
 
 function normalizeFingerprintValue(value: string | number | boolean | null | undefined): string | number | boolean | null {
   return value ?? null
@@ -133,10 +128,6 @@ export function GuidedPrayerContainer({
   const [completionError, setCompletionError] = useState<string | null>(null)
   const completionSavingRef = useRef(false)
   const completionPersistedRef = useRef(false)
-  const selectedCommunityPetitionIds = useMemo(
-    () => peticionesComunidad.map((petition) => petition.id),
-    [peticionesComunidad]
-  )
   const selectedCommunityPetitionFingerprint = useMemo(
     () => getSelectionFingerprint(peticionesComunidad),
     [peticionesComunidad]
@@ -150,7 +141,7 @@ export function GuidedPrayerContainer({
 
     return initialGuides
   })
-  const [guideLoadingByPetitionId, setGuideLoadingByPetitionId] = useState<Record<string, boolean>>({})
+  const [guideLoadingByPetitionId] = useState<Record<string, boolean>>({})
   const [guideErrorByPetitionId, setGuideErrorByPetitionId] = useState<Record<string, string>>({})
 
   const handleIntercede = useCallback((petitionId: string) => {
@@ -162,8 +153,6 @@ export function GuidedPrayerContainer({
   }, [])
 
   useEffect(() => {
-    if (selectedCommunityPetitionIds.length === 0) return
-
     const initialGuides = Object.fromEntries(
       peticionesComunidad
         .filter((petition) => Boolean(petition.oracion_guia))
@@ -171,70 +160,16 @@ export function GuidedPrayerContainer({
     )
     setGuideTextByPetitionId(prev => {
       const next = { ...prev }
-      selectedCommunityPetitionIds.forEach(id => { delete next[id] })
+      peticionesComunidad.forEach(petition => { delete next[petition.id] })
       return { ...next, ...initialGuides }
     })
 
-    setGuideLoadingByPetitionId(prev => ({
-      ...prev,
-      ...Object.fromEntries(selectedCommunityPetitionIds.map(id => [id, true])),
-    }))
     setGuideErrorByPetitionId(prev => {
       const next = { ...prev }
-      selectedCommunityPetitionIds.forEach(id => { delete next[id] })
+      peticionesComunidad.forEach(petition => { delete next[petition.id] })
       return next
     })
-
-    let cancelled = false
-    const existingRequest = guideBatchRequestsByFingerprint.get(selectedCommunityPetitionFingerprint)
-    const guideRequest = existingRequest ?? generarOracionesGuiaBatch(selectedCommunityPetitionIds)
-
-    if (!existingRequest) {
-      guideBatchRequestsByFingerprint.set(selectedCommunityPetitionFingerprint, guideRequest)
-      void guideRequest.finally(() => {
-        if (guideBatchRequestsByFingerprint.get(selectedCommunityPetitionFingerprint) === guideRequest) {
-          guideBatchRequestsByFingerprint.delete(selectedCommunityPetitionFingerprint)
-        }
-      })
-    }
-
-    guideRequest
-      .then(result => {
-        if (result.success) {
-          if (!cancelled) {
-            setGuideTextByPetitionId(prev => ({ ...prev, ...result.oraciones }))
-          }
-          return
-        }
-
-        if (cancelled) return
-
-        const message = result.error || 'No se pudo preparar la oración guía'
-        setGuideErrorByPetitionId(prev => ({
-          ...prev,
-          ...Object.fromEntries(selectedCommunityPetitionIds.map(id => [id, message])),
-        }))
-      })
-      .catch(error => {
-        console.error('Error preparing guided intercession prayers:', error)
-        if (cancelled) return
-        setGuideErrorByPetitionId(prev => ({
-          ...prev,
-          ...Object.fromEntries(selectedCommunityPetitionIds.map(id => [id, 'No se pudo preparar la oración guía'])),
-        }))
-      })
-      .finally(() => {
-        if (cancelled) return
-        setGuideLoadingByPetitionId(prev => ({
-          ...prev,
-          ...Object.fromEntries(selectedCommunityPetitionIds.map(id => [id, false])),
-        }))
-      })
-
-    return () => {
-      cancelled = true
-    }
-  }, [peticionesComunidad, selectedCommunityPetitionIds, selectedCommunityPetitionFingerprint])
+  }, [peticionesComunidad, selectedCommunityPetitionFingerprint])
 
   // Close handler: snapshots guided elapsed, persists progress, flushes
   // intercessions, then delegates navigation to the parent onClose.

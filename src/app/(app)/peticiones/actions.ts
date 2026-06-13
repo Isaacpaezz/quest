@@ -36,6 +36,8 @@ const actualizarPeticionSchema = z.object({
   visibilidad: z.enum(['private', 'group']).optional(),
 })
 
+const MAX_GUIDED_PRAYER_GENERATIONS = 3
+const OPENAI_PRAYER_TIMEOUT_MS = 3_500
 const generarOracionesGuiaBatchSchema = z.array(z.string().uuid()).max(20)
 
 type PeticionGuiaContext = {
@@ -149,12 +151,18 @@ async function generatePrayerWithOpenAI(
   updates: ActualizacionGuiaContext[],
   perspective: 'own' | 'intercession'
 ) {
+  if (process.env.ENABLE_OPENAI_PRAYER_GUIDES !== 'true') return null
+
   const apiKey = process.env.OPENAI_API_KEY
   if (!apiKey) return null
+
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), OPENAI_PRAYER_TIMEOUT_MS)
 
   try {
     const response = await fetch('https://api.openai.com/v1/responses', {
       method: 'POST',
+      signal: controller.signal,
       headers: {
         Authorization: `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
@@ -185,6 +193,8 @@ async function generatePrayerWithOpenAI(
   } catch (error) {
     console.error('Error generating prayer with OpenAI:', error)
     return null
+  } finally {
+    clearTimeout(timeout)
   }
 }
 
@@ -1115,7 +1125,7 @@ export async function generarOracionesGuiaBatch(peticionIds: string[]) {
       return { success: false, error: 'No autenticado', oraciones: {} as Record<string, string> }
     }
 
-    const parsed = generarOracionesGuiaBatchSchema.safeParse([...new Set(peticionIds)])
+    const parsed = generarOracionesGuiaBatchSchema.safeParse([...new Set(peticionIds)].slice(0, MAX_GUIDED_PRAYER_GENERATIONS))
     if (!parsed.success) {
       return { success: false, error: 'Peticiones inválidas', oraciones: {} as Record<string, string> }
     }
@@ -1217,8 +1227,6 @@ export async function generarOracionesGuiaBatch(peticionIds: string[]) {
 
       oraciones[peticion.id] = prayer
     }
-
-    revalidatePath('/oracion')
 
     return { success: true, oraciones }
   } catch (error) {
