@@ -12,7 +12,47 @@ export type GuidedIntercessionPetition = {
   creado_en: string
   actualizado_en?: string | null
   has_prayed?: boolean
+  last_prayed_at?: string | null
   oracion_guia?: string | null
+}
+
+type RecentPrayerWindow = 'today' | 'yesterday' | 'older-or-unprayed'
+
+function dateOnly(value: string): string | null {
+  const timestamp = Date.parse(value)
+  if (Number.isNaN(timestamp)) return null
+
+  return new Date(timestamp).toISOString().slice(0, 10)
+}
+
+function getPreviousDate(date: string): string | null {
+  const timestamp = Date.parse(`${date}T00:00:00.000Z`)
+  if (Number.isNaN(timestamp)) return null
+
+  const previousDate = new Date(timestamp)
+  previousDate.setUTCDate(previousDate.getUTCDate() - 1)
+  return previousDate.toISOString().slice(0, 10)
+}
+
+function getRecentPrayerWindow(
+  petition: GuidedIntercessionPetition,
+  referenceDate?: string
+): RecentPrayerWindow {
+  if (!petition.last_prayed_at || !referenceDate) return 'older-or-unprayed'
+
+  const prayedDate = dateOnly(petition.last_prayed_at)
+  if (!prayedDate) return 'older-or-unprayed'
+
+  if (prayedDate === referenceDate) return 'today'
+  if (prayedDate === getPreviousDate(referenceDate)) return 'yesterday'
+
+  return 'older-or-unprayed'
+}
+
+function recentPrayerWeight(window: RecentPrayerWindow): number {
+  if (window === 'today') return 2
+  if (window === 'yesterday') return 1
+  return 0
 }
 
 export function getGuidedIntercessionCapacity(intercessionSeconds: number): number {
@@ -28,10 +68,13 @@ function isUrgent(petition: GuidedIntercessionPetition): boolean {
 
 function comparePetitions(
   a: GuidedIntercessionPetition,
-  b: GuidedIntercessionPetition
+  b: GuidedIntercessionPetition,
+  referenceDate?: string
 ): number {
-  if (Boolean(a.has_prayed) !== Boolean(b.has_prayed)) {
-    return a.has_prayed ? 1 : -1
+  const recentPrayerDiff = recentPrayerWeight(getRecentPrayerWindow(a, referenceDate))
+    - recentPrayerWeight(getRecentPrayerWindow(b, referenceDate))
+  if (recentPrayerDiff !== 0) {
+    return recentPrayerDiff
   }
 
   if (isUrgent(a) !== isUrgent(b)) {
@@ -52,17 +95,19 @@ export function selectGuidedIntercessionPetitions({
   petitions,
   currentUserId,
   intercessionSeconds,
+  referenceDate,
 }: {
   petitions: GuidedIntercessionPetition[]
   currentUserId: string
   intercessionSeconds: number
+  referenceDate?: string
 }): GuidedIntercessionPetition[] {
   const capacity = getGuidedIntercessionCapacity(intercessionSeconds)
   if (capacity === 0 || petitions.length === 0) return []
 
   const ordered = petitions
     .filter((petition) => petition.usuario_id !== currentUserId)
-    .toSorted(comparePetitions)
+    .toSorted((a, b) => comparePetitions(a, b, referenceDate))
 
   const selected: GuidedIntercessionPetition[] = []
   const selectedRequesters = new Set<string>()

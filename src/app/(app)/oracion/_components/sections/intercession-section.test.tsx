@@ -94,6 +94,34 @@ describe('IntercessionSection', () => {
     expect(screen.getByText('Lord, guide Luis with wisdom.')).toBeTruthy()
   })
 
+  it('allows manual navigation between petitions', () => {
+    render(<IntercessionSection {...baseProps} petitions={petitions} />)
+
+    expect(screen.getByText('Petición 1 de 2')).toBeTruthy()
+    expect(screen.getByText('Ora por Ana')).toBeTruthy()
+
+    fireEvent.click(screen.getByRole('button', { name: /siguiente/i }))
+
+    expect(screen.getByText('Petición 2 de 2')).toBeTruthy()
+    expect(screen.getByText('Ora por Luis')).toBeTruthy()
+
+    fireEvent.click(screen.getByRole('button', { name: /anterior/i }))
+
+    expect(screen.getByText('Petición 1 de 2')).toBeTruthy()
+    expect(screen.getByText('Ora por Ana')).toBeTruthy()
+  })
+
+  it('keeps manual navigation active when elapsed time would point elsewhere', () => {
+    const { rerender } = render(<IntercessionSection {...baseProps} petitions={petitions} />)
+
+    fireEvent.click(screen.getByRole('button', { name: /siguiente/i }))
+
+    rerender(<IntercessionSection {...baseProps} sectionElapsed={0} petitions={petitions} />)
+
+    expect(screen.getByText('Petición 2 de 2')).toBeTruthy()
+    expect(screen.getByText('Ora por Luis')).toBeTruthy()
+  })
+
   it('resets the provided scroll container when the active petition changes', () => {
     const scrollContainer = document.createElement('div')
     const scrollTo = vi.fn()
@@ -227,7 +255,7 @@ describe('IntercessionSection', () => {
     expect((screen.getByRole('button', { name: /oré/i }) as HTMLButtonElement).disabled).toBe(false)
   })
 
-  it('reserves a taller guide area without hiding overflow content', () => {
+  it('keeps Oré before the guide area and reserves guide space without hiding overflow content', () => {
     render(
       <IntercessionSection
         {...baseProps}
@@ -237,7 +265,9 @@ describe('IntercessionSection', () => {
     )
 
     const guideArea = screen.getByText('Guía de oración').parentElement
-    expect(guideArea?.className).toContain('min-h-96')
+    const oreButton = screen.getByRole('button', { name: /oré/i })
+    expect(oreButton.compareDocumentPosition(screen.getByText('Guía de oración')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(guideArea?.className).toContain('min-h-52')
     expect(guideArea?.className).not.toContain('max-h')
     expect(guideArea?.className).not.toContain('overflow')
   })

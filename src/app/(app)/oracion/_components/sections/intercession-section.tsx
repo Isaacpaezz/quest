@@ -1,7 +1,7 @@
 'use client'
 
-import { useCallback, useLayoutEffect, useRef, type RefObject } from 'react'
-import { Users, Check, Sparkles, Loader2 } from 'lucide-react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type RefObject } from 'react'
+import { Users, Check, Sparkles, Loader2, ChevronLeft, ChevronRight } from 'lucide-react'
 import { toast } from 'sonner'
 
 const CATEGORIA_BADGE: Record<string, { emoji: string; label: string }> = {
@@ -56,9 +56,14 @@ export function IntercessionSection({
   const activePetitionSeconds = petitions.length > 0
     ? Math.max(1, sectionSeconds / petitions.length)
     : Math.max(1, secondsPerPetition)
-  const activeIndex = petitions.length > 0
+  const timedActiveIndex = petitions.length > 0
     ? Math.min(Math.floor(sectionElapsed / activePetitionSeconds), petitions.length - 1)
     : -1
+  const [manualIndex, setManualIndex] = useState<number | null>(null)
+  const petitionIdsKey = petitions.map(petition => petition.id).join('|')
+  const activeIndex = manualIndex === null
+    ? timedActiveIndex
+    : Math.min(manualIndex, petitions.length - 1)
   const activePetition = activeIndex >= 0 ? petitions[activeIndex] : null
   const activeBadge = activePetition ? CATEGORIA_BADGE[activePetition.categoria] : null
   const hasPrayed = activePetition
@@ -70,6 +75,10 @@ export function IntercessionSection({
   const displayIndex = activeIndex + 1
   const activePetitionId = activePetition?.id ?? null
   const lastActivePetitionIdRef = useRef<string | null>(null)
+
+  useEffect(() => {
+    setManualIndex(null)
+  }, [petitionIdsKey])
 
   useLayoutEffect(() => {
     if (!activePetitionId) {
@@ -96,6 +105,22 @@ export function IntercessionSection({
     onIntercede(petitionId)
     toast.success('Oración registrada 🙏', { duration: 1500 })
   }, [intercededIds, onIntercede, petitions])
+
+  const handlePrevious = useCallback(() => {
+    if (petitions.length < 2) return
+    setManualIndex(currentIndex => {
+      const baseIndex = currentIndex ?? activeIndex
+      return (baseIndex - 1 + petitions.length) % petitions.length
+    })
+  }, [activeIndex, petitions.length])
+
+  const handleNext = useCallback(() => {
+    if (petitions.length < 2) return
+    setManualIndex(currentIndex => {
+      const baseIndex = currentIndex ?? activeIndex
+      return (baseIndex + 1) % petitions.length
+    })
+  }, [activeIndex, petitions.length])
 
   return (
     <div className="section-bg-intercession flex min-h-full flex-col items-center justify-center gap-5 px-8 py-6">
@@ -137,6 +162,29 @@ export function IntercessionSection({
             </span>
           </div>
 
+          {petitions.length > 1 && (
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={handlePrevious}
+                className="flex min-h-10 items-center justify-center gap-1 rounded-lg border px-3 text-xs font-semibold transition-all active:scale-95"
+                style={{ borderColor: 'hsl(var(--border) / 0.45)', color: 'hsl(var(--foreground) / 0.72)' }}
+              >
+                <ChevronLeft className="h-4 w-4" />
+                Anterior
+              </button>
+              <button
+                type="button"
+                onClick={handleNext}
+                className="flex min-h-10 items-center justify-center gap-1 rounded-lg border px-3 text-xs font-semibold transition-all active:scale-95"
+                style={{ borderColor: 'hsl(var(--border) / 0.45)', color: 'hsl(var(--foreground) / 0.72)' }}
+              >
+                Siguiente
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            </div>
+          )}
+
           <div className="mt-3">
             <p className="text-xs font-medium" style={{ color: 'hsl(var(--foreground) / 0.55)' }}>
               Ora por {activePetition.usuario_nombre}
@@ -162,7 +210,31 @@ export function IntercessionSection({
             </span>
           </div>
 
-          <div className="mt-4 min-h-96 rounded-xl px-4 py-3" style={{ background: 'hsl(var(--foreground) / 0.05)' }}>
+          {/* "Oré" button */}
+          <button
+            onClick={() => handleOreTap(activePetition.id)}
+            disabled={hasPrayed}
+            className="mt-4 flex min-h-12 w-full items-center justify-center gap-2 rounded-lg px-4 py-2 text-base font-semibold transition-all active:scale-95 disabled:opacity-60"
+            style={{
+              background: hasPrayed
+                ? 'hsl(var(--muted))'
+                : 'var(--section-intercession-accent)',
+              color: hasPrayed
+                ? 'hsl(var(--muted-foreground))'
+                : '#111318',
+            }}
+          >
+            {hasPrayed ? (
+              <>
+                <Check className="h-4 w-4" />
+                {activePetition.has_prayed ? `Ya habías orado por ${activePetition.usuario_nombre}` : `Oraste por ${activePetition.usuario_nombre}`}
+              </>
+            ) : (
+              <>Oré 🙏</>
+            )}
+          </button>
+
+          <div className="mt-4 min-h-52 rounded-xl px-4 py-3" style={{ background: 'hsl(var(--foreground) / 0.05)' }}>
             <div className="mb-2 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.16em]" style={{ color: 'var(--section-intercession-accent)' }}>
               <Sparkles className="h-3.5 w-3.5" />
               Guía de oración
@@ -186,29 +258,6 @@ export function IntercessionSection({
             )}
           </div>
 
-          {/* "Oré" button */}
-          <button
-            onClick={() => handleOreTap(activePetition.id)}
-            disabled={hasPrayed}
-            className="mt-4 flex min-h-11 w-full items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-all active:scale-95 disabled:opacity-60"
-            style={{
-              background: hasPrayed
-                ? 'hsl(var(--muted))'
-                : 'var(--section-intercession-accent)',
-              color: hasPrayed
-                ? 'hsl(var(--muted-foreground))'
-                : '#111318',
-            }}
-          >
-            {hasPrayed ? (
-              <>
-                <Check className="h-4 w-4" />
-                {activePetition.has_prayed ? `Ya habías orado por ${activePetition.usuario_nombre}` : `Oraste por ${activePetition.usuario_nombre}`}
-              </>
-            ) : (
-              <>Oré 🙏</>
-            )}
-          </button>
         </div>
       )}
 

@@ -114,12 +114,18 @@ export default async function OracionPage() {
             const { data: prayedRows } = petitionIds.length > 0
                 ? await supabase
                     .from('oraciones_por_peticion')
-                    .select('peticion_id')
+                    .select('peticion_id, creado_en')
                     .eq('usuario_id', user.id)
                     .in('peticion_id', petitionIds)
                 : { data: [] }
 
             const prayedPetitionIds = new Set((prayedRows ?? []).map(row => row.peticion_id))
+            const lastPrayedAtByPetitionId = new Map(
+                (prayedRows ?? []).map(row => [
+                    row.peticion_id,
+                    new Date(row.creado_en).toLocaleDateString('en-CA', { timeZone: tz }),
+                ] as const)
+            )
             const candidates: GuidedIntercessionPetition[] = comunidad.map(p => {
                 const perfiles = p.perfiles as { nombre_usuario: string } | { nombre_usuario: string }[] | null
                 const authorName = Array.isArray(perfiles)
@@ -137,6 +143,7 @@ export default async function OracionPage() {
                     creado_en: p.creado_en,
                     actualizado_en: p.actualizado_en,
                     has_prayed: prayedPetitionIds.has(p.id),
+                    last_prayed_at: lastPrayedAtByPetitionId.get(p.id) ?? null,
                     // Always ask the server action for a hash/perspective-validated guide.
                     // Old cached DB text may have been generated with the wrong perspective.
                     oracion_guia: null,
@@ -147,6 +154,7 @@ export default async function OracionPage() {
                 petitions: candidates,
                 currentUserId: user.id,
                 intercessionSeconds,
+                referenceDate: today,
             }).map(({ id, titulo, descripcion, categoria, usuario_nombre, oraciones_count, creado_en, actualizado_en, oracion_guia, has_prayed }) => ({
                 id,
                 titulo,
