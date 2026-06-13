@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { MuroComunidadClient } from './_components/muro-comunidad-client'
+import { PetitionsNavigation } from './_components/petitions-navigation'
 import { getCommunityWallAction } from './actions'
 import type { CommunityPeticion } from './_components/use-realtime-peticiones'
 
@@ -49,6 +50,8 @@ export default async function PeticionesPage() {
           </p>
         </div>
       </div>
+
+      <PetitionsNavigation active="community" />
 
       {/* Community wall */}
       <MuroComunidadClient

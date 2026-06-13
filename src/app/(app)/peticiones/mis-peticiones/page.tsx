@@ -1,8 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
-import Link from 'next/link'
-import { Plus } from 'lucide-react'
 import { MuroPersonalClient } from '../_components/muro-personal-client'
+import { PetitionsNavigation } from '../_components/petitions-navigation'
 
 export const metadata = {
   title: 'Mis Peticiones — Quest',
@@ -25,15 +24,13 @@ export default async function MisPeticionesPage() {
   // ─── Styles ──────────────────────────────────────────────────────────────
   const textClr = 'hsl(var(--foreground))'
   const subClr = 'hsl(var(--muted-foreground))'
-  const primaryBg = 'hsl(var(--primary))'
 
   return (
     <div
-      className="min-h-screen px-4 pt-6 pb-24"
-      style={{ backgroundColor: 'hsl(var(--bg))' }}
+      className="min-h-screen bg-background px-4 pt-6 pb-24"
     >
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="mb-6 flex flex-col gap-4">
         <div>
           <h1
             className="text-[24px] font-display font-bold"
@@ -49,17 +46,7 @@ export default async function MisPeticionesPage() {
           </p>
         </div>
 
-        <Link
-          href="/peticiones/nueva"
-          className="flex items-center gap-2 px-4 py-2 rounded-full text-[13px] font-sans font-medium transition-colors"
-          style={{
-            backgroundColor: primaryBg,
-            color: '#FFFFFF',
-          }}
-        >
-          <Plus className="size-4" />
-          Nueva
-        </Link>
+        <PetitionsNavigation active="mine" />
       </div>
 
       {/* Content */}

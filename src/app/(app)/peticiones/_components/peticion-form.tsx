@@ -202,6 +202,7 @@ export function PeticionForm({
         </Label>
         <Select value={categoria} onValueChange={setCategoria} disabled={isPending}>
           <SelectTrigger
+            className="min-h-11 w-full"
             style={{
               backgroundColor: inputBg,
               border: `1px solid ${borderClr}`,
@@ -240,17 +241,17 @@ export function PeticionForm({
           type="button"
           onClick={() => setEsPrivada(!esPrivada)}
           disabled={isPending}
-          className="flex items-center justify-between rounded-[10px] px-4 py-3 transition-colors"
+          className="flex min-h-16 items-center justify-between gap-4 rounded-[10px] px-4 py-3 text-left transition-colors"
           style={{
             backgroundColor: inputBg,
             border: `1px solid ${borderClr}`,
           }}
         >
-          <div className="flex flex-col items-start gap-0.5">
+          <div className="flex min-w-0 flex-col items-start gap-0.5">
             <span className="text-[13px] font-sans font-medium" style={{ color: textClr }}>
               {esPrivada ? 'Privada' : 'Compartir con grupo'}
             </span>
-            <span className="text-[11px] font-sans" style={{ color: subClr }}>
+            <span className="break-words text-[11px] font-sans" style={{ color: subClr }}>
               {esPrivada
                 ? 'Solo vos podés ver esta petición'
                 : 'Tu comunidad puede ver y orar por esta petición'}

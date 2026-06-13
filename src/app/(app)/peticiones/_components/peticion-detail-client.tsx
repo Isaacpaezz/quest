@@ -112,7 +112,7 @@ function UpdateForm({
     return (
       <button
         onClick={() => setShowForm(true)}
-        className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-[13px] font-sans font-medium transition-colors w-full justify-center"
+        className="flex min-h-11 w-full items-center justify-center gap-2 rounded-xl px-4 text-[13px] font-sans font-medium transition-colors"
         style={{
           backgroundColor: activeBg,
           color: '#FFFFFF',
@@ -132,13 +132,13 @@ function UpdateForm({
         border: `1px solid ${borderClr}`,
       }}
     >
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <span className="text-[14px] font-sans font-semibold" style={{ color: textClr }}>
           Nueva actualización
         </span>
         <button
           onClick={() => setShowForm(false)}
-          className="text-[12px] font-sans"
+          className="min-h-11 rounded-full px-3 text-[12px] font-sans"
           style={{ color: subClr }}
         >
           Cancelar
@@ -146,7 +146,7 @@ function UpdateForm({
       </div>
 
       {/* Type selector */}
-      <div className="flex gap-2">
+      <div className="flex flex-wrap gap-2">
         {(['progreso', 'resuelto', 'testimonio'] as const).map((t) => {
           const config = TIPO_UPDATE_CONFIG[t]
           const Icon = config.icon
@@ -154,7 +154,7 @@ function UpdateForm({
             <button
               key={t}
               onClick={() => setTipo(t)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-sans font-medium transition-colors"
+              className="flex min-h-11 items-center gap-1.5 rounded-full px-4 text-[11px] font-sans font-medium transition-colors"
               style={{
                 backgroundColor: tipo === t ? config.bg : 'hsl(var(--muted))',
                 color: tipo === t ? config.color : subClr,
@@ -229,7 +229,7 @@ function UpdateForm({
       <button
         onClick={handleSubmit}
         disabled={isPending || !texto.trim()}
-        className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-[13px] font-sans font-medium transition-colors disabled:opacity-50"
+        className="flex min-h-11 items-center justify-center gap-2 rounded-xl px-4 text-[13px] font-sans font-medium transition-colors disabled:opacity-50"
         style={{
           backgroundColor: activeBg,
           color: '#FFFFFF',
@@ -363,7 +363,7 @@ export function PeticionDetailClient({
         }}
       >
         {/* Badges */}
-        <div className="flex items-center gap-2 mb-3">
+        <div className="mb-3 flex flex-wrap items-center gap-2">
           <span
             className="text-[11px] font-sans font-medium px-2 py-0.5 rounded-full"
             style={{ backgroundColor: categoria.bg, color: categoria.color }}
@@ -397,7 +397,7 @@ export function PeticionDetailClient({
         )}
 
         {/* Author + stats */}
-        <div className="flex items-center justify-between pt-3" style={{ borderTop: `1px solid ${borderClr}` }}>
+        <div className="flex flex-wrap items-center justify-between gap-3 pt-3" style={{ borderTop: `1px solid ${borderClr}` }}>
           <span className="text-[12px] font-sans" style={{ color: subClr }}>
             por {peticion.author_name}
           </span>

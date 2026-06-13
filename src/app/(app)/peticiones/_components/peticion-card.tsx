@@ -100,8 +100,8 @@ export function PeticionCard({
       }}
     >
       {/* Header: badges + actions */}
-      <div className="flex items-start justify-between mb-2">
-        <div className="flex items-center gap-2 flex-wrap">
+      <div className="mb-2 flex items-start justify-between gap-3">
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
           {/* Categoria badge */}
           <span
             className="text-[11px] font-sans font-medium px-2 py-0.5 rounded-full"
@@ -123,8 +123,9 @@ export function PeticionCard({
           <div className="relative">
             <button
               onClick={() => setShowActions(!showActions)}
-              className="p-1 rounded-full transition-colors"
+              className="flex min-h-11 min-w-11 items-center justify-center rounded-full transition-colors hover:bg-muted"
               style={{ color: subClr }}
+              aria-label="Abrir acciones de petición"
             >
               <MoreHorizontal className="size-4" />
             </button>
@@ -143,7 +144,7 @@ export function PeticionCard({
                     setShowActions(false)
                     onEdit?.(peticion.id)
                   }}
-                  className="flex items-center gap-2 w-full px-3 py-2.5 text-left transition-colors"
+                  className="flex min-h-11 w-full items-center gap-2 px-3 text-left transition-colors"
                   style={{ color: textClr }}
                 >
                   <Edit className="size-3.5" />
@@ -155,7 +156,7 @@ export function PeticionCard({
                     setShowActions(false)
                     setShowDeleteConfirm(true)
                   }}
-                  className="flex items-center gap-2 w-full px-3 py-2.5 text-left transition-colors"
+                  className="flex min-h-11 w-full items-center gap-2 px-3 text-left transition-colors"
                   style={{ color: '#EF4444' }}
                 >
                   <Trash2 className="size-3.5" />
@@ -169,7 +170,7 @@ export function PeticionCard({
 
       {/* Title */}
       <h3
-        className="text-[15px] font-sans font-semibold leading-tight mb-1"
+        className="mb-1 break-words text-[15px] font-sans font-semibold leading-tight"
         style={{ color: textClr }}
       >
         {peticion.titulo}
@@ -178,7 +179,7 @@ export function PeticionCard({
       {/* Description */}
       {descripcionCorta && (
         <p
-          className="text-[13px] font-sans leading-relaxed mb-3"
+          className="mb-3 break-words text-[13px] font-sans leading-relaxed"
           style={{ color: subClr }}
         >
           {descripcionCorta}
@@ -186,7 +187,7 @@ export function PeticionCard({
       )}
 
       {/* Footer: oraciones count + time */}
-      <div className="flex items-center justify-between mt-2">
+      <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-1.5">
           <Heart
             className="size-3.5"
@@ -216,7 +217,7 @@ export function PeticionCard({
           <div className="flex gap-2">
             <button
               onClick={() => setShowDeleteConfirm(false)}
-              className="flex-1 py-2 rounded-lg text-[12px] font-sans font-medium transition-colors"
+              className="min-h-11 flex-1 rounded-lg text-[12px] font-sans font-medium transition-colors"
               style={{
                 backgroundColor: 'hsl(var(--muted))',
                 color: textClr,
@@ -227,7 +228,7 @@ export function PeticionCard({
             <button
               onClick={handleDelete}
               disabled={isPending}
-              className="flex-1 py-2 rounded-lg text-[12px] font-sans font-medium transition-colors disabled:opacity-50"
+              className="min-h-11 flex-1 rounded-lg text-[12px] font-sans font-medium transition-colors disabled:opacity-50"
               style={{
                 backgroundColor: '#EF4444',
                 color: '#FFFFFF',

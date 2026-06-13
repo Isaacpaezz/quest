@@ -53,7 +53,7 @@ export function OrarPorPeticionButton({
   // Don't show button for petition author
   if (esAutor) {
     return (
-      <div className="flex items-center gap-1.5">
+      <div className="flex min-h-11 items-center gap-2 rounded-full bg-muted/60 px-3">
         <Heart
           className={compact ? 'size-3.5' : 'size-4'}
           style={{ color: '#F59E0B', fill: oracionesCount > 0 ? '#F59E0B' : 'transparent' }}
@@ -106,7 +106,7 @@ export function OrarPorPeticionButton({
     <button
       onClick={handleClick}
       disabled={isPending || hasOro}
-      className="flex items-center gap-1.5 transition-all active:scale-95 disabled:opacity-70"
+      className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-border bg-card/80 px-4 text-[13px] font-sans font-semibold shadow-sm transition-all active:scale-95 disabled:opacity-70"
       title={hasOro ? 'Oraste por esta petición' : 'Oré por esto'}
     >
       <Heart
@@ -117,12 +117,16 @@ export function OrarPorPeticionButton({
         }}
       />
       {!compact && (
-        <span
-          className="text-[12px] font-sans"
-          style={{ color: hasOro ? activeColor : subClr }}
-        >
-          {hasOro ? 'Oraste 🙏' : oracionesCount}
-        </span>
+        <>
+          <span style={{ color: hasOro ? activeColor : subClr }}>
+            {hasOro ? 'Oraste 🙏' : 'Oré'}
+          </span>
+          {!hasOro && (
+            <span className="rounded-full bg-muted px-2 py-0.5 text-[11px]" style={{ color: subClr }}>
+              {oracionesCount}
+            </span>
+          )}
+        </>
       )}
     </button>
   )

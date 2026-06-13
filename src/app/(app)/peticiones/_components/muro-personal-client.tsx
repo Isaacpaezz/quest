@@ -55,12 +55,12 @@ export function MuroPersonalClient({ peticiones: initialPeticiones }: MuroPerson
   return (
     <div className="flex flex-col gap-4">
       {/* Filters */}
-      <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+      <div className="flex flex-wrap gap-2 pb-1">
         {FILTROS.map((f) => (
           <button
             key={f.value}
             onClick={() => setFiltro(f.value)}
-            className="shrink-0 px-3 py-1.5 rounded-full text-[12px] font-sans font-medium transition-colors"
+            className="min-h-11 shrink-0 rounded-full px-4 text-[12px] font-sans font-medium transition-colors"
             style={{
               backgroundColor: filtro === f.value ? activeBg : inactiveBg,
               color: filtro === f.value ? activeText : subClr,

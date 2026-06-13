@@ -13,6 +13,9 @@ const ROUTE_TITLES: Record<string, string> = {
     '/badges': 'Badges',
     '/debts': 'Deudas',
     '/history': 'Historial',
+    '/peticiones': 'Peticiones',
+    '/peticiones/mis-peticiones': 'Mis peticiones',
+    '/peticiones/nueva': 'Nueva petición',
     '/admin': 'Admin',
     '/admin/planes': 'Planes',
     '/admin/miembros': 'Miembros',
@@ -26,16 +29,23 @@ const ROUTE_SUBTITLES: Record<string, string> = {
     '/badges': 'Logros desbloqueados en tu camino.',
     '/history': 'Tu progreso de lectura y oración.',
     '/challenges': 'Desafíos personales y grupales para crecer.',
+    '/peticiones': 'Oramos unos por otros con intención.',
+    '/peticiones/mis-peticiones': 'Tus motivos de oración y testimonios.',
+    '/peticiones/nueva': 'Compartí una necesidad para orar.',
 }
 
 function getPageTitle(pathname: string): string {
     if (ROUTE_TITLES[pathname]) return ROUTE_TITLES[pathname]
+    if (pathname.startsWith('/peticiones/') && pathname.endsWith('/editar')) return 'Editar petición'
+    if (/^\/peticiones\/[^/]+$/.test(pathname)) return 'Petición'
     const base = '/' + pathname.split('/').filter(Boolean)[0]
     return ROUTE_TITLES[base] || 'Quest'
 }
 
 function getPageSubtitle(pathname: string): string | undefined {
     if (ROUTE_SUBTITLES[pathname]) return ROUTE_SUBTITLES[pathname]
+    if (pathname.startsWith('/peticiones/') && pathname.endsWith('/editar')) return 'Actualizá los detalles con claridad.'
+    if (/^\/peticiones\/[^/]+$/.test(pathname)) return 'Detalle y seguimiento de oración.'
     const base = '/' + pathname.split('/').filter(Boolean)[0]
     return ROUTE_SUBTITLES[base]
 }

@@ -60,12 +60,12 @@ export function MuroComunidadClient({
   return (
     <div className="flex flex-col gap-4">
       {/* Filters */}
-      <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+      <div className="flex flex-wrap gap-2 pb-1">
         {FILTROS.map((f) => (
           <button
             key={f.value}
             onClick={() => setFiltro(f.value)}
-            className="shrink-0 px-3 py-1.5 rounded-full text-[12px] font-sans font-medium transition-colors"
+            className="min-h-11 shrink-0 rounded-full px-4 text-[12px] font-sans font-medium transition-colors"
             style={{
               backgroundColor: filtro === f.value ? activeBg : inactiveBg,
               color: filtro === f.value ? activeText : subClr,
@@ -101,15 +101,14 @@ export function MuroComunidadClient({
             const isOwner = peticion.usuario_id === currentUserId
 
             return (
-              <div key={peticion.id} className="relative">
+              <div key={peticion.id} className="flex flex-col gap-2">
                 <Link href={`/peticiones/${peticion.id}`} className="block">
                   <PeticionCard
                     peticion={peticion}
                     isOwner={false}
                   />
                 </Link>
-                {/* Oré button overlay */}
-                <div className="absolute bottom-4 right-4">
+                <div className="flex justify-end">
                   <OrarPorPeticionButton
                     peticionId={peticion.id}
                     initialOracionesCount={peticion.oraciones_count}

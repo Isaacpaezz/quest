@@ -31,8 +31,7 @@ export default async function EditarPeticionPage({
 
   return (
     <div
-      className="min-h-screen px-4 pt-6 pb-24"
-      style={{ backgroundColor: 'hsl(var(--bg))' }}
+      className="min-h-screen bg-background px-4 pt-6 pb-24"
     >
       {/* Header */}
       <div className="mb-6">
