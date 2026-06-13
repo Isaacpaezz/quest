@@ -1,6 +1,8 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { getTimezone } from '@/lib/grupo-helpers'
+import { getToday } from '@/lib/utils'
 import { createHash } from 'crypto'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
@@ -523,7 +525,7 @@ export async function getMyPetitionsAction(filtro?: {
 /**
  * orarPorPeticionAction
  * Registra que el usuario oró por una petición.
- * - INSERT en oraciones_por_peticion (UNIQUE constraint previene duplicados)
+ * - INSERT en oraciones_por_peticion (daily UNIQUE constraint previene duplicados)
  * - Trigger incrementa oraciones_count automáticamente
  * - Otorga XP de intercesión (con cap diario)
  * - Envía push notification al autor de la petición
@@ -555,12 +557,15 @@ export async function orarPorPeticionAction(peticionId: string) {
       return { success: false, error: 'No podés orar por tu propia petición' }
     }
 
-    // Check if user already prayed (lifetime uniqueness)
+    const today = getToday(await getTimezone(supabase))
+
+    // Check if user already prayed today
     const { data: existing } = await supabase
       .from('oraciones_por_peticion')
       .select('id')
       .eq('peticion_id', peticionId)
       .eq('usuario_id', user.id)
+      .eq('fecha_oracion', today)
       .single()
 
     if (existing) {
@@ -572,8 +577,6 @@ export async function orarPorPeticionAction(peticionId: string) {
     try {
       const { getXpConfig } = await import('@/lib/xp-helpers')
       const xpConfig = await getXpConfig(supabase, user.id)
-      const today = new Date()
-      today.setHours(0, 0, 0, 0)
       const { createAdminClient } = await import('@/lib/supabase/admin')
       const admin = createAdminClient()
       const xpReadClient = admin ?? supabase
@@ -581,7 +584,7 @@ export async function orarPorPeticionAction(peticionId: string) {
         .from('oraciones_por_peticion')
         .select('id')
         .eq('usuario_id', user.id)
-        .gte('creado_en', today.toISOString())
+        .eq('fecha_oracion', today)
 
       const todayXp = (todayPrayers?.length || 0) * xpConfig.intercesion
       shouldGrantIntercessionXp = todayXp + xpConfig.intercesion <= xpConfig.intercesion_daily_cap
@@ -595,6 +598,7 @@ export async function orarPorPeticionAction(peticionId: string) {
       .insert({
         peticion_id: peticionId,
         usuario_id: user.id,
+        fecha_oracion: today,
       })
 
     if (insertError) {
@@ -685,6 +689,7 @@ export async function hasUserPrayedAction(peticionId: string) {
       .select('id')
       .eq('peticion_id', peticionId)
       .eq('usuario_id', user.id)
+      .eq('fecha_oracion', getToday(await getTimezone(supabase)))
       .single()
 
     return { success: true, prayed: !!data }
@@ -759,6 +764,7 @@ export async function getCommunityWallAction() {
       .from('oraciones_por_peticion')
       .select('peticion_id')
       .eq('usuario_id', user.id)
+      .eq('fecha_oracion', getToday(await getTimezone(supabase)))
       .in('peticion_id', peticionIds)
 
     const prayedSet = new Set((userPrayers || []).map(p => p.peticion_id))
@@ -1031,6 +1037,7 @@ export async function getPetitionDetailAction(peticionId: string) {
       .select('id')
       .eq('peticion_id', peticionId)
       .eq('usuario_id', user.id)
+      .eq('fecha_oracion', getToday(await getTimezone(supabase)))
       .single()
 
     // Get author name
@@ -1240,7 +1247,7 @@ export async function generarOracionesGuiaBatch(peticionIds: string[]) {
 /**
  * registrarIntercesionesBatch
  * Registra intercesiones masivamente al completar el timer de oración.
- * - Idempotent: UNIQUE(peticion_id, usuario_id) previene duplicados
+ * - Idempotent: UNIQUE(peticion_id, usuario_id, fecha_oracion) previene duplicados diarios
  * - XP rate-limited: max 5 intercesiones por día para XP
  * - Notifications batched: 1 push por autor (no por petición)
  * - Called on timer completion with prayedPetitions array
@@ -1272,15 +1279,17 @@ export async function registrarIntercesionesBatch(peticionIds: string[]) {
     // Filter out own petitions (self-intercession is not recorded)
     const otherPetitions = peticiones.filter(p => p.usuario_id !== user.id)
 
-    // Count existing intercessions BEFORE upsert to know how many are new
+    const today = getToday(await getTimezone(supabase))
+
+    // Count existing intercessions for today BEFORE upsert to know how many are new
     const { data: existingBefore } = await supabase
       .from('oraciones_por_peticion')
       .select('peticion_id')
       .eq('usuario_id', user.id)
+      .eq('fecha_oracion', today)
       .in('peticion_id', peticionIds)
 
     const existingBeforeSet = new Set((existingBefore || []).map(e => e.peticion_id))
-    const newCount = otherPetitions.filter(p => !existingBeforeSet.has(p.id)).length
     const newPetitions = otherPetitions.filter(p => !existingBeforeSet.has(p.id))
 
     // Calculate XP slots BEFORE inserting the current batch.
@@ -1288,8 +1297,6 @@ export async function registrarIntercesionesBatch(peticionIds: string[]) {
     try {
       const { getXpConfig } = await import('@/lib/xp-helpers')
       const xpConfig = await getXpConfig(supabase, user.id)
-      const today = new Date()
-      today.setHours(0, 0, 0, 0)
       const { createAdminClient } = await import('@/lib/supabase/admin')
       const admin = createAdminClient()
       const xpReadClient = admin ?? supabase
@@ -1297,7 +1304,7 @@ export async function registrarIntercesionesBatch(peticionIds: string[]) {
         .from('oraciones_por_peticion')
         .select('id')
         .eq('usuario_id', user.id)
-        .gte('creado_en', today.toISOString())
+        .eq('fecha_oracion', today)
 
       const todayCount = todayPrayers?.length || 0
       const todayXp = todayCount * xpConfig.intercesion
@@ -1307,34 +1314,39 @@ export async function registrarIntercesionesBatch(peticionIds: string[]) {
       console.error('Error calculating batch XP slots:', xpErr)
     }
 
-    // Insert intercession records (idempotent via UNIQUE constraint)
+    // Insert intercession records (idempotent via daily UNIQUE constraint)
     const records = otherPetitions.map(p => ({
       peticion_id: p.id,
       usuario_id: user.id,
+      fecha_oracion: today,
     }))
 
     if (!records.length) {
       return { success: true, inserted: 0, xpGranted: 0 }
     }
 
-    const { error: insertError } = await supabase
+    const { data: insertedRows, error: insertError } = await supabase
       .from('oraciones_por_peticion')
-      .upsert(records, { onConflict: 'peticion_id,usuario_id', ignoreDuplicates: true })
+      .upsert(records, { onConflict: 'peticion_id,usuario_id,fecha_oracion', ignoreDuplicates: true })
+      .select('peticion_id')
 
     if (insertError) {
       console.error('Error inserting batch intercessions:', insertError)
       return { success: false, error: 'Error al registrar intercesiones', inserted: 0, xpGranted: 0 }
     }
 
+    const insertedPetitionIds = new Set((insertedRows || []).map(row => row.peticion_id))
+    const insertedPetitions = newPetitions.filter(p => insertedPetitionIds.has(p.id))
+
     // Grant XP with daily cap (max 5 intercessions per day for XP)
     let xpGranted = 0
-    if (newPetitions.length > 0 && remainingXpSlots > 0) {
+    if (insertedPetitions.length > 0 && remainingXpSlots > 0) {
       try {
         const { getXpConfig, grantXp } = await import('@/lib/xp-helpers')
         const xpConfig = await getXpConfig(supabase, user.id)
 
         // Grant XP for up to remainingXpSlots petitions
-        const xpPetitions = newPetitions.slice(0, remainingXpSlots)
+        const xpPetitions = insertedPetitions.slice(0, remainingXpSlots)
         for (const p of xpPetitions) {
           const result = await grantXp(
             supabase,
@@ -1353,7 +1365,7 @@ export async function registrarIntercesionesBatch(peticionIds: string[]) {
 
     // Send batched notifications: 1 per author
     const authorMap = new Map<string, { grupoId: string; titles: string[] }>()
-    for (const p of newPetitions) {
+    for (const p of insertedPetitions) {
       if (!p.grupo_id) continue
 
       const existing = authorMap.get(p.usuario_id)
@@ -1405,7 +1417,7 @@ export async function registrarIntercesionesBatch(peticionIds: string[]) {
     revalidatePath('/peticiones')
     revalidatePath('/feed')
 
-    return { success: true, inserted: newCount, xpGranted }
+    return { success: true, inserted: insertedPetitions.length, xpGranted }
   } catch (error) {
     console.error('Error en registrarIntercesionesBatch:', error)
     return { success: false, error: 'Error inesperado', inserted: 0, xpGranted: 0 }

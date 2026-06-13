@@ -464,18 +464,21 @@ export type Database = {
       oraciones_por_peticion: {
         Row: {
           creado_en: string
+          fecha_oracion: string
           id: string
           peticion_id: string
           usuario_id: string
         }
         Insert: {
           creado_en?: string
+          fecha_oracion?: string
           id?: string
           peticion_id: string
           usuario_id: string
         }
         Update: {
           creado_en?: string
+          fecha_oracion?: string
           id?: string
           peticion_id?: string
           usuario_id?: string

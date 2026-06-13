@@ -114,17 +114,23 @@ export default async function OracionPage() {
             const { data: prayedRows } = petitionIds.length > 0
                 ? await supabase
                     .from('oraciones_por_peticion')
-                    .select('peticion_id, creado_en')
+                    .select('peticion_id, creado_en, fecha_oracion')
                     .eq('usuario_id', user.id)
                     .in('peticion_id', petitionIds)
                 : { data: [] }
 
-            const prayedPetitionIds = new Set((prayedRows ?? []).map(row => row.peticion_id))
+            const prayedTodayPetitionIds = new Set(
+                (prayedRows ?? [])
+                    .filter(row => row.fecha_oracion === today)
+                    .map(row => row.peticion_id)
+            )
             const lastPrayedAtByPetitionId = new Map(
-                (prayedRows ?? []).map(row => [
-                    row.peticion_id,
-                    new Date(row.creado_en).toLocaleDateString('en-CA', { timeZone: tz }),
-                ] as const)
+                (prayedRows ?? [])
+                    .toSorted((a, b) => Date.parse(a.creado_en) - Date.parse(b.creado_en))
+                    .map(row => [
+                        row.peticion_id,
+                        row.fecha_oracion,
+                    ] as const)
             )
             const candidates: GuidedIntercessionPetition[] = comunidad.map(p => {
                 const perfiles = p.perfiles as { nombre_usuario: string } | { nombre_usuario: string }[] | null
@@ -142,7 +148,7 @@ export default async function OracionPage() {
                     oraciones_count: p.oraciones_count,
                     creado_en: p.creado_en,
                     actualizado_en: p.actualizado_en,
-                    has_prayed: prayedPetitionIds.has(p.id),
+                    has_prayed: prayedTodayPetitionIds.has(p.id),
                     last_prayed_at: lastPrayedAtByPetitionId.get(p.id) ?? null,
                     // Always ask the server action for a hash/perspective-validated guide.
                     // Old cached DB text may have been generated with the wrong perspective.

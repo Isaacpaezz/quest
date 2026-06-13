@@ -95,7 +95,7 @@ describe('selectGuidedIntercessionPetitions', () => {
     ], 180)).toEqual(['fresh', 'yesterday', 'today'])
   })
 
-  it('does not deprioritize lifetime-prayed petitions outside the recent window', () => {
+  it('does not deprioritize previously prayed petitions outside the recent window', () => {
     expect(selectIds([
       petition('older-prayed', { has_prayed: true, last_prayed_at: '2025-12-01T10:00:00.000Z', categoria: 'urgente' }),
       petition('fresh-regular', { categoria: 'otro' }),
